@@ -17,7 +17,7 @@ A wide variety of techniques for attacking this problem from different angles ha
 %Types shit
 Previous work in analyzing binary code has performed partial type recovery, function identification, variable identification, control flow recovery, and value analysis.
 However, this work tends to have issues with the relative expense of running the analyses, the coupling between analyses, and the integration of the current state of the art in each area.
-In the case of Jakstab, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitates a tight loop between the two.
+In the case of Jakstab, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitate a tight loop between the two.
 VSA provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
 For variable identification, DIVINE is currently top of the pack. However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
 
@@ -26,7 +26,7 @@ A simple execution trace provides much, such as concrete feasible values for var
 Expanding from there, work like Howard attempts to recover the shape of data structures from concrete memory accesses, which could be in turn fed as suggestions to a solver for a system like BiTR.
 Finally, symbolic execution techniques are well known to be extremely expensive, but are of interest for their ability to answer what would otherwise be very difficult questions.
 
-In general, one of the major weaknesses of this body of work is that these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
+These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
 Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
 These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
 
