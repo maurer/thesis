@@ -30,8 +30,10 @@ These examples demonstrate one of the major weaknesses of this body of work: the
 Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
 These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
 
-Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a fairly restrictive view of external predicates, generally assuming termination. If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
-The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources. I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
+Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a fairly restrictive view of external predicates, generally assuming termination.
+If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
+The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources.
+I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
 
 %This is Holmes
 I intend to build \sysname, a logic language inspired by Datalog with several features geared towards the ability to use a logic program as a means of coordinating several independent analyses.
