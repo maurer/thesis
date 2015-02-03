@@ -20,13 +20,8 @@ However, this work tends to have issues with the relative expense of running the
 In the case of Jakstab, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitates a tight loop between the two.
 VSA provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
 For variable identification, DIVINE is currently top of the pack. However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
-BiTR works to statically recover C-like types from compiled code, but assumes it has enough information from other analyses in order to generate an SSA form of the program, which in turn assumes control flow information.
 
-In another branch of work, dynamic analyses tend to give much more specific responses than the static systems discussed so far.
-Actual executions give lower bounds on what can happen in the program, due to having a concrete instance.
-Unfortunately, the dynamic approach does not give upper bounds, so a dynamic analysis is rarely truly ``done''.
-Additionally, since most forms of dynamic analysis will involve running the actual program many times, they tend to be quite expensive to run.
-However, this analysis can still be useful even in its incompleteness.
+In another branch of work, dynamic analyses tend to give much more specific, but expensive and incomplete responses than the static systems discussed so far.
 A simple execution trace provides much, such as concrete feasible values for variables, bounds for may-alias and must-alias analyses, and partial control flow graphs.
 Expanding from there, work like Howard attempts to recover the shape of data structures from concrete memory accesses, which could be in turn fed as suggestions to a solver for a system like BiTR.
 Finally, symbolic execution techniques are well known to be extremely expensive, but are of interest for their ability to answer what would otherwise be very difficult questions.
@@ -36,7 +31,7 @@ Additionally, since each system has been considered in a vacuum, the cost vs acc
 These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
 
 %This is Holmes
-\sysname\ is a logic language inspired by datalog with several features geared towards the ability to use a logic program as a means of coordinating several independent analyses.
+I intend to build \sysname\, a logic language inspired by datalog with several features geared towards the ability to use a logic program as a means of coordinating several independent analyses.
 %Features:
 % Forwards + Backwards chaining
 % Caching
