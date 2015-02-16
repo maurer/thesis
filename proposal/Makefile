@@ -1,4 +1,6 @@
-.PHONY: FORCE, clean
+all: proposal.pdf committee_abstract.pdf
+
+.PHONY: FORCE, clean, all
 %.pdf: FORCE
 	latexmk $* -pdf
 FORCE:
