@@ -1,6 +1,49 @@
 \section{Proposal Overview}
 \subsection{Proposed Work}
-\subsection{Future Work}
+%Previous work hits roadblocks, this should address them
+Previous work in binary analysis has run into a number of stumbling blocks related to getting the input information they require to actually make inferences. 
+In Figure~\ref{fig:problems_addressed}, I show where previous work has encountered these issues.
+Here, dependency cycle means their novel component interacted with another cyclically.
+Expensive optional dependencies indicates the use of an expensive analysis where a cheaper one would usually suffice.
+Unused inputs is marked when the system mentioned other analyses that should give an improvement when combined, but chose not to do so, indicating a barrier to running the analysis and integrating it.
+
+%This is what we're gonna do
+\sysname\ addresses these issues by expressing the relationship between various analyses in the form of rules in a logic language, similar to Datalog or Prolog.
+Dependency cycles can be dealt with via fixpoints when rules chain forwards, and a search procedure when chaining backwards.
+Expensive procedures can be dealt with via backwards chaining rules tuned to be searched late in the search space.
+Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
+
+%This is how we're gonna test it
+I will test \sysname\'s effectiveness by using it to combine several existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
+I expect to see an increase in modularity and ease of implementation.
+Additionally, I expect to improve output quality if some inputs were neglected.
+Lastly, I anticipate a performance increase in analyses that were using a heavyweight analysis in places where it was not needed.
+\todo{Add citations for table}
+\todo{Add more entries to table}
+\todo{Verify TIE/Phoenix mentioned something they could use}
+\todo{Optional isn't the best word for the expensive deps}
+\begin{figure*}
+\begin{tabular}{|c||c|c|c|}
+\hline
+Analysis & Dependency Cycle & Expensive Optional Dependencies & Unused Inputs\\
+\hline \hline
+Jakstab & \fyes & \fyes & \fno\\
+Phoenix & \fyes & \fyes & \fyes\\
+TIE & \fno & \fyes & \fyes \\
+BiTR & \fno & \fyes & \fyes\\
+\hline
+\end{tabular}
+\caption{Stumbling Blocks}
+\label{fig:problems_addressed}
+\end{figure*}
+\subsection{Extended Work}
+The use of a logic language oriented approach to describing the relationship between analyses provides a unique opportunity to explore the implications of circumscription in incomplete logic langauges.
+Circumscription is used in traditional logic languages at the point of saturation or search termination in order to provide a form of stratified negation.
+\sysname and binary analysis each provide an attribute interesting for circumscription:
+\sysname is incomplete, but unlike Prolog, some rules may never complete execution, making stratification an inadequate solution.
+Binary analysis deals very frequently in ranges and various sorts of bounds on what things can be.
+Within this context, circumscription may be able to formalize the notion of conjecturing ``true'' values for things normally only bounded by ranges.
+I intend to examine this avenue of work if time allows after the main body of work.
 \section{Thesis}
 The logic language implemented in \sysname\ provides a superior paradigm for expressing and executing codependent, incremental, or expensive analyses which provide results to each other.
 \section{Timeline}
@@ -8,7 +51,7 @@ I plan to complete my thesis before Aug 2016.
 \begin{enumerate}
 \item[Now-Apr 2015] Thesis Proposal
 %CCS (Resubmit BiTR unless I've gotten a _long_ way)
-\item[May-Aug 2015] \sysname\ Basic feature complete (Section \ref{sec:holmes_basic})
+\item[May-Aug 2015] \sysname\ Basic feature complete (\S~\ref{sec:holmes_basic})
 %NDSS (Use holmes to piggyback on Jonathan's inevitable resubmission of firmware systemwide paper?)
 \item[Sep 2015] \sysname / BAP integration
 \item[Oct-Nov 2015]
