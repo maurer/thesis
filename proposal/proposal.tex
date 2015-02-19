@@ -1,8 +1,9 @@
 \documentclass{report}
-\usepackage{fullpage}
+%\usepackage{fullpage}
 \usepackage{hyperref}
 \hypersetup{linktoc=all}
 \usepackage{todonotes}
+\usepackage{syntax}
 
 \usepackage{wasysym}
 \newcommand{\fyes}{\CIRCLE}
@@ -33,8 +34,8 @@
 \input{introduction.tex}
 \chapter{Related Work}
 \chapter{Completed Work}
+\input{completed.tex}
 \chapter{\sysname}
-\section{\sysname\ Basic}
-\label{sec:holmes_basic}
+\input{holmes.tex}
 \chapter{Conclusion}
 \end{document}

@@ -1,0 +1,71 @@
+\section{\sysname\ Basic}
+\label{sec:holmesBasic}
+Initially, I will aim to implement a more basic set of features in \sysname.
+This feature set is intended to be complete enough to pursue the majority of the application work, while simple enough that its completion should not be in question.
+In the basic version of \sysname, I will implement a system with:
+\begin{itemize}
+\item Forwards and backwards chaining
+\item Simple external predicates
+\item Result caching/persistence
+\item Combination functions
+\end{itemize}
+Additionally, I will attempt to formalize the semantics of the restricted system, and attempt to determine under what conditions it will quiesce.
+
+While the actual system will operate based on RPC calls, it is conceptually useful to think about the system in terms of a written out set of rules.
+In Figure~\ref{fig:holmesGrammar}, I depict a draft of what this would consist of for \sysname\ Basic.
+Additional constraints are necessary beyond what is expressed in the grammar (e.g. variable occurrence restrictions), but this gives the basic concept for the moment.
+The only thing not directly expressible in this language is the external functions themselves.
+External functions creation is not given a representation here because they are represented to the system by providing it with an RPC handle, and so they act as black boxes;
+to provide a direct means of expressing them would be misleading about what the system could reason about.
+
+\begin{figure}
+\begin{grammar}
+
+<prog> ::= (<decl> | <rule>)*
+
+<decl> ::= <pred> `(' <argsig>+ `)'
+\alt <pred> `(' <var>* `)' `where' `(' <arg>* `)' `=' <expr>
+
+<argsig>
+::=  <type>(= : <func>)
+\alt <type>($\oplus$ : <func>)
+
+<rule> ::= <head-constr> <sched-sym> <body-clause>
+
+<sched-sym> ::= $\leftarrow$
+\alt $\Leftarrow$
+
+<head-constr> ::= (<pred> `(' <expr>+ `)')+
+
+<expr> ::= <var>
+\alt <consnt>
+\alt <func> `(' <expr>* `)'
+
+<body-clause>
+::=  `('<body-clause>`)' $\wedge$ `('<body-clause>`)'
+\alt `('<body-clause>`)' $\vee$ `('<body-clause>`)'
+\alt <pred> `(' <arg>* `)'
+
+<arg> ::= $\exists$ \alt <var> \alt <const>
+\end{grammar}
+\label{fig:holmesGrammar}
+\caption{\sysname\ Grammar}
+\end{figure}
+
+Ignoring external predicates for a moment, I expect the semantics of the basic system to resemble a Prolog with user annotated precomputation and caching.
+One notable deviation is the lack of an implicit evaluation order.
+While in Prolog this provides the programmer the ability to write terminating code, in \sysname it precludes the opportunity to explore scheduling of proof search.
+A second deviation is the presence of combiners.
+I suspect, but am not sure, that combiners will only have a minor effect on the actual execution of the language.
+I believe the effect to be minor because the way combination happens means that matching on an improved combined fact will look identical to matching on a not-yet present uncombined fact.
+
+\section{\sysname\ Advanced}
+Possible additional topics to explore as they are relevant to applications include:
+\begin{itemize}
+\item Retraction - removal of facts or even rules from a live system with minimal perturbation to support hypothetical analyses
+\item Circumscription - reasoning as though knowledge of some fact is all you will ever have/can be known, despite not knowing this for certain
+\item Tactical Evaluation - adaptation of a system similar to Coq's tactic scripts to suggest evaluation strategies
+\item Learning Evaluation - self improvement of evaluation strategies based on past success and cost of external predicates
+\item Resource Constrained Evaluation - Getting the best answer within certain time/machine constraints
+I intend to hit at least some of these as I explore the usefulness of this system to binary analysis, but not necessarily all of them.
+\end{itemize}
