@@ -23,8 +23,7 @@ to provide a direct means of expressing them would be misleading about what the 
 
 <prog> ::= (<decl> | <rule>)*
 
-<decl> ::= <pred> `(' <argsig>+ `)'
-\alt <pred> `(' <var>* `)' `where' `(' <arg>* `)' `=' <expr>
+<decl> ::= <pred> `(' <argsig>+ `)' [`where' (`(' <arg>* `)' `=' <expr>)]
 
 <argsig>
 ::=  <type>(= : <func>)
@@ -43,7 +42,6 @@ to provide a direct means of expressing them would be misleading about what the 
 
 <body-clause>
 ::=  `('<body-clause>`)' $\wedge$ `('<body-clause>`)'
-\alt `('<body-clause>`)' $\vee$ `('<body-clause>`)'
 \alt <pred> `(' <arg>* `)'
 
 <arg> ::= $\exists$ \alt <var> \alt <const>
