@@ -1,11 +1,19 @@
-\documentclass{report}
-%\usepackage{fullpage}
-\usepackage{hyperref}
+\documentclass{cmuthesis}
+\usepackage{fullpage}
+\usepackage[
+  backref,pageanchor=true,plainpages=false, pdfpagelabels, bookmarks,bookmarksnumbered
+]{hyperref}
 \hypersetup{linktoc=all}
 \usepackage{todonotes}
 \usepackage{syntax}
-
+\usepackage{amsmath}
 \usepackage{wasysym}
+\usepackage{subfigure}
+\usepackage[numbers,sort]{natbib}
+%\usepackage[letterpaper,twoside,vscale=.8,hscale=.75,nomarginpar,hmarginratio=1:1]{geometry}
+
+\draftstamp{\today}{DRAFT}
+
 \newcommand{\fyes}{\CIRCLE}
 \newcommand{\fhalf}{\LEFTcircle}
 \newcommand{\fno}{\Circle}
@@ -16,20 +24,48 @@
 %\usepackage{setspace}
 %\doublespacing
 \begin{document}
-
+\frontmatter
+\pagestyle{empty}
 % What a proposal should be, according to the ECE website
 %    An explanation of the basic idea of the dissertation topic;
 %    An explanation as to why this topic is interesting;
 %    A statement as to what kind of results are expected, and;
 %    A convincing argument as to why these results are attainable in a reasonable amount of time.
 \newcommand{\sysname}{Holmes}
-\title{\sysname}
+\title{\bf Thesis Proposal: \sysname}
 \author{Matthew Maurer}
+\Year{2015}
+\trnumber{}
+
+\committee{
+David Brumley, Chair \\
+Frank Pfenning \\
+Lujo Bauer \\
+Manuel Egele, Boston University 
+}
+
+\support{}
+\disclaimer{}
+
+\keywords{binary analysis, logic programming}
 \maketitle
+
+%\begin{dedication}
+%\end{dedication}
+
+\pagestyle{plain}
+\clearpage
+
 \begin{abstract}
 \input{abstract.tex}
 \end{abstract}
+
+%\begin{acknowledgements}
+%\end{acknowledgements}
+
 \tableofcontents
+
+\mainmatter
 \chapter{Introduction}
 \input{introduction.tex}
 \chapter{Related Work}
@@ -38,4 +74,10 @@
 \chapter{\sysname}
 \input{holmes.tex}
 \chapter{Conclusion}
+
+\backmatter
+\renewcommand{\bibsection}{\chapter{\bibname}}
+\bibliographystyle{alphaurl}
+\bibliography{proposal}
+
 \end{document}

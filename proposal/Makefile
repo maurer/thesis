@@ -6,4 +6,4 @@ all: proposal.pdf committee_abstract.pdf
 FORCE:
 
 clean:
-	rm -f *.pdf *.toc *.log *.fls *.aux *.fdb_latexmk *.out
+	rm -f *.blg *.bbl *.brg *.brf *.pdf *.toc *.log *.fls *.aux *.fdb_latexmk *.out
