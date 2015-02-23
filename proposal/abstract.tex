@@ -14,25 +14,9 @@ A wide variety of techniques for attacking this problem from different angles ha
 %VSA
 %Jakstab
 %Types shit
-Previous work in analyzing binary code has performed partial type recovery, function identification, variable identification, control flow recovery, and value analysis.
+Previous work in analyzing binary code has performed type recovery\cite{bitr}, variable identification\cite{divine}, control flow recovery\cite{jakstab,phoenix}, and value analysis\cite{vsa}.
 However, this work tends to have issues with the relative expense of running the analyses, the coupling between analyses, and the integration of the current state of the art in each area.
-In the case of Jakstab, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitate a tight loop between the two.
-VSA provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
-For variable identification, DIVINE is currently top of the pack. However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
-
-In another branch of work, dynamic analyses tend to give more specific, but expensive and incomplete responses than the static systems discussed so far.
-An execution trace provides much, such as concrete feasible values for variables, bounds for may-alias and must-alias analyses, and partial control flow graphs.
-Other work attempts to recover data structures from concrete memory accesses, which could be fed as suggestions to a static inference engine.
-Finally, symbolic execution techniques are well known to be extremely expensive, but are of interest for their ability to answer what would otherwise be very difficult questions.
-
-These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
-Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
-These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
-
-Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a fairly restrictive view of external predicates, generally assuming termination.
-If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
-The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources.
-I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
+While many interesting analyses have been developed, cooperation and integration of these analyses has been largely ignored.
 
 %This is Holmes
 I intend to build \sysname, a logic language inspired by Datalog with several features geared towards the ability to use a logic program as a means of coordinating several independent analyses.
@@ -42,13 +26,12 @@ I intend to build \sysname, a logic language inspired by Datalog with several fe
 % Remote user defined predicates
 % Scheduling
 % Combining
-By providing the ability to define external predicates as functions over RPC, \sysname\ will have the ability to leverage existing implementations and multiple distinct machines.
-Binding analyses as predicates also allows the framework to provide caching, re-running analyses only when needed.
-\sysname\ will mix forwards and backwards chaining execution, defined per rule, to enable the rapid processing of things that will nearly always want to be done, such as lifting of reachable addresses to an intermediate language, while allowing for goal-directed execution of longer procedures such as fuzzing runs.
+By providing the ability to expose external functions to the language, and allowing them to transform bound variables during rule execution, \sysname\ will allow the use of other paradigms and languages for writing analyses.
+Binding analyses to rule firing also allows the framework to provide caching, re-running analyses only when needed.
+\sysname\ will mix forwards and backwards chaining execution, defined per rule, to enable the rapid processing of things that will nearly always want to be done, such as lifting of reachable addresses to an intermediate language, while allowing for goal-directed execution of longer procedures such as fuzzing campaigns.
 These per-rule planning hints form the beginning of scheduling rules which are costly or non-terminating.
-\sysname\ will provide a mechanism for registering combining functions for related facts.
-For example, if one value analysis provides $\{1, 2\}$ as a lower bound on the value of a register, and another provides $\{2, 3\}$, selection of union as the combining function would allow other analyses to receive $\{1, 2, 3\}$ as the lower bound.
+\sysname\ will provide a mechanism for registering combining functions for related facts to a subsuming fact for simpler reasoning about accumulated information.
 The logic language representation of knowledge provides a good way to deal with the partial information that tends to be imparted by program analyses. As more new facts are generated, the dependencies in the rules make it explicit which rules can use the new information.
 
 %Work Plan
-\sysname\ provides a way to mesh the many existing styles of analysis together, taking into account the potential for nontermination or high cost of various analyses. This thesis will provide semantics for the \sysname\ language, an implementation of a program which actually runs the language, and example applications coordinating multiple analyses to achieve better results than they could achieve alone. If all goes well, methods of circumscription in non-terminating or scheduled environments will be examined for their applications to binary analysis.
+\sysname\ provides a way to mesh the many existing styles of analysis together, taking into account the potential for nontermination or high cost of various analyses. This thesis will provide semantics for the \sysname\ language, an implementation of a program which actually runs the language, and example applications coordinating multiple analyses to achieve better results than they could achieve alone.
