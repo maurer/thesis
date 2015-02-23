@@ -9,7 +9,7 @@ In the basic version of \sysname, I will implement a system with:
 \item Result caching/persistence
 \item Combination functions
 \end{itemize}
-Additionally, I will attempt to formalize the semantics of the restricted system, and attempt to determine under what conditions it will quiesce.
+Additionally, I will formalize the semantics of the restricted system.
 
 While the actual system will operate based on RPC calls, it is conceptually useful to think about the system in terms of a written out set of rules.
 In Figure~\ref{fig:holmesGrammar}, I depict a draft of what this would consist of for \sysname\ Basic.
@@ -57,6 +57,11 @@ A second deviation is the presence of combiners.
 I suspect, but am not sure, that combiners will only have a minor effect on the actual execution of the language.
 I believe the effect to be minor because the way combination happens means that matching on an improved combined fact will look identical to matching on a not-yet present uncombined fact.
 
+Additionally, I intend to investigate what circumstances lead to terminating evaluation of the forwards chaining fragment.
+Adding backwards chaining would prevent reasoning from the finite set of initial facts, and so make for an undecidable problem.
+Even with only forwards chaining, this is potentially tricky.
+Given variables which range over an infinite domain, properties are required on the external predicates to guarantee termination.
+Knowledge of what properties these are would assist future programmers of this system in designing preprocessing phases for their applications.
 \section{\sysname\ Advanced}
 Possible additional topics to explore as they are relevant to applications include:
 \begin{itemize}
