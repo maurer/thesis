@@ -1,0 +1,40 @@
+\section{Logic Languages}
+Logic languages are an already widely explored area, however I intend to twist them in three ways:
+\subsection{Evalutation Strategy}
+The majority of logic languages are split down one side or the other of the top-down/bottom-up search divide.
+Languages following in the Datalog\cite{datalog} school of thought tend to have forward chaining semantics, deriving all reachable facts from an initial set.
+These languages benefit from termination guarantees and a declarative style of programming.
+Those following the Prolog\cite{prolog} approach instead use a backwards chaining approach;
+they take an input goal, and recursively try to solve subgoals.
+These benefit from greater expressivity than Datalog and programmer control over the search strategy.
+
+There has already been some work in unifying the two systems.
+The ``magic set''\cite{magicset} optimization seeks to evaluate nearly as few facts as in a backwards chaining system, while preserving forwards chaining semantics and operational speed.
+Celf\cite{celf} provides both forwards and backwards chaining rules within the context of linear logic, where the order of rule firing is extremely important to the semantics of the program.
+\subsection{External Code}
+Incorporation of code or values outside the logic language have appeared in the form of abstractions such as value invention and external predicates.
+
+The external predicate approach seeks to encode functions as predicates within the logic language.
+When a subgoal for that predicate is queried, the corresponding external function is called\cite{gnuprolog}.
+When used in a forward chaining system, this approach confuses the separation between forward and backward chaining rules, as the rule to create the predicate is neither.
+Additionally, this simple system of integration assumes that the code terminates in a timely fashion.
+
+Value invention and skolemization\cite{Calimeri2007c,Bry2010c} instead seek to describe external or undetermined values within rules.
+Specifically, it allows for expressing of existential variables in the head of rules, and the expressing of the possible dependencies of said variables.
+Unfortunately, these systems focus on environments where a saturation or fixpoint can be reached.
+It might be possible to employ some techniques from these systems if I develop a new form of circumscription\cite{circumscription}.
+
+\subsection{Combining Facts}
+A number of domains have had an interest in combining facts which match in some way to form a single view of their combined information.
+Dyna\cite{dyna} seeks to do this by extending the domain of a predicate's value from the constructive unity, or the classical boolean, to more complex types such as floating point values.
+Dyna allows these values to be updated via ``aggregation operators'', and seeks to model notions of belief of truth.
+Instead of modifying the domain of truth, I intend to allow each predicate to specify some fields to be combined in a similar way.
+Together with some form of subsumption, it should be possible to reason on top of combined facts.
+\section{Program Analysis Synthesis}
+The combination of program analysis has been done in a largely ad-hoc fashion until recently.
+Traditional compilers, such as \texttt{gcc}, have a set of passes defined at the architectural design level which are run in a set order.
+LLVM\cite{llvm} provided additional structure to this by trying to allow for pluggable passes with explicitly marked dependencies.
+This system works by allowing each pass to specify other passes which must be run first in order to work properly, and allowing a pass manager to pick an order to run them in.
+LLVM was lauded for this system allowing for ease of writing additional passes for compilers, used both in research and industry.
+While a step forwards, this requires each pass to run completely, not partially, and does not allow dependency cycles.
+Existing binary code analysis platforms\cite{jakstab,bap} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
