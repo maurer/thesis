@@ -1,5 +1,6 @@
 \section{Tachyon}
 %We need tachyon for our system
+\todo{decide if I'm keeping this section}
 For dynamic analyses, we want to keep the environment in which the programs execute as consistent as possible across runs.
 In practice however, programs are not self contained systems - they acquire input, and produce output and side effects.
 This interface with the external world presents a problem for replicatable runs and the ability to know which change caused which effect.
@@ -11,7 +12,7 @@ VM replay will not allow for the re-execution of a portion of the program under 
 Library call replay does not necessarily work correctly without compiler assistance.
 Instruction level replay is incredibly expensive, and limits what input data has been changed.
 
-Tachyon\todo{cite} is a system for system call record and replay, originally designed for simultaneous testing of patches.
+Tachyon\cite{tachyon} is a system for system call record and replay, originally designed for simultaneous testing of patches.
 Its main advantages over other similar systems are speed, binary-only operation, and the ability to deal with small perturbations in the code.
 The first two advantages translate directly;
 the third advantage will be useful in the form of allowing code to be re-executed with different values.
@@ -24,9 +25,9 @@ Such an analysis should consume a predicate which is likely to have its accuracy
 Additionally, it should produce a predicate which can be meaningfully updated in light of the new information.
 
 %BiTR is a good candidate
-One such analysis is BiTR\todo{cite}, which is a type recovery system for C-like compiled code.
+One such analysis is BiTR\cite{bitr}, which is a type recovery system for C-like compiled code.
 BiTR uses control flow information in order to analyze which definitions of registers and memory cells are being used where.
-Control flow has been shown\todo{cite jakstab} to recover gradually, which suggests that it forms a good candidate input for incrementality.
+Control flow has been shown\cite{jakstab} to recover gradually, which suggests that it forms a good candidate input for incrementality.
 Dynamic analysis will also likely specifically determine control flow information in cases like function pointers or vtables some time after the initial run of most analysis, making it an even better input.
 BiTR can meaningfully incrementally update its outputs because it's end product is an upper bound and lower bound on what the type of a given register definition could be.
 
