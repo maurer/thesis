@@ -1,4 +1,35 @@
-\section{Proposal Overview}
+
+\section{Overview}
+The discipline of binary analysis focuses on the automated recovery or determination of various properties over compiled code.
+This sort of analysis remains critical in the modern world as the majority of commercial software comes in this form -- compiled code with no symbols or source code.
+This presents different challenges from typical program analysis, as many things which are normally available (control flow information, type signatures, variable boundaries) are now absent and must be recovered.
+Many or these challenges have been tackled individually, sometimes using as input another piece of recovered information.
+However, these systems have previously focused on recovering one piece of information, explicitly invoking a particular method of gaining the information they depend upon.
+
+Some examples of properties which have been recovered statically in some form include types, function boundaries, variables, control flow, and value analysis.
+Each of these has a dependency relationship with the others, but existing implementations hardcode the execution of the other analyses, preventing modular improvement of the state of the art.
+In the case of Jakstab\cite{jakstab}, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitate a tight loop between the two.
+VSA\cite{vsa} provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
+For variable identification, DIVINE\cite{divine} is currently top of the pack. However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
+BiTR\cite{bitr} recovers types, but consumes control flow information to do so.
+It would be possible for BiTR to consume an incomplete control flow graph, but it does not do so because existing control flow recovery mechanism implementations assume they are run to completion, and then stop.
+FBI\cite{fbi} uses heuristics to detect possible function starts.
+Every analysis above consumes this information, but normally generates it solely via a much more expensive and incomplete control flow analysis.
+
+In another branch of work, dynamic analyses tend to give more specific, but expensive and incomplete responses than the static systems discussed so far.
+An execution trace provides much, such as concrete feasible values for variables, bounds for may-alias and must-alias analyses, and partial control flow graphs.
+Other work attempts to recover data structures from concrete memory accesses, which could be fed as suggestions to a static inference engine.
+Finally, symbolic execution techniques are well known to be extremely expensive, but are of interest for their ability to answer what would otherwise be very difficult questions\cite{mayhem}.
+
+These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
+Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
+These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
+
+Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a fairly restrictive view of external predicates, generally assuming termination.
+If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
+The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources.
+I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
+
 \subsection{Proposed Work}
 %Previous work hits roadblocks, this should address them
 Previous work in binary analysis has run into a number of stumbling blocks related to getting the input information they require to actually make inferences. 
