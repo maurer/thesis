@@ -25,12 +25,6 @@ These examples demonstrate one of the major weaknesses of this body of work: the
 Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
 These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
 
-Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a fairly restrictive view of external predicates, generally assuming termination.
-If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
-The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources.
-I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
-
-\subsection{Proposed Work}
 %Previous work hits roadblocks, this should address them
 Previous work in binary analysis has run into a number of stumbling blocks related to getting the input information they require to actually make inferences. 
 In Figure~\ref{fig:problemsAddressed}, I show where previous work has encountered these issues.
@@ -38,20 +32,11 @@ Here, dependency cycle means their novel component interacted with another cycli
 Expensive optional dependencies indicates the use of an expensive analysis where a cheaper one would usually suffice.
 Unused inputs is marked when the system mentioned other analyses that should give an improvement when combined, but chose not to do so, indicating a barrier to running the analysis and integrating it.
 
-%This is what we're gonna do
-\sysname\ addresses these issues by expressing the relationship between various analyses in the form of rules in a logic language, similar to Datalog or Prolog.
-Dependency cycles can be dealt with via fixpoints when rules chain forwards, and a search procedure when chaining backwards.
-Expensive procedures can be dealt with via backwards chaining rules tuned to be searched late in the search space.
-Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
+Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a fairly restrictive view of external predicates, generally assuming termination.
+If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
+The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources.
+I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
 
-%This is how we're gonna test it
-I will test \sysname\'s effectiveness by using it to combine several existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
-I expect to see an increase in modularity and ease of implementation.
-Additionally, I expect to improve output quality if some inputs were neglected.
-Lastly, I anticipate a performance increase in analyses that were using a heavyweight analysis in places where it was not needed.
-\todo{Add more entries to table}
-\todo{Verify TIE/Phoenix mentioned something they could use}
-\todo{Optional isn't the best word for the expensive deps}
 \begin{figure*}
 \begin{tabular}{|c||c|c|c|}
 \hline
@@ -66,36 +51,56 @@ BiTR\cite{bitr} & \fno & \fyes & \fyes\\
 \caption{Stumbling Blocks}
 \label{fig:problemsAddressed}
 \end{figure*}
+
+\subsection{Proposed Work}
+%This is what we're gonna do
+\sysname\ addresses these issues by expressing the relationship between various analyses in the form of rules in a logic language, similar to Datalog or Prolog.
+Existing external analyses will be bound to rule firing.
+Dependency cycles can be dealt with via fixpoints when rules chain forwards, and a search procedure when chaining backwards.
+Expensive procedures can be dealt with via backwards chaining rules tuned to be searched late in the search space.
+Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
+
+%This is how we're gonna test it
+I will test \sysname\'s effectiveness by using it to combine several existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
+I expect to see an increase in modularity and ease of implementation.
+Additionally, I expect to improve output quality if some inputs were neglected.
+Lastly, I anticipate a performance increase in analyses that were using a heavyweight analysis in places where it was not needed.
+
+I will also examine the ability to reason about programs written in \sysname.
+First, I will attempt to prove termination of a subset of the forward chaining fragment of the language.
+Secondly, I will try to express subsumption properties required of combiners in order to guarantee that adding facts does not cause statements derived without circumscription to become no longer true.
 \subsection{Extended Work}
 The use of a logic language oriented approach to describing the relationship between analyses provides a unique opportunity to explore the implications of circumscription in incomplete logic langauges.
 Circumscription is used in traditional logic languages at the point of saturation or search termination in order to provide a form of stratified negation.
-\sysname and binary analysis each provide an attribute interesting for circumscription:
-\sysname is incomplete, but unlike Prolog, some rules may never complete execution, making stratification an inadequate solution.
+\sysname\ and binary analysis each provide an attribute interesting for circumscription:
+\sysname\ is incomplete, with rules which may never complete execution, making stratification an inadequate solution.
 Binary analysis deals very frequently in ranges and various sorts of bounds on what things can be.
 Within this context, circumscription may be able to formalize the notion of conjecturing ``true'' values for things normally only bounded by ranges.
+
+Additionally, \sysname\ provides an opportunity to examine scheduling in dependent workloads with multiple potential paths.
+One possible approach to this is a tactics script style langauge to allow the programmer to provide evaluation strategies to \sysname.
+Another approach is to use a statistical method to allow \sysname\ to learn the relative costs and benefits of different paths within a program over time on larger workloads.
+
 I intend to examine this avenue of work if time allows after the main body of work.
 \section{Thesis}
 The logic language implemented in \sysname\ provides a superior paradigm for expressing and executing codependent, incremental, or expensive analyses which provide results to each other.
 \section{Timeline}
 I plan to complete my thesis before Aug 2016.
-\begin{enumerate}
-\item[Now-Apr 2015] Thesis Proposal
+\begin{itemize}[label={}]
+\item {\bf Now-Apr 2015} Thesis Proposal
 %CCS (Resubmit BiTR unless I've gotten a _long_ way)
-\item[May-Aug 2015] \sysname\ Basic feature complete (\S~\ref{sec:holmesBasic})
+\item {\bf May-Aug 2015} \sysname\ Basic feature complete (\S~\ref{sec:holmesBasic})
 %NDSS (Use holmes to piggyback on Jonathan's inevitable resubmission of firmware systemwide paper?)
-\item[Sep 2015] \sysname / BAP integration
-\item[Oct-Nov 2015]
+\item {\bf Sep 2015} \sysname / BAP integration
+\item {\bf Oct 2015} CFG Recovery / VSA interleaving sample application
+\item {\bf Nov 2015}
   \begin{itemize}
   \item BiTR (Type Recovery) Port
   \item Submission on incremental codependent analyses (Oakland target)
   \end{itemize}
-\item[Dec 2015 - Jan 2016] Integrate fuzzing/tracing based analyses
-\item[Feb 2016] Submission on automatically refining results via fuzzing (USENIX target)
-\item[March-May 2016]
-  \begin{itemize}
-  \item Explore circumscription in incomplete logical systems.
-  \item Submission on formalization of heuristics via circumsription (CCS target)
-  \end{itemize}
-\item[May-Sep 2016] Thesis Writing
-\item[Aug 2016] Defense
-\end{enumerate}
+\item {\bf Dec 2015 - Jan 2016} Work on termination and subsumption properties
+\item {\bf Feb 2016} Add fuzzing campaigns to test nonterminating analyses
+\item {\bf March-May 2016} Explore stretch goals, such as circumscription and scheduling 
+\item {\bf May-Sep 2016} Thesis Writing
+\item {\bf Aug 2016} Defense
+\end{itemize}
