@@ -13,7 +13,7 @@ VSA\cite{vsa} provides the most accurate value analysis available today. However
 For variable identification, DIVINE\cite{divine} is currently top of the pack. However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
 BiTR\cite{bitr} recovers types, but consumes control flow information to do so.
 It would be possible for BiTR to consume an incomplete control flow graph, but it does not do so because existing control flow recovery mechanism implementations assume they are run to completion, and then stop.
-FBI\cite{fbi} uses heuristics to detect possible function starts.
+ByteWeight\cite{byteweight} uses heuristics to detect possible function starts.
 Every analysis above consumes this information, but normally generates it solely via a much more expensive and incomplete control flow analysis.
 
 In another branch of work, dynamic analyses tend to give more specific, but expensive and incomplete responses than the static systems discussed so far.

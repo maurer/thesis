@@ -57,6 +57,31 @@ A second deviation is the presence of combiners.
 I suspect, but am not sure, that combiners will only have a minor effect on the actual execution of the language.
 I believe the effect to be minor because the way combination happens means that matching on an improved combined fact will look identical to matching on a not-yet present uncombined fact.
 
+The major sticking points in finalizing this system will probably be:
+\begin{itemize}
+\item {\bf Rule firing order.}
+
+While forwards verus backwards chaining puts certain constraints on which rules can fire, this may need to be constrained further for a workable system.
+I hope to leave it unconstrained, as this will make work on scheduling them more interesting, but it could easily be an issue.
+
+\item {\bf External code binding.}
+
+There is a lot of power to be gained once you start allowing function symbols to appear in certain places.
+Initially, I am taking the approach that where clauses and scoping rules will allow me to search or fire rules in a way that only requires execution of functions.
+However, this approach denies the ability to use unification and treat code as function symbols (e.g. by placing a function in the head of a backwards chaining rule).
+I will need to decide on a precisely where functions can appear to allow my execution strategy to function.
+
+\item {\bf Combiner subsumption.}
+
+Since combiners are intended to be allowed to use external code, proofs of subsumption necessarily will not be fully formal.
+However, knowing exactly which operations may be safely used against a combined field safely will likely be a tricky issue.
+In simple cases, like sets combined via intersection, the result is obvious (you can ask if the value is a subset of a target set).
+Indeed, for anything that lies on a lattice, the result for meet or join combiners is straightforwards.
+In more complex cases, it may be unclear what queries are legal.
+This will also help indicate under which circumstances circumscription becomes necessary;
+when the user wishes to make a query not consistent with subsumption, they essentially must circumscribe in some way first.
+\end{itemize}
+
 Additionally, I intend to investigate what circumstances lead to terminating evaluation of the forwards chaining fragment.
 Adding backwards chaining would prevent reasoning from the finite set of initial facts, and so make for an undecidable problem.
 Even with only forwards chaining, this is potentially tricky.
