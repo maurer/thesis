@@ -19,7 +19,7 @@ When a subgoal for that predicate is queried, the corresponding external functio
 When used in a forward chaining system, this approach confuses the separation between forward and backward chaining rules, as the rule to create the predicate is neither.
 Additionally, this simple system of integration assumes that the code terminates in a timely fashion.
 
-Value invention and skolemization\cite{Calimeri2007c,Bry2010c} instead seek to describe external or undetermined values within rules.
+Value invention and skolemization\cite{Calimeri2007a,Bry2010a} instead seek to describe external or undetermined values within rules.
 Specifically, it allows for expressing of existential variables in the head of rules, and the expressing of the possible dependencies of said variables.
 Unfortunately, these systems focus on environments where a saturation or fixpoint can be reached.
 It might be possible to employ some techniques from these systems if I develop a new form of circumscription\cite{circumscription}.
@@ -39,4 +39,4 @@ LLVM\cite{llvm} provided additional structure to this by trying to allow for plu
 This system works by allowing each pass to specify other passes which must be run first in order to work properly, and allowing a pass manager to pick an order to run them in.
 LLVM was lauded for this system allowing for ease of writing additional passes for compilers, used both in research and industry.
 While a step forwards, this requires each pass to run completely, not partially, and does not allow dependency cycles.
-Existing binary code analysis platforms\cite{jakstab,bap}\todo{enumerate more} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
+Existing binary code analysis platforms\cite{jakstab,bap,codesurfer,bitblaze,boomerang,bindead,ida} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
