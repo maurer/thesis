@@ -1,6 +1,6 @@
 \section{Logic Languages}
 Logic languages are an already widely explored area, however I intend to twist them in three ways:
-\subsection{Evalutation Strategy}
+\subsection{Evaluation Strategy}
 The majority of logic languages are split down one side or the other of the top-down/bottom-up search divide.
 Languages following in the Datalog\cite{datalog} school of thought tend to have forward chaining semantics, deriving all reachable facts from an initial set.
 These languages benefit from termination guarantees and a declarative style of programming.
@@ -30,6 +30,8 @@ Dyna\cite{dyna} seeks to do this by extending the domain of a predicate's value 
 Dyna allows these values to be updated via ``aggregation operators'', and seeks to model notions of belief of truth.
 Instead of modifying the domain of truth, I intend to allow each predicate to specify some fields to be combined in a similar way.
 Together with some form of subsumption, it should be possible to reason on top of combined facts.
+\section{Binary Analysis}
+\todo{Reword overview examples section in here}
 \section{Program Analysis Synthesis}
 The combination of program analysis has been done in a largely ad-hoc fashion until recently.
 Traditional compilers, such as \texttt{gcc}, have a set of passes defined at the architectural design level which are run in a set order.
@@ -37,4 +39,4 @@ LLVM\cite{llvm} provided additional structure to this by trying to allow for plu
 This system works by allowing each pass to specify other passes which must be run first in order to work properly, and allowing a pass manager to pick an order to run them in.
 LLVM was lauded for this system allowing for ease of writing additional passes for compilers, used both in research and industry.
 While a step forwards, this requires each pass to run completely, not partially, and does not allow dependency cycles.
-Existing binary code analysis platforms\cite{jakstab,bap} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
+Existing binary code analysis platforms\cite{jakstab,bap}\todo{enumerate more} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.

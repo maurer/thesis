@@ -16,22 +16,18 @@ A wide variety of techniques for attacking this problem from different angles ha
 %Types shit
 Previous work in analyzing binary code has performed type recovery\cite{bitr}, variable identification\cite{divine}, control flow recovery\cite{jakstab,phoenix}, and value analysis\cite{vsa}.
 However, this work tends to have issues with the relative expense of running the analyses, the coupling between analyses, and the integration of the current state of the art in each area.
-While many interesting analyses have been developed, cooperation and integration of these analyses has been largely ignored.
+Co-dependency of analyses becomes more relevant within the realm of binary analysis in particular because abstractions designed for independent reasoning have been stripped away.
+While this is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
 
 %This is Holmes
 I intend to build \sysname, a logic language inspired by Datalog with several features geared towards the ability to use a logic program as a means of coordinating several independent analyses.
-%Features:
-% Forwards + Backwards chaining
-% Caching
-% Remote user defined predicates
-% Scheduling
-% Combining
-By providing the ability to expose external functions to the language, and allowing them to transform bound variables during rule execution, \sysname\ will allow the use of other paradigms and languages for writing analyses.
-Binding analyses to rule firing also allows the framework to provide caching, re-running analyses only when needed.
-\sysname\ will mix forwards and backwards chaining execution, defined per rule, to enable the rapid processing of things that will nearly always want to be done, such as lifting of reachable addresses to an intermediate language, while allowing for goal-directed execution of longer procedures such as fuzzing campaigns.
-These per-rule planning hints form the beginning of scheduling rules which are costly or non-terminating.
-\sysname\ will provide a mechanism for registering combining functions for related facts to a subsuming fact for simpler reasoning about accumulated information.
-The logic language representation of knowledge provides a good way to deal with the partial information that tends to be imparted by program analyses. As more new facts are generated, the dependencies in the rules make it explicit which rules can use the new information.
+%Hope to show:
+%Logic language makes writing dependent analyses easier
+%Proof properties
+%Combining both dynamic and static analyses leads to greater dominance
+I hope to use this system to demonstrate how the use of logic languages for communication can make writing interdependent analyses easier.
+I want to explore the formal properties of the \sysname\ langugage, specifically with respect to termination and monotonicity of reasoning off subsumed facts.
+I will also evaluate the power of combining analyses via \sysname which have been traditionally examined separately.
 
 %Work Plan
 \sysname\ provides a way to mesh the many existing styles of analysis together, taking into account the potential for nontermination or high cost of various analyses. This thesis will provide semantics for the \sysname\ language, an implementation of a program which actually runs the language, and example applications coordinating multiple analyses to achieve better results than they could achieve alone.

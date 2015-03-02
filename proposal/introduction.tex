@@ -8,13 +8,24 @@ However, these systems have previously focused on recovering one piece of inform
 
 Some examples of properties which have been recovered statically in some form include types, function boundaries, variables, control flow, and value analysis.
 Each of these has a dependency relationship with the others, but existing implementations hardcode the execution of the other analyses, preventing modular improvement of the state of the art.
+
 In the case of Jakstab\cite{jakstab}, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitate a tight loop between the two.
+Jakstab does a recursive exploration of the control flow graph, then runs value analysis using that control flow graph.
+The resulting analysis provides possible targets for indirect jumps, which are added to the control flow graph.
+Upon completion, it loops back around and cycles again until stability is reached.
+Their initial success with a cyclic analysis structure suggests that making it easier to allow cycles between analyses may yield better quality results.
+
 VSA\cite{vsa} provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
-For variable identification, DIVINE\cite{divine} is currently top of the pack. However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
+As a result, practical systems~\cite{bap}\todo{find more} frequently have a fallback analysis for use when VSA fails.
+This suggests a use case for a coordinating system to know multiple ways of arriving at the same information.
+For variable identification, DIVINE\cite{divine} is currently top of the pack.
+However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
+
 BiTR\cite{bitr} recovers types, but consumes control flow information to do so.
+BiTR generates constraints for each register/program point combination based on percieved dataflow in the program.
+However, dataflow is itself dependent on control flow, which is generally incomplete.
 It would be possible for BiTR to consume an incomplete control flow graph, but it does not do so because existing control flow recovery mechanism implementations assume they are run to completion, and then stop.
-ByteWeight\cite{byteweight} uses heuristics to detect possible function starts.
-Every analysis above consumes this information, but normally generates it solely via a much more expensive and incomplete control flow analysis.
+This is an example of a case in which the representation of an analysis' ability to work incrementally would be beneficial to integration with other analyses.
 
 In another branch of work, dynamic analyses tend to give more specific, but expensive and incomplete responses than the static systems discussed so far.
 An execution trace provides much, such as concrete feasible values for variables, bounds for may-alias and must-alias analyses, and partial control flow graphs.
@@ -23,6 +34,7 @@ Finally, symbolic execution techniques are well known to be extremely expensive,
 
 These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
 Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
+As an example, while systems implementing a control flow/value analysis cyclic algorithm tend to use VSA, it is not obvious that the cost of VSA compared to simpler heuristics is worth the result improvement.
 These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
 
 %Previous work hits roadblocks, this should address them
@@ -61,7 +73,7 @@ Expensive procedures can be dealt with via backwards chaining rules tuned to be 
 Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
 
 %This is how we're gonna test it
-I will test \sysname\'s effectiveness by using it to combine several existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
+I will test \sysname' effectiveness by using it to combine several existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
 I expect to see an increase in modularity and ease of implementation.
 Additionally, I expect to improve output quality if some inputs were neglected.
 Lastly, I anticipate a performance increase in analyses that were using a heavyweight analysis in places where it was not needed.
@@ -83,9 +95,9 @@ Another approach is to use a statistical method to allow \sysname\ to learn the 
 
 I intend to examine this avenue of work if time allows after the main body of work.
 \section{Thesis}
-The logic language implemented in \sysname\ provides a superior paradigm for expressing and executing codependent, incremental, or expensive analyses which provide results to each other.
+The logic language implemented in \sysname\ provides a new way of expressing and executing codependent, incremental, or expensive analyses which provide results to each other. \sysname programs can be reasoned about, are simpler to write than their directly integrated counterparts, and can provide better results by combining many analyses.
 \section{Timeline}
-I plan to complete my thesis before Aug 2016.
+I plan to complete my thesis before Aug 2016.\todo{Generalize my personal timeline}
 \begin{itemize}[label={}]
 \item {\bf Now-Apr 2015} Thesis Proposal
 %CCS (Resubmit BiTR unless I've gotten a _long_ way)

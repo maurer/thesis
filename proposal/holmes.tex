@@ -1,4 +1,41 @@
-\section{\sysname\ Basic}
+\section{Questions to Answer}
+\subsection{\sysname\ Language}
+\subsubsection{Termination}
+What fragment of \sysname\ terminates?
+This question is more complex than it may seem at first blush.
+While traditional Datalog programs have termination guarantees, this proof is based on finite domains and monotonicity.
+With the addition of external functions, even terminating ones, not all domains are finite, and so a more complex structure is necessary.
+The addition of combiners necessitates additional constraints on the combiners and accesses of these fields to guarantee monotonicity.
+\subsubsection{Subsumption}
+What properties are necessary to guarantee monotonic reasoning for programs with combiners?
+Combiners need to be paired with accessor functions in such a way that adding new facts cannot falsify a previous derivation.
+I suspect that this may have to do with considering the combiner as a lattice operation, but more work is needed to be sure.
+\subsubsection{Retraction}
+What is the minimum amount of re-execution to permit retraction?
+When a fact is retracted, all facts whose derivation depended on that fact must be retracted as well.
+In an ideal world, we would like retraction to affect \emph{only} those facts who depended on the retracted fact, not an overapproximation of this set.
+Combiners and external functions both provide interesting hurdles.
+\subsection{Ease of Implementation}
+Is it easier to write interacting analyses using a logic language as an interface?
+I will compare the code of co-dependent analyses implemented via \sysname\ against that of existing systems such as Jakstab and BAP.
+I will use compressed code metrics to examine the difference in complexity of implementation.
+I will examine modularity by looking at the amount of implementation dependence of each analysis on the other, using a to-be-determined metric.
+One possibility for this axis is amount of code from module A needed for module B to build.
+Additionally, a subjective evaluation of code complexity may be applied.
+\subsection{Power of Cooperation}
+What improvements to result quality or analysis efficiency can we gain from combining analyses?
+I will explore the addition of optional information, especially from the dynamic world, to existing analyses to observe changes in outputs.
+In particular, I intend to examine the improvement in a CFG recovery system paired with dynamic control flow paths, and of BiTR when paired with dynamic values for registers.
+I will evaluate efficiency based on time, parallel time, and consumed memory.
+I will evaluate result quality based on true positives and false negatives for jump targets and for types on both the BiTR and TIE metrics\cite{bitr, tie}.
+\subsection{Economy of Alternatives}
+What improvements in efficiency can be gained by providing alternative systems for the same values.
+I intend to examine the CFG task using both VSA and a simpler (perhaps k-set) value analysis, and the type recovery task using a variant of BiTR depending on variable recovery that can choose between DIVINE and stack offset analysis.
+I will evaluate using the same metrics as the cooperation experiment.
+If the scheduling system is present, I will examine the effects on efficiency and quality of tweaking the scheduling system to give up earlier or later on longer running analyses.
+
+\section{Holmes}
+\subsection{\sysname\ Basic}
 \label{sec:holmesBasic}
 Initially, I will aim to implement a more basic set of features in \sysname.
 This feature set is intended to be complete enough to pursue the majority of the application work, while simple enough that its completion should not be in question.
@@ -87,7 +124,7 @@ Adding backwards chaining would prevent reasoning from the finite set of initial
 Even with only forwards chaining, this is potentially tricky.
 Given variables which range over an infinite domain, properties are required on the external predicates to guarantee termination.
 Knowledge of what properties these are would assist future programmers of this system in designing preprocessing phases for their applications.
-\section{\sysname\ Advanced}
+\subsection{\sysname\ Advanced}
 Possible additional topics to explore as they are relevant to applications include:
 \begin{itemize}
 \item Retraction - removal of facts or even rules from a live system with minimal perturbation to support hypothetical analyses
