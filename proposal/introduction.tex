@@ -1,5 +1,6 @@
 
 \section{Overview}
+\label{sec:overview}
 The discipline of binary analysis focuses on the automated recovery or determination of various properties over compiled code.
 This sort of analysis remains critical in the modern world as the majority of commercial software comes in this form -- compiled code with no symbols or source code.
 This presents different challenges from typical program analysis, as many things which are normally available (control flow information, type signatures, variable boundaries) are now absent and must be recovered.
@@ -16,7 +17,7 @@ Upon completion, it loops back around and cycles again until stability is reache
 Their initial success with a cyclic analysis structure suggests that making it easier to allow cycles between analyses may yield better quality results.
 
 VSA\cite{vsa} provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
-As a result, practical systems~\cite{bap}\todo{find more} frequently have a fallback analysis for use when VSA fails.
+As a result, practical systems frequently have a fallback analysis for use when VSA fails.
 This suggests a use case for a coordinating system to know multiple ways of arriving at the same information.
 For variable identification, DIVINE\cite{divine} is currently top of the pack.
 However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.

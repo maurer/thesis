@@ -30,8 +30,21 @@ Dyna\cite{dyna} seeks to do this by extending the domain of a predicate's value 
 Dyna allows these values to be updated via ``aggregation operators'', and seeks to model notions of belief of truth.
 Instead of modifying the domain of truth, I intend to allow each predicate to specify some fields to be combined in a similar way.
 Together with some form of subsumption, it should be possible to reason on top of combined facts.
+
 \section{Binary Analysis}
-\todo{Reword overview examples section in here}
+Many analyses were already explained in detail in \S~\ref{sec:overview}.
+BitBlaze\cite{bitblaze} was a platform intended to allow platform independent representation and symbolic execution of various architectures.
+BAP\cite{bap} is the spiritual successor to BitBlaze, with a similar but improved IR, and more practical analyses built on top of it.
+VSA\cite{vsa} is an analysis using abstract interpretation to predict the possible range of values for various.
+DIVINE\cite{divine} is a variable recovery system based around doing pointer analysis using VSA, then looking at access patterns.
+TIE\cite{tie} is a constraint solving static type recovery system for programs with recovered variables.
+BiTR\cite{bitr} is similar to TIE, but has structure subtyping and does not require prior variable recovery. It also outperforms TIE in speed and quality on both TIE's metrics and BiTR's new metrics.
+Jakstab's\cite{jakstab} key insight was that CFG recovery and value analysis (by way of abstract interpretation) needs to be run in a fixpoint for best results.
+Byteweight\cite{byteweight} is a system using a basic bayesian classification scheme on byte prefixes and suffixes to identify function boundaries.
+The Best Transformer\cite{besttransformer} approach is a methodology for performing abstract interpretation over binary-code-like programs.
+Phoenix\cite{phoenix} is a decompilation approach based iterative refinement of control flow graphs. It gets its CFG from BAP\cite{bap}, then attempts to collapse the graph into a series of structured components as are used in C. Finally, it assigns types via TIE\cite{tie}.
+IDA\cite{ida} and CodeSurfer/x86\cite{codesurfer} are the main industry platforms for doing binary analysis. However, as both are closed source, it is frequently difficult to do methods comparison, and only measurements can be taken.
+
 \section{Program Analysis Synthesis}
 The combination of program analysis has been done in a largely ad-hoc fashion until recently.
 Traditional compilers, such as \texttt{gcc}, have a set of passes defined at the architectural design level which are run in a set order.
@@ -40,3 +53,7 @@ This system works by allowing each pass to specify other passes which must be ru
 LLVM was lauded for this system allowing for ease of writing additional passes for compilers, used both in research and industry.
 While a step forwards, this requires each pass to run completely, not partially, and does not allow dependency cycles.
 Existing binary code analysis platforms\cite{jakstab,bap,codesurfer,bitblaze,boomerang,bindead,ida} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
+
+Bindead\cite{bindead} takes an interesting approach to integrating static and dynamic analysis.
+It has a separate tool which allows the user to generate traces and feed them into the main static analysis suite.
+The static analysis then starts constrained by a partial trace to allow static analysis partway through the execution of the program.
