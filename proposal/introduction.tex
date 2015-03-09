@@ -1,10 +1,10 @@
 
 \section{Overview}
 \label{sec:overview}
-The discipline of binary analysis focuses on the automated recovery or determination of various properties over compiled code.
+The discipline of binary analysis focuses on the automated recovery or determination of properties over compiled code.
 This sort of analysis remains critical in the modern world as the majority of commercial software comes in this form -- compiled code with no symbols or source code.
-This presents different challenges from typical program analysis, as many things which are normally available (control flow information, type signatures, variable boundaries) are now absent and must be recovered.
-Many or these challenges have been tackled individually, sometimes using as input another piece of recovered information.
+This presents different challenges from typical program analysis, as information normally available (control flow information, type signatures, variable boundaries) are now absent and must be recovered.
+A majority of these challenges have been tackled individually, sometimes using as input another piece of recovered information.
 However, these systems have previously focused on recovering one piece of information, explicitly invoking a particular method of gaining the information they depend upon.
 
 Some examples of properties which have been recovered statically in some form include types, function boundaries, variables, control flow, and value analysis.
@@ -31,7 +31,7 @@ This is an example of a case in which the representation of an analysis' ability
 In another branch of work, dynamic analyses tend to give more specific, but expensive and incomplete responses than the static systems discussed so far.
 An execution trace provides much, such as concrete feasible values for variables, bounds for may-alias and must-alias analyses, and partial control flow graphs.
 Other work attempts to recover data structures from concrete memory accesses, which could be fed as suggestions to a static inference engine.
-Finally, symbolic execution techniques are well known to be extremely expensive, but are of interest for their ability to answer what would otherwise be very difficult questions~\cite{mayhem}.
+Finally, symbolic execution techniques are well known to be expensive, but are of interest for their ability to answer what would otherwise be difficult questions~\cite{mayhem}.
 
 These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
 Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
@@ -45,7 +45,7 @@ Here, dependency cycle means their novel component interacted with another cycli
 Expensive optional dependencies indicates the use of an expensive analysis where a cheaper one would usually suffice.
 Unused inputs is marked when the system mentioned other analyses that should give an improvement when combined, but chose not to do so, indicating a barrier to running the analysis and integrating it.
 
-Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a fairly restrictive view of external predicates, generally assuming termination.
+Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a restrictive view of external predicates, generally assuming termination.
 If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
 The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources.
 I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
@@ -67,14 +67,14 @@ BiTR~\cite{bitr} & \fno & \fyes & \fyes\\
 
 \subsection{Proposed Work}
 %This is what we're gonna do
-\sysname\ addresses these issues by expressing the relationship between various analyses in the form of rules in a logic language, similar to Datalog or Prolog.
+\sysname\ addresses these issues by expressing the relationship between analyses in the form of rules in a logic language, similar to Datalog or Prolog.
 Existing external analyses will be bound to rule firing.
 Dependency cycles can be dealt with via fixpoints when rules chain forwards, and a search procedure when chaining backwards.
 Expensive procedures can be dealt with via backwards chaining rules tuned to be searched late in the search space.
 Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
 
 %This is how we're gonna test it
-I will test \sysname' effectiveness by using it to combine several existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
+I will test \sysname' effectiveness by using it to combine existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
 I expect to see an increase in modularity and ease of implementation.
 Additionally, I expect to improve output quality if some inputs were neglected.
 Lastly, I anticipate a performance increase in analyses that were using a heavyweight analysis in places where it was not needed.
@@ -87,7 +87,7 @@ The use of a logic language oriented approach to describing the relationship bet
 Circumscription is used in traditional logic languages at the point of saturation or search termination in order to provide a form of stratified negation.
 \sysname\ and binary analysis each provide an attribute interesting for circumscription:
 \sysname\ is incomplete, with rules which may never complete execution, making stratification an inadequate solution.
-Binary analysis deals very frequently in ranges and various sorts of bounds on what things can be.
+Binary analysis deals frequently in ranges and bounds on properties we cannot know exactly.
 Within this context, circumscription may be able to formalize the notion of conjecturing ``true'' values for things normally only bounded by ranges.
 
 Additionally, \sysname\ provides an opportunity to examine scheduling in dependent workloads with multiple potential paths.
@@ -96,7 +96,7 @@ Another approach is to use a statistical method to allow \sysname\ to learn the 
 
 I intend to examine this avenue of work if time allows after the main body of work.
 \section{Thesis}
-The logic language implemented in \sysname\ provides a new way of expressing and executing codependent, incremental, or expensive analyses which provide results to each other. \sysname\ programs can be reasoned about, are simpler to write than their directly integrated counterparts, and can provide better results by combining many analyses.
+The logic language implemented in \sysname\ provides a new way of expressing and executing codependent, incremental, or expensive analyses which provide results to each other. \sysname\ programs can be reasoned about, are simpler to write than their directly integrated counterparts, and can provide better results by combining analyses.
 \section{Timeline}
 I plan to complete my thesis before Aug 2016.
 \begin{itemize}[label={}]

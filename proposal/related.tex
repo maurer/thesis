@@ -9,8 +9,8 @@ they take an input goal, and recursively try to solve subgoals.
 These benefit from greater expressivity than Datalog and programmer control over the search strategy.
 
 There has already been some work in unifying the two systems.
-The ``magic set''~\cite{magicset} optimization seeks to evaluate nearly as few facts as in a backwards chaining system, while preserving forwards chaining semantics and operational speed.
-Celf~\cite{celf} provides both forwards and backwards chaining rules within the context of linear logic, where the order of rule firing is extremely important to the semantics of the program.
+The ``magic set''~\cite{magicset} optimization seeks to reduce rule firing as near as possible to a backwards chaining system, while preserving forwards chaining semantics and operational speed.
+Celf~\cite{celf} provides both forwards and backwards chaining rules within the context of linear logic, where the order of rule firing is important to the semantics of the program.
 \subsection{External Code}
 Incorporation of code or values outside the logic language have appeared in the form of abstractions such as value invention and external predicates.
 
@@ -32,10 +32,10 @@ Instead of modifying the domain of truth, I intend to allow each predicate to sp
 Together with some form of subsumption, it should be possible to reason on top of combined facts.
 
 \section{Binary Analysis}
-Many analyses were already explained in detail in \S~\ref{sec:overview}.
-BitBlaze~\cite{bitblaze} was a platform intended to allow platform independent representation and symbolic execution of various architectures.
+Some analyses mentioned below were already explained in more detail in \S~\ref{sec:overview}.
+BitBlaze~\cite{bitblaze} was a platform intended to allow platform independent representation and symbolic execution of multiple architectures.
 BAP~\cite{bap} is the spiritual successor to BitBlaze, with a similar but improved IR, and more practical analyses built on top of it.
-VSA~\cite{vsa} is an analysis using abstract interpretation to predict the possible range of values for various.
+VSA~\cite{vsa} is an analysis using abstract interpretation to predict the possible range of values for variables.
 DIVINE~\cite{divine} is a variable recovery system based around doing pointer analysis using VSA, then looking at access patterns.
 TIE~\cite{tie} is a constraint solving static type recovery system for programs with recovered variables.
 BiTR~\cite{bitr} is similar to TIE, but has structure subtyping and does not require prior variable recovery. It also outperforms TIE in speed and quality on both TIE's metrics and BiTR's new metrics.
@@ -46,12 +46,12 @@ Phoenix~\cite{phoenix} is a decompilation approach based iterative refinement of
 IDA~\cite{ida} and CodeSurfer/x86~\cite{codesurfer} are the main industry platforms for doing binary analysis. However, as both are closed source, it is frequently difficult to do methods comparison, and only measurements can be taken.
 
 \section{Program Analysis Synthesis}
-The combination of program analysis has been done in a largely ad-hoc fashion until recently.
+The combination of program analysis has been done in an ad-hoc fashion until recently.
 Traditional compilers, such as \texttt{gcc}, have a set of passes defined at the architectural design level which are run in a set order.
 LLVM~\cite{llvm} provided additional structure to this by trying to allow for pluggable passes with explicitly marked dependencies.
 This system works by allowing each pass to specify other passes which must be run first in order to work properly, and allowing a pass manager to pick an order to run them in.
 LLVM was lauded for this system allowing for ease of writing additional passes for compilers, used both in research and industry.
-While a step forwards, this requires each pass to run completely, not partially, and does not allow dependency cycles.
+While a step forwards, this requires each pass to run to completion, not partially, and does not allow dependency cycles.
 Existing binary code analysis platforms~\cite{jakstab,bap,codesurfer,bitblaze,boomerang,bindead,ida} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
 
 Bindead~\cite{bindead} takes an interesting approach to integrating static and dynamic analysis.
