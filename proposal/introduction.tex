@@ -73,15 +73,22 @@ Dependency cycles can be dealt with via fixpoints when rules chain forwards, and
 Expensive procedures can be dealt with via backwards chaining rules tuned to be searched late in the search space.
 Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
 
+Specifically, I seek to answer:
+\begin{itemize}
+  \item What fragment of Holmes terminates?
+  \item What is the minimum amount of re-execution required to permit retraction?
+  \item Is it easier to write interacting analyses using a logic language as an interface?
+  \item What improvements to result quality or analysis effciency can we gain from combining analyses?
+  \item What improvements in efficiency can be gained by providing alternative systems for the same class of analysis?
+\end{itemize}
+
 %This is how we're gonna test it
 I will test \sysname' effectiveness by using it to combine existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
 I expect to see an increase in modularity and ease of implementation.
 Additionally, I expect to improve output quality if some inputs were neglected.
 Lastly, I anticipate a performance increase in analyses that were using a heavyweight analysis in places where it was not needed.
+I will employ formal mechanized reasoning techniques (likely via Agda) for the examination of \sysname' termination, monotonicity, and retraction properties.
 
-I will also examine the ability to reason about programs written in \sysname.
-First, I will attempt to prove termination of a subset of the forward chaining fragment of the language.
-Secondly, I will try to express subsumption properties required of combiners in order to guarantee that adding facts does not cause statements derived without circumscription to become no longer true.
 \subsection{Extended Work}
 The use of a logic language oriented approach to describing the relationship between analyses provides a unique opportunity to explore the implications of circumscription in incomplete logic langauges.
 Circumscription is used in traditional logic languages at the point of saturation or search termination in order to provide a form of stratified negation.
