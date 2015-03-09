@@ -23,7 +23,7 @@ For variable identification, DIVINE~\cite{divine} is currently top of the pack.
 However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
 
 BiTR~\cite{bitr} recovers types, but consumes control flow information to do so.
-BiTR generates constraints for each register/program point combination based on percieved dataflow in the program.
+BiTR generates constraints for each register/program point combination based on perceived dataflow in the program.
 However, dataflow is itself dependent on control flow, which is generally incomplete.
 It would be possible for BiTR to consume an incomplete control flow graph, but it does not do so because existing control flow recovery mechanism implementations assume they are run to completion, and then stop.
 This is an example of a case in which the representation of an analysis' ability to work incrementally would be beneficial to integration with other analyses.
@@ -36,7 +36,7 @@ Finally, symbolic execution techniques are well known to be expensive, but are o
 These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
 Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
 As an example, while systems implementing a control flow/value analysis cyclic algorithm tend to use VSA, it is not obvious that the cost of VSA compared to simpler heuristics is worth the result improvement.
-These systems could all benefit from using each other's output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
+These systems could all benefit from using each others' output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
 
 %Previous work hits roadblocks, this should address them
 Previous work in binary analysis has run into a number of stumbling blocks related to getting the input information they require to actually make inferences. 
@@ -47,7 +47,7 @@ Unused inputs is marked when the system mentioned other analyses that should giv
 
 Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a restrictive view of external predicates, generally assuming termination.
 If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
-The version of backwards chaining employed by Prolog has explicit execution order, and so too falls victim to being too inflexible to allow the scheduling of available resources.
+The version of backwards chaining employed by Prolog has explicit execution order, and so falls victim to being too inflexible to allow the scheduling of available resources.
 I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
 
 \begin{figure*}
@@ -69,16 +69,16 @@ BiTR~\cite{bitr} & \fno & \fyes & \fyes\\
 %This is what we're gonna do
 \sysname\ addresses these issues by expressing the relationship between analyses in the form of rules in a logic language, similar to Datalog or Prolog.
 Existing external analyses will be bound to rule firing.
-Dependency cycles can be dealt with via fixpoints when rules chain forwards, and a search procedure when chaining backwards.
+Dependency cycles can be dealt with via fixpoint semantics when rules chain forwards, and a search procedure when chaining backwards.
 Expensive procedures can be dealt with via backwards chaining rules tuned to be searched late in the search space.
 Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
 
-Specifically, I seek to answer:
+While building this system, I will work to evaluate the technique's applicability to the domain. Specifically, I seek to answer:
 \begin{itemize}
   \item What fragment of Holmes terminates?
   \item What is the minimum amount of re-execution required to permit retraction?
   \item Is it easier to write interacting analyses using a logic language as an interface?
-  \item What improvements to result quality or analysis effciency can we gain from combining analyses?
+  \item What improvements to result quality or analysis efficiency can we gain from combining analyses?
   \item What improvements in efficiency can be gained by providing alternative systems for the same class of analysis?
 \end{itemize}
 
@@ -90,7 +90,7 @@ Lastly, I anticipate a performance increase in analyses that were using a heavyw
 I will employ formal mechanized reasoning techniques (likely via Agda) for the examination of \sysname' termination, monotonicity, and retraction properties.
 
 \subsection{Extended Work}
-The use of a logic language oriented approach to describing the relationship between analyses provides a unique opportunity to explore the implications of circumscription in incomplete logic langauges.
+The use of a logic language oriented approach to describing the relationship between analyses provides a unique opportunity to explore the implications of circumscription in incomplete logic languages.
 Circumscription is used in traditional logic languages at the point of saturation or search termination in order to provide a form of stratified negation.
 \sysname\ and binary analysis each provide an attribute interesting for circumscription:
 \sysname\ is incomplete, with rules which may never complete execution, making stratification an inadequate solution.
@@ -98,7 +98,7 @@ Binary analysis deals frequently in ranges and bounds on properties we cannot kn
 Within this context, circumscription may be able to formalize the notion of conjecturing ``true'' values for things normally only bounded by ranges.
 
 Additionally, \sysname\ provides an opportunity to examine scheduling in dependent workloads with multiple potential paths.
-One possible approach to this is a tactics script style langauge to allow the programmer to provide evaluation strategies to \sysname.
+One possible approach to this is a tactics script style language to allow the programmer to provide evaluation strategies to \sysname.
 Another approach is to use a statistical method to allow \sysname\ to learn the relative costs and benefits of different paths within a program over time on larger workloads.
 
 I intend to examine this avenue of work if time allows after the main body of work.
