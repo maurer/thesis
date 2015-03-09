@@ -2,58 +2,58 @@
 Logic languages are an already widely explored area, however I intend to twist them in three ways:
 \subsection{Evaluation Strategy}
 The majority of logic languages are split down one side or the other of the top-down/bottom-up search divide.
-Languages following in the Datalog\cite{datalog} school of thought tend to have forward chaining semantics, deriving all reachable facts from an initial set.
+Languages following in the Datalog~\cite{datalog} school of thought tend to have forward chaining semantics, deriving all reachable facts from an initial set.
 These languages benefit from termination guarantees and a declarative style of programming.
-Those following the Prolog\cite{prolog} approach instead use a backwards chaining approach;
+Those following the Prolog~\cite{prolog} approach instead use a backwards chaining approach;
 they take an input goal, and recursively try to solve subgoals.
 These benefit from greater expressivity than Datalog and programmer control over the search strategy.
 
 There has already been some work in unifying the two systems.
-The ``magic set''\cite{magicset} optimization seeks to evaluate nearly as few facts as in a backwards chaining system, while preserving forwards chaining semantics and operational speed.
-Celf\cite{celf} provides both forwards and backwards chaining rules within the context of linear logic, where the order of rule firing is extremely important to the semantics of the program.
+The ``magic set''~\cite{magicset} optimization seeks to evaluate nearly as few facts as in a backwards chaining system, while preserving forwards chaining semantics and operational speed.
+Celf~\cite{celf} provides both forwards and backwards chaining rules within the context of linear logic, where the order of rule firing is extremely important to the semantics of the program.
 \subsection{External Code}
 Incorporation of code or values outside the logic language have appeared in the form of abstractions such as value invention and external predicates.
 
 The external predicate approach seeks to encode functions as predicates within the logic language.
-When a subgoal for that predicate is queried, the corresponding external function is called\cite{gnuprolog}.
+When a subgoal for that predicate is queried, the corresponding external function is called~\cite{gnuprolog}.
 When used in a forward chaining system, this approach confuses the separation between forward and backward chaining rules, as the rule to create the predicate is neither.
 Additionally, this simple system of integration assumes that the code terminates in a timely fashion.
 
-Value invention and skolemization\cite{Calimeri2007a,Bry2010a} instead seek to describe external or undetermined values within rules.
+Value invention and skolemization~\cite{Calimeri2007a,Bry2010a} instead seek to describe external or undetermined values within rules.
 Specifically, it allows for expressing of existential variables in the head of rules, and the expressing of the possible dependencies of said variables.
 Unfortunately, these systems focus on environments where a saturation or fixpoint can be reached.
-It might be possible to employ some techniques from these systems if I develop a new form of circumscription\cite{circumscription}.
+It might be possible to employ some techniques from these systems if I develop a new form of circumscription~\cite{circumscription}.
 
 \subsection{Combining Facts}
 A number of domains have had an interest in combining facts which match in some way to form a single view of their combined information.
-Dyna\cite{dyna} seeks to do this by extending the domain of a predicate's value from the constructive unity, or the classical boolean, to more complex types such as floating point values.
+Dyna~\cite{dyna} seeks to do this by extending the domain of a predicate's value from the constructive unity, or the classical boolean, to more complex types such as floating point values.
 Dyna allows these values to be updated via ``aggregation operators'', and seeks to model notions of belief of truth.
 Instead of modifying the domain of truth, I intend to allow each predicate to specify some fields to be combined in a similar way.
 Together with some form of subsumption, it should be possible to reason on top of combined facts.
 
 \section{Binary Analysis}
 Many analyses were already explained in detail in \S~\ref{sec:overview}.
-BitBlaze\cite{bitblaze} was a platform intended to allow platform independent representation and symbolic execution of various architectures.
-BAP\cite{bap} is the spiritual successor to BitBlaze, with a similar but improved IR, and more practical analyses built on top of it.
-VSA\cite{vsa} is an analysis using abstract interpretation to predict the possible range of values for various.
-DIVINE\cite{divine} is a variable recovery system based around doing pointer analysis using VSA, then looking at access patterns.
-TIE\cite{tie} is a constraint solving static type recovery system for programs with recovered variables.
-BiTR\cite{bitr} is similar to TIE, but has structure subtyping and does not require prior variable recovery. It also outperforms TIE in speed and quality on both TIE's metrics and BiTR's new metrics.
-Jakstab's\cite{jakstab} key insight was that CFG recovery and value analysis (by way of abstract interpretation) needs to be run in a fixpoint for best results.
-Byteweight\cite{byteweight} is a system using a basic bayesian classification scheme on byte prefixes and suffixes to identify function boundaries.
-The Best Transformer\cite{besttransformer} approach is a methodology for performing abstract interpretation over binary-code-like programs.
-Phoenix\cite{phoenix} is a decompilation approach based iterative refinement of control flow graphs. It gets its CFG from BAP\cite{bap}, then attempts to collapse the graph into a series of structured components as are used in C. Finally, it assigns types via TIE\cite{tie}.
-IDA\cite{ida} and CodeSurfer/x86\cite{codesurfer} are the main industry platforms for doing binary analysis. However, as both are closed source, it is frequently difficult to do methods comparison, and only measurements can be taken.
+BitBlaze~\cite{bitblaze} was a platform intended to allow platform independent representation and symbolic execution of various architectures.
+BAP~\cite{bap} is the spiritual successor to BitBlaze, with a similar but improved IR, and more practical analyses built on top of it.
+VSA~\cite{vsa} is an analysis using abstract interpretation to predict the possible range of values for various.
+DIVINE~\cite{divine} is a variable recovery system based around doing pointer analysis using VSA, then looking at access patterns.
+TIE~\cite{tie} is a constraint solving static type recovery system for programs with recovered variables.
+BiTR~\cite{bitr} is similar to TIE, but has structure subtyping and does not require prior variable recovery. It also outperforms TIE in speed and quality on both TIE's metrics and BiTR's new metrics.
+Jakstab's~\cite{jakstab} key insight was that CFG recovery and value analysis (by way of abstract interpretation) needs to be run in a fixpoint for best results.
+Byteweight~\cite{byteweight} is a system using a basic bayesian classification scheme on byte prefixes and suffixes to identify function boundaries.
+The Best Transformer~\cite{besttransformer} approach is a methodology for performing abstract interpretation over binary-code-like programs.
+Phoenix~\cite{phoenix} is a decompilation approach based iterative refinement of control flow graphs. It gets its CFG from BAP~\cite{bap}, then attempts to collapse the graph into a series of structured components as are used in C. Finally, it assigns types via TIE~\cite{tie}.
+IDA~\cite{ida} and CodeSurfer/x86~\cite{codesurfer} are the main industry platforms for doing binary analysis. However, as both are closed source, it is frequently difficult to do methods comparison, and only measurements can be taken.
 
 \section{Program Analysis Synthesis}
 The combination of program analysis has been done in a largely ad-hoc fashion until recently.
 Traditional compilers, such as \texttt{gcc}, have a set of passes defined at the architectural design level which are run in a set order.
-LLVM\cite{llvm} provided additional structure to this by trying to allow for pluggable passes with explicitly marked dependencies.
+LLVM~\cite{llvm} provided additional structure to this by trying to allow for pluggable passes with explicitly marked dependencies.
 This system works by allowing each pass to specify other passes which must be run first in order to work properly, and allowing a pass manager to pick an order to run them in.
 LLVM was lauded for this system allowing for ease of writing additional passes for compilers, used both in research and industry.
 While a step forwards, this requires each pass to run completely, not partially, and does not allow dependency cycles.
-Existing binary code analysis platforms\cite{jakstab,bap,codesurfer,bitblaze,boomerang,bindead,ida} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
+Existing binary code analysis platforms~\cite{jakstab,bap,codesurfer,bitblaze,boomerang,bindead,ida} still explicitly schedule analyses, in part due to the cyclic dependencies in their components.
 
-Bindead\cite{bindead} takes an interesting approach to integrating static and dynamic analysis.
+Bindead~\cite{bindead} takes an interesting approach to integrating static and dynamic analysis.
 It has a separate tool which allows the user to generate traces and feed them into the main static analysis suite.
 The static analysis then starts constrained by a partial trace to allow static analysis partway through the execution of the program.

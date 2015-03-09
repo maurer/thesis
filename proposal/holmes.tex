@@ -27,7 +27,7 @@ What improvements to result quality or analysis efficiency can we gain from comb
 I will explore the addition of optional information, especially from the dynamic world, to existing analyses to observe changes in outputs.
 In particular, I intend to examine the improvement in a CFG recovery system paired with dynamic control flow paths, and of BiTR when paired with dynamic values for registers.
 I will evaluate efficiency based on time, parallel time, and consumed memory.
-I will evaluate result quality based on true positives and false negatives for jump targets and for types on both the BiTR and TIE metrics\cite{bitr, tie}.
+I will evaluate result quality based on true positives and false negatives for jump targets and for types on both the BiTR and TIE metrics~\cite{bitr, tie}.
 \subsection{Economy of Alternatives}
 What improvements in efficiency can be gained by providing alternative systems for the same values.
 I intend to examine the CFG task using both VSA and a simpler (perhaps k-set) value analysis, and the type recovery task using a variant of BiTR depending on variable recovery that can choose between DIVINE and stack offset analysis.
@@ -89,7 +89,7 @@ to provide a direct means of expressing them would be misleading about what the 
 
 Ignoring external predicates for a moment, I expect the semantics of the basic system to resemble a Prolog with user annotated precomputation and caching.
 One notable deviation is the lack of an implicit evaluation order.
-While in Prolog this provides the programmer the ability to write terminating code, in \sysname it precludes the opportunity to explore scheduling of proof search.
+While in Prolog this provides the programmer the ability to write terminating code, in \sysname\ it precludes the opportunity to explore scheduling of proof search.
 A second deviation is the presence of combiners.
 I suspect, but am not sure, that combiners will only have a minor effect on the actual execution of the language.
 I believe the effect to be minor because the way combination happens means that matching on an improved combined fact will look identical to matching on a not-yet present uncombined fact.

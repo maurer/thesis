@@ -10,19 +10,19 @@ However, these systems have previously focused on recovering one piece of inform
 Some examples of properties which have been recovered statically in some form include types, function boundaries, variables, control flow, and value analysis.
 Each of these has a dependency relationship with the others, but existing implementations hardcode the execution of the other analyses, preventing modular improvement of the state of the art.
 
-In the case of Jakstab\cite{jakstab}, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitate a tight loop between the two.
+In the case of Jakstab~\cite{jakstab}, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitate a tight loop between the two.
 Jakstab does a recursive exploration of the control flow graph, then runs value analysis using that control flow graph.
 The resulting analysis provides possible targets for indirect jumps, which are added to the control flow graph.
 Upon completion, it loops back around and cycles again until stability is reached.
 Their initial success with a cyclic analysis structure suggests that making it easier to allow cycles between analyses may yield better quality results.
 
-VSA\cite{vsa} provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
+VSA~\cite{vsa} provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
 As a result, practical systems frequently have a fallback analysis for use when VSA fails.
 This suggests a use case for a coordinating system to know multiple ways of arriving at the same information.
-For variable identification, DIVINE\cite{divine} is currently top of the pack.
+For variable identification, DIVINE~\cite{divine} is currently top of the pack.
 However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
 
-BiTR\cite{bitr} recovers types, but consumes control flow information to do so.
+BiTR~\cite{bitr} recovers types, but consumes control flow information to do so.
 BiTR generates constraints for each register/program point combination based on percieved dataflow in the program.
 However, dataflow is itself dependent on control flow, which is generally incomplete.
 It would be possible for BiTR to consume an incomplete control flow graph, but it does not do so because existing control flow recovery mechanism implementations assume they are run to completion, and then stop.
@@ -31,7 +31,7 @@ This is an example of a case in which the representation of an analysis' ability
 In another branch of work, dynamic analyses tend to give more specific, but expensive and incomplete responses than the static systems discussed so far.
 An execution trace provides much, such as concrete feasible values for variables, bounds for may-alias and must-alias analyses, and partial control flow graphs.
 Other work attempts to recover data structures from concrete memory accesses, which could be fed as suggestions to a static inference engine.
-Finally, symbolic execution techniques are well known to be extremely expensive, but are of interest for their ability to answer what would otherwise be very difficult questions\cite{mayhem}.
+Finally, symbolic execution techniques are well known to be extremely expensive, but are of interest for their ability to answer what would otherwise be very difficult questions~\cite{mayhem}.
 
 These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
 Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
@@ -55,10 +55,10 @@ I will explore the space of executing logic programs with external predicates th
 \hline
 Analysis & Dependency Cycle & Expensive Optional Dependencies & Unused Inputs\\
 \hline \hline
-Jakstab\cite{jakstab} & \fyes & \fyes & \fno\\
-Phoenix\cite{phoenix} & \fyes & \fyes & \fyes\\
-TIE\cite{tie} & \fno & \fyes & \fyes \\
-BiTR\cite{bitr} & \fno & \fyes & \fyes\\
+Jakstab~\cite{jakstab} & \fyes & \fyes & \fno\\
+Phoenix~\cite{phoenix} & \fyes & \fyes & \fyes\\
+TIE~\cite{tie} & \fno & \fyes & \fyes \\
+BiTR~\cite{bitr} & \fno & \fyes & \fyes\\
 \hline
 \end{tabular}
 \caption{Stumbling Blocks}
@@ -96,7 +96,7 @@ Another approach is to use a statistical method to allow \sysname\ to learn the 
 
 I intend to examine this avenue of work if time allows after the main body of work.
 \section{Thesis}
-The logic language implemented in \sysname\ provides a new way of expressing and executing codependent, incremental, or expensive analyses which provide results to each other. \sysname programs can be reasoned about, are simpler to write than their directly integrated counterparts, and can provide better results by combining many analyses.
+The logic language implemented in \sysname\ provides a new way of expressing and executing codependent, incremental, or expensive analyses which provide results to each other. \sysname\ programs can be reasoned about, are simpler to write than their directly integrated counterparts, and can provide better results by combining many analyses.
 \section{Timeline}
 I plan to complete my thesis before Aug 2016.
 \begin{itemize}[label={}]

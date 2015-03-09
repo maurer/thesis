@@ -1,14 +1,14 @@
 \section{BiTR}
 %We want to try implementing an analysis which can be broken down into subcomponents for incrementality.
-One potential advantage of \sysname is the ability to write analyses which operate incrementally, updating their estimates and bounds as new information becomes available.
-To test this, I need to translate an analysis to \sysname which could make use of these features.
+One potential advantage of \sysname\ is the ability to write analyses which operate incrementally, updating their estimates and bounds as new information becomes available.
+To test this, I need to translate an analysis to \sysname\ which could make use of these features.
 Such an analysis should consume a predicate which is likely to have its accuracy increased as the system runs.
 Additionally, it should produce a predicate which can be meaningfully updated in light of the new information.
 
 %BiTR is a good candidate
-One such analysis is BiTR\cite{bitr}, which is a type recovery system for C-like compiled code.
+One such analysis is BiTR~\cite{bitr}, which is a type recovery system for C-like compiled code.
 BiTR uses control flow information in order to analyze which definitions of registers and memory cells are being used where.
-Control flow has been shown\cite{jakstab} to recover gradually, which suggests that it forms a good candidate input for incrementality.
+Control flow has been shown~\cite{jakstab} to recover gradually, which suggests that it forms a good candidate input for incrementality.
 Dynamic analysis will also likely specifically determine control flow information in cases like function pointers or vtables some time after the initial run of most analysis, making it an even better input.
 BiTR can meaningfully incrementally update its outputs because it's end product is an upper bound and lower bound on what the type of a given register definition could be.
 
