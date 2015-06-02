@@ -1,0 +1,36 @@
+% Integration Testing Strategy
+% * Analyses to consider:
+%   * Value
+%   * CFG
+%   * Type
+%   * Alias
+% * Select dataset
+%   * Coreutils
+%   * Need something more... (TODO)
+% * For each: 
+%   * Define the problem precisely
+%   * Gather ground truth
+%   * Gather SOTA implementations
+%   * Implement an integrated version
+% * Run comparisons in resource + results between
+%   * SOTAs
+%   * Fully integrated
+%   * Each individual linked analysis removed/avail
+% * Analyze for
+%   * Comparison of fully integrated vs sota
+%   * Does any improvement equal the sum of its parts? y/n?
+
+% Expected interactions:
+% VSA <-> CFG
+% BiTR <- VSA
+% BiTR <- Fuzz
+% BiTR <-> Alias
+% Alias <- Fuzz
+% VSA <- Fuzz
+
+% Integrated Implementations
+% * VSA (aggregators)
+% * BiTR (aggregators)
+% * CFG (circumscription)
+% * Fuzz (backwards chaining)
+% * Alias (aggregators, circumscription)

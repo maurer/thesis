@@ -1,122 +1,57 @@
+% General motivation
+% * Bulk of software is binary only
+% * Need more powerful inspection capabilities
+%
+% * Existing approaches are not integrated
+% * Existing approaches play fast and loose with soundness/assumptions
+% * When approaches are integrated, effort is being wasted on reimplementation
+%
+% * Can a tailored logic language solve this problem?
 
-\section{Overview}
-\label{sec:overview}
-The discipline of binary analysis focuses on the automated recovery or determination of properties over compiled code.
-This sort of analysis remains critical in the modern world as the majority of commercial software comes in this form -- compiled code with no symbols or source code.
-This presents different challenges from typical program analysis, as information normally available (control flow information, type signatures, variable boundaries) are now absent and must be recovered.
-A majority of these challenges have been tackled individually, sometimes using as input another piece of recovered information.
-However, these systems have previously focused on recovering one piece of information, explicitly invoking a particular method of gaining the information they depend upon.
+% Past work sets the stage for / encourages this 
+% * Datalog/prolog as a binary analysis tool
+%   * Shows fact-like representation of program properties is feasible
+%     * TODO Examples?
+%   * Natural way to describe incremental information buildup
+%     * TODO Examples of incrementality
+% * Analysis Integration improved results
+%   * Jakstab
+%   * TODO another example
+% * Analysis soundness-failure
+%   * TODO examples
 
-Some examples of properties which have been recovered statically in some form include types, function boundaries, variables, control flow, and value analysis.
-Each of these has a dependency relationship with the others, but existing implementations hardcode the execution of the other analyses, preventing modular improvement of the state of the art.
+% Thesis Statement
+% * Logic language
+%   * Powerful enough to express integration of binary analyses
+%     * Aggregation - allows consumption of non-fixed numbers of facts
+%     * Circumscription - allows reasoning based on incomplete information
+%   * Can be reasoned about
+%     * Monotonicity - truth is immutable
+% * Binary analysis integration
+%   * Is simpler with Holmes
+%   * Provides result quality improvements
+The Holmes logic language provides a method of expressing the integration of codependent interacting analyses.
+Programs written in Holmes are powerful enough to perform traditional binary analyses by allowing circumscription and aggregation, yet maintain monotonic reasoning properties.
+Binary analyses combined via Holmes are simpler to write than their directly integrated counterparts, and produce higher quality results when integrated than when separate.
 
-In the case of Jakstab~\cite{jakstab}, a control flow recovery system, the dependencies between their control flow recovery and their value analysis necessitate a tight loop between the two.
-Jakstab does a recursive exploration of the control flow graph, then runs value analysis using that control flow graph.
-The resulting analysis provides possible targets for indirect jumps, which are added to the control flow graph.
-Upon completion, it loops back around and cycles again until stability is reached.
-Their initial success with a cyclic analysis structure suggests that making it easier to allow cycles between analyses may yield better quality results.
+% Roadmap to defending the thesis statement
+% * Show the power by
+%   * Implementing the integration of several real analyses using the language
+%   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
+% * Show it can be reasoned about by
+%   * Proving formally the monotonicity of
+%     * Aggregation with our restrictions
+%     * Circumscription with our restrictions
+%   * Attempting to slice out a restricted segment which is terminating
+% * Show result improvement by
+%   * Measuring integrated/unintegrated analyses against ground truth on several tasks
+%     * CFG recovery
+%     * Value analysis
+%     * Type recovery
+%     * Alias analysis
 
-VSA~\cite{vsa} provides the most accurate value analysis available today. However, it is also known for its long runtimes and occasional divergence.
-As a result, practical systems frequently have a fallback analysis for use when VSA fails.
-This suggests a use case for a coordinating system to know multiple ways of arriving at the same information.
-For variable identification, DIVINE~\cite{divine} is currently top of the pack.
-However, rather than accepting input from any value analysis, it is directly integrated only with the costly VSA technique.
-
-BiTR~\cite{bitr} recovers types, but consumes control flow information to do so.
-BiTR generates constraints for each register/program point combination based on perceived dataflow in the program.
-However, dataflow is itself dependent on control flow, which is generally incomplete.
-It would be possible for BiTR to consume an incomplete control flow graph, but it does not do so because existing control flow recovery mechanism implementations assume they are run to completion, and then stop.
-This is an example of a case in which the representation of an analysis' ability to work incrementally would be beneficial to integration with other analyses.
-
-In another branch of work, dynamic analyses tend to give more specific, but expensive and incomplete responses than the static systems discussed so far.
-An execution trace provides much, such as concrete feasible values for variables, bounds for may-alias and must-alias analyses, and partial control flow graphs.
-Other work attempts to recover data structures from concrete memory accesses, which could be fed as suggestions to a static inference engine.
-Finally, symbolic execution techniques are well known to be expensive, but are of interest for their ability to answer what would otherwise be difficult questions~\cite{mayhem}.
-
-These examples demonstrate one of the major weaknesses of this body of work: these systems use results from each other, but each system only works with one question answered as an output, and acts as a standalone system.
-Additionally, since each system has been considered in a vacuum, the cost vs accuracy refinement has not been examined.
-As an example, while systems implementing a control flow/value analysis cyclic algorithm tend to use VSA, it is not obvious that the cost of VSA compared to simpler heuristics is worth the result improvement.
-These systems could all benefit from using each others' output to improve their results when possible, and from the ability to combine results of different methods for answering the same question, depending on how much precision is needed or what resources are available.
-
-%Previous work hits roadblocks, this should address them
-Previous work in binary analysis has run into a number of stumbling blocks related to getting the input information they require to actually make inferences. 
-In Figure~\ref{fig:problemsAddressed}, I show where previous work has encountered these issues.
-Here, dependency cycle means their novel component interacted with another cyclically.
-Expensive optional dependencies indicates the use of an expensive analysis where a cheaper one would usually suffice.
-Unused inputs is marked when the system mentioned other analyses that should give an improvement when combined, but chose not to do so, indicating a barrier to running the analysis and integrating it.
-
-Logic languages stand as a strong candidate to resolve this conundrum. Unfortunately, existing logic languages take a restrictive view of external predicates, generally assuming termination.
-If we take a solely forward chaining view, as is done in Datalog, expensive and possibly nonterminating external predicates will quickly eat all available resources.
-The version of backwards chaining employed by Prolog has explicit execution order, and so falls victim to being too inflexible to allow the scheduling of available resources.
-I will explore the space of executing logic programs with external predicates that may not terminate, and may be prohibitively expensive to use everywhere, with direct application to binary analysis.
-
-\begin{figure*}
-\begin{tabular}{|c||c|c|c|}
-\hline
-Analysis & Dependency Cycle & Expensive Optional Dependencies & Unused Inputs\\
-\hline \hline
-Jakstab~\cite{jakstab} & \fyes & \fyes & \fno\\
-Phoenix~\cite{phoenix} & \fyes & \fyes & \fyes\\
-TIE~\cite{tie} & \fno & \fyes & \fyes \\
-BiTR~\cite{bitr} & \fno & \fyes & \fyes\\
-\hline
-\end{tabular}
-\caption{Stumbling Blocks}
-\label{fig:problemsAddressed}
-\end{figure*}
-
-\subsection{Proposed Work}
-%This is what we're gonna do
-\sysname\ addresses these issues by expressing the relationship between analyses in the form of rules in a logic language, similar to Datalog or Prolog.
-Existing external analyses will be bound to rule firing.
-Dependency cycles can be dealt with via fixpoint semantics when rules chain forwards, and a search procedure when chaining backwards.
-Expensive procedures can be dealt with via backwards chaining rules tuned to be searched late in the search space.
-Finally, presenting a unified data representation and allowing analyses to specify their own dependencies eases the difficulty of using information from other analyses if available.
-
-While building this system, I will work to evaluate the technique's applicability to the domain. Specifically, I seek to answer:
-\begin{itemize}
-  \item What fragment of Holmes terminates?
-  \item What is the minimum amount of re-execution required to permit retraction?
-  \item Is it easier to write interacting analyses using a logic language as an interface?
-  \item What improvements to result quality or analysis efficiency can we gain from combining analyses?
-  \item What improvements in efficiency can be gained by providing alternative systems for the same class of analysis?
-\end{itemize}
-
-%This is how we're gonna test it
-I will test \sysname' effectiveness by using it to combine existing analysis techniques together into a coherent whole, then measuring the performance of these analyses against the original version where possible.
-I expect to see an increase in modularity and ease of implementation.
-Additionally, I expect to improve output quality if some inputs were neglected.
-Lastly, I anticipate a performance increase in analyses that were using a heavyweight analysis in places where it was not needed.
-I will employ formal mechanized reasoning techniques (likely via Agda) for the examination of \sysname' termination, monotonicity, and retraction properties.
-
-\subsection{Extended Work}
-The use of a logic language oriented approach to describing the relationship between analyses provides a unique opportunity to explore the implications of circumscription in incomplete logic languages.
-Circumscription is used in traditional logic languages at the point of saturation or search termination in order to provide a form of stratified negation.
-\sysname\ and binary analysis each provide an attribute interesting for circumscription:
-\sysname\ is incomplete, with rules which may never complete execution, making stratification an inadequate solution.
-Binary analysis deals frequently in ranges and bounds on properties we cannot know exactly.
-Within this context, circumscription may be able to formalize the notion of conjecturing ``true'' values for things normally only bounded by ranges.
-
-Additionally, \sysname\ provides an opportunity to examine scheduling in dependent workloads with multiple potential paths.
-One possible approach to this is a tactics script style language to allow the programmer to provide evaluation strategies to \sysname.
-Another approach is to use a statistical method to allow \sysname\ to learn the relative costs and benefits of different paths within a program over time on larger workloads.
-
-I intend to examine this avenue of work if time allows after the main body of work.
-\section{Thesis}
-The logic language implemented in \sysname\ provides a new way of expressing and executing codependent, incremental, or expensive analyses which provide results to each other. \sysname\ programs can be reasoned about, are simpler to write than their directly integrated counterparts, and can provide better results by combining analyses.
-\section{Timeline}
-I plan to complete my thesis before Aug 2016.
-\begin{itemize}[label={}]
-\item {\bf Now-Apr 2015} Thesis Proposal
-%CCS (Resubmit BiTR unless I've gotten a _long_ way)
-\item {\bf May-Aug 2015} \sysname\ Basic feature complete (\S~\ref{sec:holmesBasic}), spec and proofs developed in tandem
-%NDSS (Use holmes to piggyback on Jonathan's inevitable resubmission of firmware systemwide paper?)
-\item {\bf Sep 2015} VSA / CFG example
-\item {\bf Oct-Nov 2015} Combiners
-\item {\bf Dec 2015} BiTR (Type Recovery) Port
-\item {\bf Jan 2016} Backwards chaining
-\item {\bf Feb 2016} Revisit first two examples with backwards-chaining tracing
-\item {\bf March-May 2016} Explore stretch goals, such as circumscription and scheduling 
-\item {\bf May-Sep 2016} Thesis Writing
-\item {\bf Aug 2016} Defense
-\end{itemize}
+% Contribution Summary
+% * Monotonic aggregators
+% * Hypothetical circumscription
+% * Study of interaction between binary analysis techniques
+% * Practical system implementation

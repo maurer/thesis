@@ -1,136 +1,75 @@
-\section{Questions to Answer}
-\subsection{\sysname\ Language}
-\subsubsection{Termination}
-What fragment of \sysname\ terminates?
-This question is more complex than it may seem at first blush.
-While traditional Datalog programs have termination guarantees, this proof is based on finite domains and monotonicity.
-With the addition of external functions, even terminating ones, not all domains are finite, and so a more complex structure is necessary.
-The addition of combiners necessitates additional constraints on the combiners and accesses of these fields to guarantee monotonicity.
-\subsubsection{Subsumption}
-What properties are necessary to guarantee monotonic reasoning for programs with combiners?
-Combiners need to be paired with accessor functions in such a way that adding new facts cannot falsify a previous derivation.
-I suspect that this may have to do with considering the combiner as a lattice operation, but more work is needed to be sure.
-\subsubsection{Retraction}
-What is the minimum amount of re-execution to permit retraction?
-When a fact is retracted, all facts whose derivation depended on that fact must be retracted as well.
-In an ideal world, we would like retraction to affect \emph{only} those facts who depended on the retracted fact, not an overapproximation of this set.
-Combiners and external functions both provide interesting hurdles.
-\subsection{Ease of Implementation}
-Is it easier to write interacting analyses using a logic language as an interface?
-I will compare the code of co-dependent analyses implemented via \sysname\ against that of existing systems such as Jakstab and BAP.
-I will use compressed code metrics to examine the difference in complexity of implementation.
-I will examine modularity by looking at the amount of implementation dependence of each analysis on the other, using a to-be-determined metric.
-One possibility for this axis is amount of code from module A needed for module B to build.
-Additionally, a subjective evaluation of code complexity may be applied.
-\subsection{Power of Cooperation}
-What improvements to result quality or analysis efficiency can we gain from combining analyses?
-I will explore the addition of optional information, especially from the dynamic world, to existing analyses to observe changes in outputs.
-In particular, I intend to examine the improvement in a CFG recovery system paired with dynamic control flow paths, and of BiTR when paired with dynamic values for registers.
-I will evaluate efficiency based on time, parallel time, and consumed memory.
-I will evaluate result quality based on true positives and false negatives for jump targets and for types on both the BiTR and TIE metrics~\cite{bitr, tie}.
-\subsection{Economy of Alternatives}
-What improvements in efficiency can be gained by providing alternative systems for the same values.
-I intend to examine the CFG task using both VSA and a simpler (perhaps k-set) value analysis, and the type recovery task using a variant of BiTR depending on variable recovery that can choose between DIVINE and stack offset analysis.
-I will evaluate using the same metrics as the cooperation experiment.
-If the scheduling system is present, I will examine the effects on efficiency and quality of tweaking the scheduling system to give up earlier or later on longer running analyses.
+% Overview
+% * Binary analysis information as facts in a deductive database
+% * Traditional logic language approaches treated the logic language as an analysis module in a larger scheme
+% * Use the logic language to integrate other analyses, treating external code as where-clause-functions (analogous to external predicates)
+% * Use monotonic aggregators (secref) to enable functions to consume 'all' of something monotonically
+% * Use hypothetical circumscription (secref) to enable functions to consume 'all' of something in a non-monotonic way, while still allowing the database to maintain a monotonic view
+% * Use explicit backwards chaining to enable expensive or nonterminating functions (esp. fuzzing) (secref)
+% * Implement system in a way that is efficient and will scale to large datasets (secref)
 
-\section{Holmes}
-\subsection{\sysname\ Basic}
-\label{sec:holmesBasic}
-Initially, I will aim to implement a more basic set of features in \sysname.
-This feature set is intended to be complete enough to pursue the majority of the application work, while simple enough that its completion should not be in question.
-In the basic version of \sysname, I will implement a system with:
-\begin{itemize}
-\item Forwards and backwards chaining
-\item Simple external predicates
-\item Result caching/persistence
-\item Combination functions
-\end{itemize}
-Additionally, I will formalize the semantics of the restricted system.
+% Monotonic Aggregators
+% * Why does external code need this? (TODO explicit example)
+% * Definition (see agda in contributions localfile)
+% * Set-bound examples
+% * Abstract interpretation example (bounded intervals)
 
-While the actual system will operate based on RPC calls, it is conceptually useful to think about the system in terms of a written out set of rules.
-In Figure~\ref{fig:holmesGrammar}, I depict a draft of what this would consist of for \sysname\ Basic.
-Additional constraints are necessary beyond what is expressed in the grammar (e.g. variable occurrence restrictions), but this gives the basic concept for the moment.
-The only thing not directly expressible in this language is the external functions themselves.
-External functions creation is not given a representation here because they are represented to the system by providing it with an RPC handle, and so they act as black boxes;
-to provide a direct means of expressing them would be misleading about what the system could reason about.
+% Hypothetical Circumscription
+% * Why do we need this? (CFG example)
+% * Definition (reveal domain explicitly)
+% * Why is this circumscription? (Minimizing the extent of a given pattern)
+% * Why is this hypothetical? (It is possible we will receive future evidence suggesting the minimum extent is larger)
+% * Why does revealing the domain constitute this?
+%   * At least as powerful because we could use list union + any query + this to get explicit membership
+%   * At most as powerful because we could fold over membership to produce the given domain
+%   * It could be more powerful if order-indep wasn't a property on aggregators
+% * Call-CC
+%   * Why do we need this extension? (CFG->CFG example)
+%   * Simplified 1,2,3 -> 1,2,3,neg4 -> 1,2,3,neg4,4 -> 1,2,3,4 example
+%   * Why is this call-CC?
+%   * Why can we do "bag" circumscription (e.g. circumscribe neg4 and neg5 "simultaneously" and pick one to break out on)
 
-\begin{figure}
-\begin{grammar}
+% Bidirectional Proof Search
+% * Forwards chaining = datalog
+%   * Want this to represent things which
+%     * Almost always need to be done
+%     * Can be done efficiently
+%     * Have a reasonably bounded extent
+%   * Good for preprocessing/directed auto-analysis
+%   * Examples
+%     * Parse
+%     * Lifting
+%     * Initial CFG
+%     * Loaded memory image
+% * Backwards chaining = prolog
+%   * Want this to represent things which
+%     * Rarely need to be done
+%     * Have an enormous or infinite extent
+%     * Are potentially expensive
+%   * Good for directed queries from a user
+%   * Examples
+%     * Fuzz
+%     * Solve this function for stack overflow with symex + smt
+%     * TODO more examples
+% * Execution strategy
+%   * Queries / rule firing acts as a transaction, multiple may be in flight
+%   * Try to fire any legal forwards chaing rules until quiescence
+%   * If a query is received
+%     * Output known matches
+%     * Do a backwards search (strategy tbd), treating forwards rules as backwards rules
+%     * Commit results of backwards search to database and output
 
-<prog> ::= (<decl> | <rule>)*
-
-<decl> ::= <pred> `(' <argsig>+ `)' [`where' (`(' <arg>* `)' `=' <expr>)]
-
-<argsig>
-::=  <type>(= : <func>)
-\alt <type>($\oplus$ : <func>)
-
-<rule> ::= <head-constr> <sched-sym> <body-clause>
-
-<sched-sym> ::= $\leftarrow$
-\alt $\Leftarrow$
-
-<head-constr> ::= (<pred> `(' <expr>+ `)')+
-
-<expr> ::= <var>
-\alt <consnt>
-\alt <func> `(' <expr>* `)'
-
-<body-clause>
-::=  `('<body-clause>`)' $\wedge$ `('<body-clause>`)'
-\alt <pred> `(' <arg>* `)'
-
-<arg> ::= $\exists$ \alt <var> \alt <const>
-\end{grammar}
-\label{fig:holmesGrammar}
-\caption{\sysname\ Grammar}
-\end{figure}
-
-Ignoring external predicates for a moment, I expect the semantics of the basic system to resemble a Prolog with user annotated precomputation and caching.
-One notable deviation is the lack of an implicit evaluation order.
-While in Prolog this provides the programmer the ability to write terminating code, in \sysname\ it precludes the opportunity to explore scheduling of proof search.
-A second deviation is the presence of combiners.
-I suspect, but am not sure, that combiners will only have a minor effect on the actual execution of the language.
-I believe the effect to be minor because the way combination happens means that matching on an improved combined fact will look identical to matching on a not-yet present uncombined fact.
-
-The major sticking points in finalizing this system will probably be:
-\begin{itemize}
-\item {\bf Rule firing order.}
-
-While forwards versus backwards chaining puts certain constraints on which rules can fire, this may need to be constrained further for a workable system.
-I hope to leave it unconstrained, as this will make work on scheduling them more interesting, but it could easily be an issue.
-
-\item {\bf External code binding.}
-
-There is a lot of power to be gained once you start allowing function symbols to appear in certain places.
-Initially, I am taking the approach that where clauses and scoping rules will allow me to search or fire rules in a way that only requires execution of functions.
-However, this approach denies the ability to use unification and treat code as function symbols (e.g. by placing a function in the head of a backwards chaining rule).
-I will need to decide on a precisely where functions can appear to allow my execution strategy to function.
-
-\item {\bf Combiner subsumption.}
-
-Since combiners are intended to be allowed to use external code, proofs of subsumption necessarily will not be fully formal.
-However, knowing exactly which operations may be safely used against a combined field safely will likely be a tricky issue.
-In simple cases, like sets combined via intersection, the result is obvious (you can ask if the value is a subset of a target set).
-Indeed, for anything that lies on a lattice, the result for meet or join combiners is straightforwards.
-In more complex cases, it may be unclear what queries are legal.
-This will also help indicate under which circumstances circumscription becomes necessary;
-when the user wishes to make a query not consistent with subsumption, they essentially must circumscribe in some way first.
-\end{itemize}
-
-Additionally, I intend to investigate what circumstances lead to terminating evaluation of the forwards chaining fragment.
-Adding backwards chaining would prevent reasoning from the finite set of initial facts, and so make for an undecidable problem.
-Even with only forwards chaining, this is potentially tricky.
-Given variables which range over an infinite domain, properties are required on the external predicates to guarantee termination.
-Knowledge of what properties these are would assist future programmers of this system in designing preprocessing phases for their applications.
-\subsection{\sysname\ Advanced}
-Possible additional topics to explore as they are relevant to applications include:
-\begin{itemize}
-\item Retraction - removal of facts or even rules from a live system with minimal perturbation to support hypothetical analyses
-\item Circumscription - reasoning as though knowledge of some fact is all you will ever have/can be known, despite not knowing this for certain
-\item Tactical Evaluation - adaptation of a system similar to Coq's tactic scripts to suggest evaluation strategies
-\item Learning Evaluation - self improvement of evaluation strategies based on past success and cost of external predicates
-\item Resource Constrained Evaluation - Getting the best answer within certain time/machine constraints
-I intend to hit at least some of these as I explore the usefulness of this system to binary analysis, but not necessarily all of them.
-\end{itemize}
+% Implementation Strategy
+% * Lang = rust
+%   * Safe
+%   * Efficiently handles large data
+%   * Threading story
+% * Database engine = postgres
+%   * Transactions (multiple rules in flight)
+%   * Joins (avoid writing a custom query compiler for match terms, just compile to joins)
+%   * Efficient jsonb support for custom user data structures
+% * RPC system = Cap'n'proto
+%   * Efficiently handles large data
+%   * Encoding of structured data for user types
+%   * Supports "sturdy refs" for resuming analysis services
+%   * Multilang support (python, rust, C++, js, partial ocaml)
+% * See impl in progress at my github
