@@ -1,24 +1,61 @@
+\chapter{Introduction}
 % General motivation
 % * Bulk of software is binary only
+% * Reasoning about the behavior and safety of software is important
 % * Need more powerful inspection capabilities
 %
 % * Existing approaches are not integrated
 % * Existing approaches play fast and loose with soundness/assumptions
 % * When approaches are integrated, effort is being wasted on reimplementation
+% * Data cycling doesn't occur
 %
 % * Can a tailored logic language solve this problem?
+The bulk of modern software is distributed in binary-only form, for reasons ranging from a desire to keep proprietary information secret to wanting to avoid compilation or interpretation overhead on the client.
+Given that these programs are given privileges to act on behalf of the user, either poorly or maliciously coded software can cause significant damage.
+Unfortunately, inspecting the behavior of machine code is a known difficult problem:
+It is undecidable for pathological cases, and difficult to approximate in common ones.
+ 
+Existing tools tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next as some form of data structure.
+This model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
+Since these tools lack any framework for integrating with each other, they have to deal with a variety of pitfalls.
+Analyses do not use infomation that would be helpful to them, in order to avoid reimplementing previous work that is not strictly required.\todo{forwardref}
+Similarly, even when a piece of information is required, the state of the art methods for determining it are not always employed to reduce implementation complexity.\todo{forwardref}
+Additionally, the interface between analyses is a source of soundness issues, as dependent analyses do not fully realize the assumptions results are based on, or attempt to simplify a result to one they feel they can consume.\todo{forwardref}
 
-% Past work sets the stage for / encourages this 
-% * Datalog/prolog as a binary analysis tool
+% Past work sets the stage for / encourages this
+Previous work in program analysis suggests that logic languages can help to structure this problem.
+% * Datalog/prolog as a program analysis tool
+Datalog has previously been successfully used to analyze programs\cite{Lam2005a, Brumley2006b, Alpuente2011, Smaragdakis, Whaley2007}. 
 %   * Shows fact-like representation of program properties is feasible
-%     * TODO Examples?
+While the ability to write analyses directly in logic language is interesting, of more potential importance to the feasability of this project is that they were able to model both their input and output knowledge as logic language predicates successfully.
+A wide variety of properties from aliasing in binary code\cite{Brumley2006b} to security properties such as SQL injectability and XSS\cite{Lam2005a} have been modeled as facts in a deductive database, suggesting this as a potential common representation. 
+
 %   * Natural way to describe incremental information buildup
-%     * TODO Examples of incrementality
+Logic languages also provide a natural way to describe incremental discovery of new information.
+In a traditional stateful approach to representing new information some analyses may consume old information and never consume the update.
+When analyses expressed as logical rules, it is clear exactly when newly discovered information can be usefully consumed.
+% It'd be nice to have research to cite, but people don't seem to have considered logic language incrementally
+
 % * Analysis Integration improved results
+As using a logic language to describe the analysis process gives us both a common representation for information and the ability to see which analyses can and should be run when, integration should be easier.
 %   * Jakstab
-%   * TODO another example
+Jakstab\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to substantially better results.
+If both analyses had been specified as logical rules within the same environment, the additional power Jakstab found by integrating them would have come for free.
+%   * Compositional May Must
+Similarly, \textsc{Smash}\cite{maymust} combined two previous techniques for proving program properties: may analysis and must analysis.
+May-analysis derives facts about procedures stating that if a given property holds on an input, a separate property holds at the output (traditionally corresponding to static analysis).
+Must-analysis derives facts stating that within a given set of inputs, there exists at least one that goes to each of a given set of outputs (traditionally corresponding to dynamic analysis).
+The authors were able to prune a number of search paths via this combination, leading to property checks terminating which previously took too long to be feasible to run.
+With a (backwards-chaining\footnote{Goal driven execution, more explanation in \S\ref{sec:backchain}}) representation of may and must analyses separately, their analysis could be derived by adding a relatively small number of rules to describe the yes/no property check fact they introduce.
+
 % * Analysis soundness-failure
-%   * TODO examples
+% TODO I can't argue for this without concrete examples, which I don't have.
+
+% External code
+Using a fairly common extension of logic language, we can even call out to code not written as logical rules\footnote{We will use a system similar to external predicates \S\ref{sec:extpred}}.
+This makes it possible to repurpose previously written analyses, or to write new analyses which may not be best represented as rules.
+There are still some restrictions on how such code can operate (e.g.\ no preserved state across calls) but taking this approach gives the flexibility to be an integration system.
+Without this, a substantial amount of reimplementation would need to occur, and it would be unlikely that new analysis authors would choose to use this approach if they were not already familiar with logic language.
 
 % Thesis Statement
 % * Logic language
@@ -30,28 +67,58 @@
 % * Binary analysis integration
 %   * Is simpler with Holmes
 %   * Provides result quality improvements
+% TODO migrate some of this into the roadmap, make thesis a simpler concept
+\begin{inset}
+{\bf Thesis statement.}
+\todo{Concision}
 The Holmes logic language provides a method of expressing the integration of codependent interacting analyses.
 Programs written in Holmes are powerful enough to perform traditional binary analyses by allowing circumscription and aggregation, yet maintain monotonic reasoning properties.
 Binary analyses combined via Holmes are simpler to write than their directly integrated counterparts, and produce higher quality results when integrated than when separate.
+\end{inset}
 
 % Roadmap to defending the thesis statement
+\section{Defense Roadmap}
 % * Show the power by
 %   * Implementing the integration of several real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
+I will seek to show the expressiveness and power of \sysname\ by implementing and integrating several real analyses using the language.
+Additionally, I will attempt to implement some subset of these analysis without monotonic aggregation\footnote{See \S\ref{sec:monagg}} or hypothetical circumscription\footnote{See \S\ref{sec:hypcirc}} (the primary extensions under exploration).
+These two implementations should provide both evidence for the suitability of logic language to this task, and for the value of my extensions. 
+
 % * Show it can be reasoned about by
 %   * Proving formally the monotonicity of
 %     * Aggregation with our restrictions
 %     * Circumscription with our restrictions
 %   * Attempting to slice out a restricted segment which is terminating
+I will attempt to demonstrate that \sysname\ can be reasoned about by writing mechanized proofs.
+The two primary properties I will investigate are proving the monotonicity of my aggregation scheme and the soundness of my circumscription.
+\todo{Should I move these definitions elsewhere? Perhaps after the Holmes chapter? Proposed work section?}
+Here, what it means for monotonic aggregators to actually be monotonic is:
+For two programs $P$ and $P'$, if both $P$ and $P'$ terminate on a given goal and produce results $R$ and $R'$ respectively, and $P \subseteq P'$, then $R \subseteq R'$.
+I define the soundness of hypothetical circumscription to be:
+If a program has an intermediate fact database $\neg A_0,\ldots, \neg A_n \vdash D$ then $A_i \not \in D$.\todo{Add re-expression of traditional datalog soundness theorem with additional construction for call-cc} 
+If time permits, I will try to determine a restricted segment of \sysname\ which can be proved to terminate, providing a subset within which to write preprocessing phases.
+
 % * Show result improvement by
 %   * Measuring integrated/unintegrated analyses against ground truth on several tasks
 %     * CFG recovery
 %     * Value analysis
 %     * Type recovery
 %     * Alias analysis
+I intend to show improvements from integration by comparing integrated and unintegrated analyses against ground truth on a number of tasks.
+Primarily, I intend to focus on CFG recovery, value analysis, type recovery, and alias analysis.
+In the case of CFG recovery, I anticipate success even more strongly than in the other cases, as it should meet or exceed the boost previously observed\cite{jakstab} due to the presence of strictly more information.
 
+\section{Contributions}
 % Contribution Summary
 % * Monotonic aggregators
 % * Hypothetical circumscription
 % * Study of interaction between binary analysis techniques
 % * Practical system implementation
+The main contributions of this work will be:
+\begin{itemize}
+        \item Monotonic Aggregators --- adding the ability to efficiently reason about collections of facts in a single rule invocation while not breaking monotonicity.
+        \item Hypothetical Circumscription --- giving a ``stuck'' or incomplete system an Occam's razor motivated set of assumptions to allow it to proceed hypothetically, re-examining the plausibility of the hypotheses when necessary. 
+        \item Study of interaction between binary analysis techniques --- using \sysname\ to quantitatively examine combinations of existing analyses for improvements in performance or efficiency.
+        \item A practical system implementation --- designing \sysname\ such that it is stable, efficient, and usable enough to see continued use after the completion of this thesis.
+\end{itemize}

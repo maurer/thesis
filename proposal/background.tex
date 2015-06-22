@@ -1,32 +1,250 @@
+\label{chap:background}
 % Logic Language
+\section{Logic Language}
+Logic languages are a family of programming languages which express computation as proof search.
+This makes them well suited to the task at hand because it allows us to describe the provenance of information and to separate execution strategy for a suite of analyses from the expression of said analyses.
+I will review Datalog and Prolog as a way of giving a general overview of logic programming, but the field is quite broad.
+%%Sentence omitted because it forward references too many concepts
+%Datalog and Prolog are selected to give an example of both a forwards-chaining and backwards-chaining search, and to motivate the notion of a database of facts as our incremental store.
 % * Datalog
+\subsection{Datalog}
+\subsubsection{Basics}
 %   * Predicates
+Predicates form the concept of a relation between several values.
+For example,
+\[
+        \pred{parent}{\cdot, \cdot}
+\]
+could be used to represent a relation in which the left argument is the parent of the right argument.
 %   * Facts
+The concept of a ``fact'' is used to represent a particular member of a relation. For example,
+\[
+        \pred{parent}{\id{alice}, \id{bob}}
+\]
+represents the fact that $\id{alice}$ is $\id{bob}$'s parent.
+The set of facts known is sometimes referred to as the database, and is separated into extensional and intensional parts.
+The extensional portion of the database is those facts which are given to the system prior to execution, while the intensional database consists of those derived from the extensional database.
 %   * Rules
-%   * Simple example (Grandchild relation)
+In order to actually perform computation with this system and create such an extensional database, logic languages use ``rules'', which function very much like inference rules from traditional proof writing.
+Following in the vein of the previous examples,
+\[
+        \frule{\pred{sibling}{\var{X}, \var{Y}}}{\pred{parent}{\var{P}, \var{X}}, \pred{parent}{\var{P}, \var{Y}}}
+\]
+expresses that if for some assignment to $\var{P}$, $\var{X}$, and $\var{Y}$, we know that $\var{X}$ shares parent $\var{P}$ with $\var{Y}$, then we can derive that $\var{X}$ and $\var{Y}$ are siblings.
+The left hand side is referred to as the \emph{head clause} and represents the template from which new facts will be built by this rule.
+The right hand side is called the \emph{body clause} and describes the search or match to be performed on the database.
+Rules are applied ``to saturation'', meaning that they are applied repeatedly until the body clause no longer has any new matches in the database.
+The order in which rules are declared is irrelevant: all rules are examined for matching body clauses repeatedly until none match.
+%   * Simple examples
+\subsubsection{Example: Uncle}
+If we ignore the genderedness of the term ``Uncle'', calculating from a series of parent/child relations all of the uncles is a fairly straightforward example.
+We begin with an extensional database consisting of:
+\[
+        \pred{parent}{\id{alice}, \id{bob}}
+        \quad \pred{parent}{\id{alice}, \id{charlie}}
+        \quad \pred{parent}{\id{bob}, \id{deb}}
+        \quad \pred{parent}{\id{bob}, \id{ed}}
+\]
+We take the sibling rule from the earlier example, and also
+\[
+        \frule{\pred{uncle}{\var{X}, \var{Y}}}{\pred{sibling}{\var{X}, \var{P}}, \pred{parent}{\var{P}, \var{Y}}}
+\]
+which indicates that someone is considered an uncle if they are that person's parent's sibling.
+
+With the rules and extensional database in hand, we can compute the complete database.
+The uncle rule cannot apply, since there are no facts for the sibling predicate.
+So, first applying the sibling rule to saturation yields a database of
+\begin{gather*}
+        \pred{parent}{\id{alice}, \id{bob}}
+        \quad \pred{parent}{\id{alice}, \id{charlie}}
+        \quad \pred{parent}{\id{bob}, \id{deb}}
+        \quad \pred{parent}{\id{bob}, \id{ed}}\\
+        \pred{sibling}{\id{bob}, \id{charlie}}
+        \quad \pred{sibling}{\id{charlie}, \id{bob}}
+        \quad \pred{sibling}{\id{deb}, \id{ed}}
+        \quad \pred{sibling}{\id{ed}, \id{deb}}
+\end{gather*}
+The right hand side of the sibling rule no longer applies, so the only option now is to execute the uncle rule.
+Doing so to saturation yields
+\begin{gather*}
+        \pred{parent}{\id{alice}, \id{bob}}
+        \quad \pred{parent}{\id{alice}, \id{charlie}}
+        \quad \pred{parent}{\id{bob}, \id{deb}}
+        \quad \pred{parent}{\id{bob}, \id{ed}}\\
+        \pred{sibling}{\id{bob}, \id{charlie}}
+        \quad \pred{sibling}{\id{charlie}, \id{bob}}
+        \quad \pred{sibling}{\id{deb}, \id{ed}}
+        \quad \pred{sibling}{\id{ed}, \id{deb}}\\
+        \pred{uncle}{\id{charlie}, \id{deb}}
+        \quad \pred{uncle}{\id{charlie}, \id{ed}}
+\end{gather*}
+At this point, neither rule applies, and so the program has finished.
+It has also derived the only two uncle facts possible.
+\subsubsection{Example: Related}
+Alternatively, perhaps we only wish to know if two people are related.
+This is potentially more interesting because it is an obviously recursive search, unlike the previous example which was clearly considerable as a two-step search: find the siblings, then find siblings of parents.
+However, since Datalog applies its rules until saturation, this is not any more difficult than the previous qurery.
+Consider the rules
+\begin{gather*}
+        \frule{\pred{related}{\var{X}, \var{Y}}}{\pred{parent}{\var{X}, \var{Y}}}\\
+        \frule{\pred{related}{\var{Y}, \var{X}}}{\pred{related}{\var{X}, \var{Y}}}\\
+        \frule{\pred{related}{\var{X}, \var{Z}}}{\pred{related}{\var{X}, \var{Y}}, \pred{related}{\var{Y}, \var{Z}}}
+\end{gather*}
+The first rule translates a parent/child relationship into being related.
+The second provides symmetry.
+The third provides transitivity.
+This is sufficient to compute the actual related set.
+Execution proceeds much the same as the previous example, simply firing each rule until no rules are able to fire.
+The only real difference is that the second and third rule will be fired interleaved due to the nature of the search.
+However, as the intensional database is quite large for any nontrivial extensional database with these rules, the resulting database is omitted.
 %   * Termination
+\subsubsection{Termination}
+It might be surprising to realize that despite recursive rules being permitted, the language as described thus far is actually terminating.
+Head clauses construct facts with variables or directly with values.
+If constructed with a variable, the variable must have been bound in the body clause.
+If the variable was bound in the body clause, its value must have been in the database.
+As a result, the only possible values are those which were in the extensional database and those mentioned concretely in the rules.
+With a finite domain of values, and a finite list of predicates, there is a finite list of facts which could be instantiated.
+Structure evaluation as a series of steps, each of which fires the first rule it can find which matches, or if none match, terminate.
+Since this evaluation strategy is always productive or terminating, and we have established a finite upper bound on the database, we have a bound on the length of such an evaluation.
+Since this evaluation strategy only produces facts according to the rules, and only stops when no rules apply, it matches the saturation/fixpoint semantics of Datalog.
+
+While termination is a convenient property for a language to have, there are several caveats.
+%
+The upper bound is not a very practical one.
+It is finite, which is sufficient for the proof, but will be very large even for simple quickly terminating programs.
+The upper bound on the Uncle example from earlier would be $3 \times 5^2 = 75$ (5 database values, max arity of 2, 3 predicates).
+This overapproximation will only get worse as new values or increased arity predicates appear.
+%
+Termination directly implies a limit to the language's power.
+While a number of different kind of closure or search procedures are specifiable as Datalog programs, its inability to create new symbols is fairly limiting.
+%
+The proof is quite fragile, since many language modifications will introduce the ability to generate new symbols.
+\subsubsection{External Predicates}
+\label{sec:extpred}
 %   * Motivation for external predicates (e.g. +2)
+One example of a case where introducing new symbols might be desirable is the ability to perform arithmetic.
+It is possible to encode arithmetic over some finite domain (e.g.\ $0-(2^{64} - 1)$) by adding a predicate for each binary operation and prepopulating the extensional database with all the values.
+However, having such a table is massively impractical.
+
 %   * External predicates
+One way to deal with this issue is to introduce external predicates: predicates whose extents are not stored in the database, but are rather computed or queried from some external system when needed.
+This leads to the need for a mode system.
+Since I do not intend to use moded predicates in \sysname\, I will only give a general picture of the problem they solve.
+Consider an external predicate $\pred{sum}{\cdot, \cdot, \cdot}$, where the first entry is the sum of the other two.
+When trying to match the body clause of a rule, it becomes important that at least two entries be provided, or the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
+In the case of functions which are designed to be hard to invert (e.g.\ a hash function), this becomes not only a result size concern and an actual implementability concern.
+To deal with this, external predicates can have mode signatures, explaining which entries are logical inputs, and which are outputs. For example, we could have
+\[
+        \pred{sum}{+, -, -} \quad \pred{hash}{+, -}
+\]
+A mode checking phase on the rule can then guarantee that matches against the sum predicate can be performed using
+\[
+        \textrm{add} : \textrm{uint64} \rightarrow \textrm{uint64} \rightarrow \textrm{uint64}
+\]
+rather than needing to assume the presence of subtraction and possible-addends operations.
+
 %   * External predicates can break termination
+Unfortunately, adding external predicates adds all possibilities for their result values to the upper bound for the termination.
+Adding an external predicate which only produces a small type such as a boolean has little effect on our ability to bound execution.
+Adding a large, but still finite bounded type like $\textrm{uint64}$ makes any numerical approximation of runtime from value count irrelevant, but still technicaly gives termination.
+Adding a type with non-finite size like lists or strings \emph{breaks termination} despite these features being commonly desired for good reasons.
+
 %   * Stratified negation
+\subsubsection{Stratified Negation}
+Another thing that can be useful to talk about is the inability of the system to prove a particular fact.
+For example, this could be useful to describe routing.
+Network reachability can be described similar to $\pred{related}{\cdot, \cdot}$
+\begin{gather*}
+        \frule{\pred{reachable}{\var{X}, \var{Y}}}{\pred{link}{\var{X}, \var{Y}}}\\
+        \frule{\pred{reachable}{\var{Y}, \var{X}}}{\pred{reachable}{\var{X}, \var{Y}}}\\
+        \frule{\pred{reachable}{\var{X}, \var{Z}}}{\pred{reachable}{\var{X}, \var{Y}}, \pred{reachable}{\var{Y}, \var{Z}}}
+\end{gather*}
+Next, our machine has a local network and a gateway --- a common configuration.
+Traffic serviceable by the local network should be sent direct, while the remainder of routable traffic should be sent to the gateway.
+\begin{gather*}
+        \frule{\pred{route}{\id{local}, \var{T}}}{\pred{reachable}{\id{local}, \var{T}}}\\
+        \frule{\pred{route}{\id{gw}, \var{T}}}{\neg \pred{reachable}{\id{local}, \var{T}}, \pred{reachable}{\id{gw}, \var{T}}}
+\end{gather*}
+In the case of this set of rules, negation has a clear interpretation.
+First, generate all reachability predicates.
+Then, if reachable was not derivable thus far, matches against not reachable should succeed.
+However, when recursive rules and negation are mixed, it can cause termination and stability rules. Consider the set of rules:
+\begin{gather*}
+        \frule{\pred{p}{\var{X}}}{\neg \pred{q}{\var{X}}}\\
+        \frule{\pred{q}{\var{X}}}{\neg \pred{p}{\var{X}}}
+\end{gather*}
+There is no interpretation of this which terminates with the fixpoint semantics, or which provides a minimal model (not discussed here).
+To deal with this, Datalog imposes a requirement on negation known as stratification.
+This requirement can be phrased as a graph property:
+
+Create a graph where the predicates are nodes, and there is an edge between two nodes iff there is a rule in the program which uses the source node predicate as a premise to derive the destination node predicate.
+Additionally, label all those edges where the premise predicate was negated.
+There must be no cycles which include one or more negated edges.
+
 % * Prolog
+\subsection{Prolog}
+While \sysname\ is primarily modeled after Datalog, some ideas more related to those in Prolog are also necessary.
 %   * Forwards vs backwards chaining
+\subsubsection{Backwards Chaining}
+\label{sec:backchain}
+The evaluation model discussed thus far is what is commonly known as forward chaining, or bottom-up search.
+This approach searches for a proof by taking known facts and deriving anything they can hoping to reach the goal.
+However, there are some applications for which this approach does not work well --- as an example, any system that would have a potentially infinite intensional database cannot run with such a semantics.
+
+The other approach is known as backwards chaining, or top-down search, and is what is used in Prolog.
+In backwards chaining, search is directed by a particular goal instead.
+The logic engine examines the goal and the available rules, and by unification breaks it down to a series of potential subgoals, and recurses.
+There are various methods to control the backtracking behavior of such a search, but they are not immediately relevant.
+
 %   * Nontermination
+\subsubsection{Nontermination}
+While Datalog has termination as a key property, Prolog and most backwards chaining languages do not.
+As a simple example, consider the related-symmetry rule we used before, constructed instead as a backwards chaining rule:
+\begin{gather*}
+        \brule{\pred{related}{\var{X}, \var{Y}}}{\pred{related}{\var{Y}, \var{X}}}
+\end{gather*}
+In Datalog, this terminated because the engine would fail to derive any new facts eventually.
+In a backwards chaining search procedure, this could give rise to an alternating search tree.
+Consider a query for $\pred{related}{\id{john}, \id{mary}}$.
+This backwards chaining rule would search for $\pred{related}{\id{john}, \id{mary}}$, then by the rule, see that it could instead search for $\pred{related}{\id{mary}, \id{john}}$.
+However, it would then trigger again, bringing us back to a search for $\pred{related}{\id{john}, \id{mary}}$, looping infinitely.
+While this simple example could be avoided by checking if this subgoal had already occurred in the tree, more complex examples are possible which are unavoidable.\todo{citation?}
+
 %   * TODO prolog example showing extra power
-%   * Search strategy control (cut)
+
 % * Circumscription
+\subsection{Circumscription}
+Circumscription is a concept in logic related to including Occam's Razor, or ``common sense'' into deriving a model from logic statements.
+I discuss it here because it will be relevant to the \sysname\ treatment of reasoning from incomplete information.
+
+As an example of why this might be necessary, consider the following:
+\todo{Write a good example. I'm trying to avoid fluents or negation. Formula $a \wedge (b \vee c)$ is good, but need to pair real world meaning to it}
+
+More examples are given in McCarthy's paper introducing the idea\todo{cite McCarthy's circumscription paper}.
+An slightly simpler (if imprecise) way of thinking about circumscription is to consider it as taking a specification of truth which is irrefutable, while saying as little as possible --- you're not saying something grounded in fact, you're saying something nobody can prove wrong, while taking as few risks as possible.
 %   * Original definition by McCarthy
+\subsubsection{Original Definition}
+Originally, circumscription was defined with respect to first order logic.
+Specifically, it is defined\todo{cite mccarthy}\ as
+\[
+(A [P/Q] \wedge \forall x. Q(x) \rightarrow P(x)) \rightarrow (\forall x. P(x) \rightarrow Q(x))
+\]
+\todo{background stopped here for now}
 %   * Negation as circumscription yields stratified negation
 % Binary analysis
+\section{Binary Analysis}
 % * Spiel about how binary analysis is different
 %   * Abstractions stripped out
 %   * CFG unknown
 %   * Extraordinarily stateful, with large state
 % * Static
+\subsection{Static Analyses}
 %   * What is static?
 %   * Control flow recovery
 %   * Value analysis (Abstract Interpretation)
 %   * Type recovery
 % * Dynamic
+\subsection{Dynamic Analyses}
 %   * Fuzzing
 %   * Symbolic Execution + SMT

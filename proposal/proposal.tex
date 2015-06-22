@@ -1,17 +1,17 @@
 \documentclass[12pt]{cmuthesis}
 \usepackage{fullpage}
-\usepackage[
-  backref,pageanchor=true,plainpages=false, pdfpagelabels, bookmarks,bookmarksnumbered
-]{hyperref}
-\hypersetup{linktoc=all}
 \usepackage{todonotes}
 \usepackage{syntax}
 \usepackage{amsmath}
 \usepackage{wasysym}
 \usepackage{subfigure}
+\usepackage{ucs}
+\usepackage[utf8x]{inputenc}
+\usepackage{autofe}
 \usepackage{enumitem}
 \usepackage[numbers,sort]{natbib}
 \usepackage[letterpaper,twoside]{geometry}
+\usepackage{changepage}
 
 \draftstamp{\today}{DRAFT}
 
@@ -19,11 +19,19 @@
 \newcommand{\fhalf}{\LEFTcircle}
 \newcommand{\fno}{\Circle}
 
+\newenvironment{inset}{\begin{adjustwidth}{1cm}{1cm}}{\end{adjustwidth}}
+
 %I'll need to double space it for submission, but double
 %spacing is a terrible relic of a time gone by, and hurts
 %my eyes, so we'll turn it on later.
 %\usepackage{setspace}
 %\doublespacing
+%\usepackage[
+%  backref,pageanchor=true,plainpages=false, pdfpagelabels, bookmarks,bookmarksnumbered
+%]{hyperref}
+%\hypersetup{linktoc=all}
+
+\input{ll.tex}
 \begin{document}
 \frontmatter
 \pagestyle{empty}
@@ -38,7 +46,7 @@
 \Year{2015}
 \trnumber{}
 
-\committee{
+\committee{\
 David Brumley, Chair \\
 Frank Pfenning \\
 Lujo Bauer \\
@@ -67,7 +75,6 @@ Manuel Egele, Boston University
 \tableofcontents
 
 \mainmatter
-\chapter{Introduction}
 \input{introduction.tex}
 \chapter{Background}
 \input{background.tex}
