@@ -226,12 +226,47 @@ An slightly simpler (if imprecise) way of thinking about circumscription is to c
 %   * Original definition by McCarthy
 \subsubsection{Original Definition}
 Originally, circumscription was defined with respect to first order logic.
-Specifically, it is defined\todo{cite mccarthy}\ as
+Specifically, the circumscription of a predicate $P$ in a formula $A$ is defined\todo{cite mccarthy}\ as
 \[
 (A [P/Q] \wedge \forall x. Q(x) \rightarrow P(x)) \rightarrow (\forall x. P(x) \rightarrow Q(x))
 \]
-\todo{background stopped here for now}
+McCarthy calls this a ``sentence schema'', and is essentially a statement in second order logic (since $Q$ is implicitly quantified here).
+Essentially, this says that for a given formula $A$ we know to be true, and some predicate $P$ we have incomplete information about, if some other (usually artificially defined) predicate $Q$ could be used in $A$ everywhere $P$ was without changing its truth value, and $Q$ is true whenever we know $P$ to be true, then we can have the other half of the implication, making $Q$ a legitimate proxy for $P$.
+Practically applying this usually involves declaring a $Q$ which is true in exactly those situations we know $P$ to be.
+As a simple example, take the formula 
+\[
+        P(0) \wedge P(1) \wedge P(2)
+\]
+Define a predicate for circumscription $Q$ as
+\[
+        Q(x) \equiv (x = 0) \vee (x = 1) \vee (x = 2)
+\]
+essentially explicitly enumerating the cases in which $P$ must be true. 
+Circumscribing $P$ in the example formula using $Q$ yields
+\[
+        P(x) \rightarrow (x = 0) \vee (x = 1) \vee (x = 2)
+\]
+This transformation gives more information about $P$ than was defined in the original formula.
+Specifically, we now know that $\neg P(4)$.
+
 %   * Negation as circumscription yields stratified negation
+\subsubsection{Relation to Logic Programming}
+Circumscription is directly connected to modern logic programming through the negation features present in many languages.
+The database and rules can be considered as a single logical formula, the conjunction of known facts as predicates applied to concrete values, and rules encoded as implications.
+Circumscribing over this formula will yield results consistent with a given logic program, yet also allow us to potentially derive more by giving us an explicit definition of a predicate.
+For example, take the system
+\begin{gather*}
+        \pred{square}{\id{w}} \quad \pred{square}{\id{x}}\\
+        \pred{silver}{\id{x}} \quad \pred{silver}{\id{z}}\\
+        \brule{\pred{circle}{\var{X}}}{\neg \pred{square}{\var{X}}}\\
+        \brule{\pred{copper}{\var{X}}}{\neg \pred{silver}{\var{X}}}\\
+        \brule{\pred{penny}{\var{X}}}{\pred{copper}{\var{X}}, \pred{circle}{\var{X}}}\\
+\end{gather*}
+If we ask ``Is $\id{y}$ a penny?'', e.g.\ $\query{\pred{penny}{\id{y}}}$, the system without circumscription cannot answer yes.
+There is no way to derive that $\id{y}$ is circular, or failing that, that it is simply non-square.
+Circumscribing over both $\pred{square}{\cdot}$ and $\pred{silver}$ in the system allows us to derive $\neg \pred{square}{\id{y}}$ and $\neg \pred{silver}{\id{y}}$.
+In this way, circumscription forms the basis for the form of negation present in logic languages.
+
 % Binary analysis
 \section{Binary Analysis}
 % * Spiel about how binary analysis is different
