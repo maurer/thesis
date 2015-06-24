@@ -1,4 +1,4 @@
-all: proposal.pdf committee_abstract.pdf
+all: proposal.pdf
 
 .PHONY: FORCE, clean, all
 %.pdf: FORCE
