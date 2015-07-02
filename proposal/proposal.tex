@@ -1,4 +1,4 @@
-\documentclass[12pt]{cmuthesis}
+\documentclass[12pt,draft]{cmuthesis}
 \usepackage{silence}
 \WarningFilter*{latex}{Marginpar on page \thepage\space moved}
 \usepackage{fullpage}
@@ -33,7 +33,7 @@
 %]{hyperref}
 %\hypersetup{linktoc=all}
 
-\input{ll.tex}
+\include{ll}
 \begin{document}
 \frontmatter
 \pagestyle{empty}
@@ -77,15 +77,9 @@ Manuel Egele, Boston University
 \tableofcontents
 
 \mainmatter
-\input{introduction.tex}
-\chapter{Background}
-\input{background.tex}
-\chapter{Holmes}
-\input{holmes.tex}
-\chapter{Integration}
-\input{integration.tex}
-\chapter{Proposed Work}
-\input{proposed.tex}
+\include{introduction}
+\include{background}
+\include{holmes}
 
 \backmatter
 \renewcommand{\bibsection}{\chapter{\bibname}}

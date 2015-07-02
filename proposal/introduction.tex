@@ -46,7 +46,7 @@ Similarly, \textsc{Smash}\cite{maymust} combined two previous techniques for pro
 May-analysis derives facts about procedures stating that if a given property holds on an input, a separate property holds at the output (traditionally corresponding to static analysis).
 Must-analysis derives facts stating that within a given set of inputs, there exists at least one that goes to each of a given set of outputs (traditionally corresponding to dynamic analysis).
 The authors were able to prune a number of search paths via this combination, leading to property checks terminating which previously took too long to be feasible to run.
-With a (backwards-chaining\footnote{Goal driven execution, more explanation in \S\ref{sec:backchain}}) representation of may and must analyses separately, their analysis could be derived by adding a relatively small number of rules to describe the yes/no property check fact they introduce.
+With a (backwards-chaining\footnote{Goal driven execution, more explanation in \S\ref{sec:bchain}}) representation of may and must analyses separately, their analysis could be derived by adding a relatively small number of rules to describe the yes/no property check fact they introduce.
 
 % * Analysis soundness-failure
 % TODO I can't argue for this without concrete examples, which I don't have.

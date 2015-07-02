@@ -1,3 +1,4 @@
+\chapter{Background}
 \label{chap:background}
 % Logic Language
 \section{Logic Language}
@@ -8,6 +9,7 @@ I will review Datalog and Prolog as a way of giving a general overview of logic 
 %Datalog and Prolog are selected to give an example of both a forwards-chaining and backwards-chaining search, and to motivate the notion of a database of facts as our incremental store.
 % * Datalog
 \subsection{Datalog}
+\label{sec:fchain}
 \subsubsection{Basics}
 %   * Predicates
 Predicates form the concept of a relation between several values.
@@ -187,7 +189,7 @@ There must be no cycles which include one or more negated edges.
 While \sysname\ is primarily modeled after Datalog, some ideas more related to those in Prolog are also necessary.
 %   * Forwards vs backwards chaining
 \subsubsection{Backwards Chaining}
-\label{sec:backchain}
+\label{sec:bchain}
 The evaluation model discussed thus far is what is commonly known as forward chaining, or bottom-up search.
 This approach searches for a proof by taking known facts and deriving anything they can hoping to reach the goal.
 However, there are some applications for which this approach does not work well --- as an example, any system that would have a potentially infinite intensional database cannot run with such a semantics.
@@ -317,7 +319,7 @@ While there is no rule that says there must be types as we usually think of them
 Even assembly programmers and dynamic language users\todo{cite javascript speedup through type inference} usually use consistent types to some extent.
 
 Since the annotations have all been compiled away, there are two primary sources for type information: propagation from code boundaries and program action.
-Propagation\cite{howard} from code boundaries entails knowing a priori that a particular library or service in use by the program matches some signature, then following definitions of its arguments and uses of its results to annotate the program with this information.
+Propagation~\cite{howard} from code boundaries entails knowing a priori that a particular library or service in use by the program matches some signature, then following definitions of its arguments and uses of its results to annotate the program with this information.
 This helps some, but largely fails on any kind of internal data structure.
 Usage based analysis\cite{tie,bitr} tends to do better at this, and works by examining how the code defines and uses state and generating constraints for types based on that.
 
