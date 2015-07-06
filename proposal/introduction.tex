@@ -59,23 +59,9 @@ This makes it possible to repurpose previously written analyses, or to write new
 There are still some restrictions on how such code can operate (e.g.\ no preserved state across calls) but taking this approach gives the flexibility to be an integration system.
 Without this, a substantial amount of reimplementation would need to occur, and it would be unlikely that new analysis authors would choose to use this approach if they were not already familiar with logic language.
 
-% Thesis Statement
-% * Logic language
-%   * Powerful enough to express integration of binary analyses
-%     * Aggregation - allows consumption of non-fixed numbers of facts
-%     * Circumscription - allows reasoning based on incomplete information
-%   * Can be reasoned about
-%     * Monotonicity - truth is immutable
-% * Binary analysis integration
-%   * Is simpler with Holmes
-%   * Provides result quality improvements
-% TODO migrate some of this into the roadmap, make thesis a simpler concept
 \begin{inset}
 {\bf Thesis statement.}
-\todo{Concision}
-The Holmes logic language provides a method of expressing the integration of codependent interacting analyses.
-Programs written in Holmes are powerful enough to perform traditional binary analyses by allowing circumscription and aggregation, yet maintain monotonic reasoning properties.
-Binary analyses combined via Holmes are simpler to write than their directly integrated counterparts, and produce higher quality results when integrated than when separate.
+Integrating codependent binary analyses via logic language yields higher quality results and simpler integration efforts.
 \end{inset}
 
 % Roadmap to defending the thesis statement
@@ -83,22 +69,18 @@ Binary analyses combined via Holmes are simpler to write than their directly int
 % * Show the power by
 %   * Implementing the integration of several real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
-I will seek to show the expressiveness and power of \sysname\ by implementing and integrating several real analyses using the language.
-Additionally, I will attempt to implement some subset of these analysis without monotonic aggregation\footnote{See \S\ref{sec:monagg}} or hypothetical circumscription\footnote{See \S\ref{sec:hypcirc}} (the primary extensions under exploration).
-These two implementations should provide both evidence for the suitability of logic language to this task, and for the value of my extensions. 
+I will seek to show the practicality of this approach by implementing \sysname, a logic language engine designed for the integration of binary analyses.
+I will also implement and integrate several real analyses using \sysname.
+This implementation should provide evidence for feasibility of this technique and provide a model for checking result quality.
 
 % * Show it can be reasoned about by
 %   * Proving formally the monotonicity of
 %     * Aggregation with our restrictions
 %     * Circumscription with our restrictions
 %   * Attempting to slice out a restricted segment which is terminating
-I will attempt to demonstrate that \sysname\ can be reasoned about by writing mechanized proofs.
-The two primary properties I will investigate are proving the monotonicity of my aggregation scheme and the soundness of my circumscription.
-\todo{Should I move these definitions elsewhere? Perhaps after the Holmes chapter? Proposed work section?}
-Here, what it means for monotonic aggregators to actually be monotonic is:
-For two programs $P$ and $P'$, if both $P$ and $P'$ terminate on a given goal and produce results $R$ and $R'$ respectively, and $P \subseteq P'$, then $R \subseteq R'$.
-I define the soundness of hypothetical circumscription to be:
-If a program has an intermediate fact database $\neg A_0,\ldots, \neg A_n \vdash D$ then $A_i \not \in D$.\todo{Add re-expression of traditional datalog soundness theorem with additional construction for call-cc} 
+I will attempt to demonstrate that this approach, as realized in \sysname, can be reasoned about by writing proofs supporting the soundness of the reasoning system.
+Being able to reason about a system constructed with this approach supports the claim that it is simpler to work with.
+The two primary properties I will investigate are proving the monotonicity of my aggregation scheme (\S~\ref{sec:monagg}) and the soundness of my circumscription (\S~\ref{sec:hypcirc}).
 If time permits, I will try to determine a restricted segment of \sysname\ which can be proved to terminate, providing a subset within which to write preprocessing phases.
 
 % * Show result improvement by

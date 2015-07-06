@@ -25,16 +25,22 @@ My current targets are:
 I intend to verify the ability to reason based on a \sysname\ database.
 This boils down to a soundness property.
 Since the precursor language is already sound, there are two main properties to prove:
-\begin{itemize}
-        \item Monotonicity of Monotonic Aggregators
-        \item Soundness of Hypothetical Circumscription
-\end{itemize}
+\subsection{Monotonicity of Monotonic Aggregators}
+Here, what it means for monotonic aggregators to actually be monotonic is:
+For two programs $P$ and $P'$, if both $P$ and $P'$ terminate on a given goal and produce results $R$ and $R'$ respectively, and $P \subseteq P'$, then $R \subseteq R'$.
 
+\subsection{Soundness of Hypothetical Circumscription}
+I define the soundness of hypothetical circumscription to be:
+If a program has an intermediate fact database $\neg A_0,\ldots, \neg A_n \vdash D$ then $A_i \not \in D$.\todo{Add re-expression of traditional datalog soundness theorem with additional construction for call-cc} 
+
+\subsection{Terminating Fragment}
 % * (Optional/extension) Subset which terminates
 Should more time be available, I will attempt to find as large a fragment of the language which terminates to aid in writing preprocessing-style analyses.
+This will likely take the form of attempting to separate slots in predicates which can contain the results of external code from those which cannot.
+Disallowing recursion on the basis of those slots, plus some additional limitations, will likely yield a terminating fragment.
 
-\section{Quantify Interactions}
-While I expect there to be gains from integrating analyses with logic language beyond ease of implementation, in cases other than CFG recovery\cite{jakstab} their interactions are not documented or measured.
+\section{Quantification of Analysis Interactions}
+While I expect there to be gains from integrating analyses with logic language beyond ease of implementation, in cases other than CFG recovery and value analysis,\cite{jakstab} their interactions are not documented or measured.
 To this end, I intend to measure for each implemented analysis its result quality and resource usage with and without integration with each other.
 To guard against implementation differences, I intend to also measure against existing baseline implementations when available.
 Essentially, if the dependency closure of analysis $A$ includes analyses $D_1 \ldots D_N$, I will  end up with datapoints for:
