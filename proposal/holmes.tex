@@ -7,16 +7,16 @@ The general approach of \sysname\ is to view information about the binary as fac
 Logic language as used in binary analysis has traditionally been relegated to a role of implementing a particular analysis, to be later integrated by custom code\todo{cite}.
 % * Use the logic language to integrate other analyses, treating external code as where-clause-functions (analogous to external predicates)
 Instead, I seek to use logic language as the medium for integration, treating traditional analyses in a manner similar to external predicates.
-I expect to see benefits in the form of explicit provenance, ease of integrating new analyses, and clarity of what forms of reasoning are in use \todo{forwardref to example on call-cc reasoning in cfg recovery / value analysis}.
+I expect to see benefits in the form of explicit provenance, ease of integrating new analyses, and clarity of what forms of reasoning are in use (\S~\ref{sec:callcc}).
 However, existing logic languages have limitations which make them less than ideal for this purpose.
 % * Use monotonic aggregators (secref) to enable functions to consume 'all' of something monotonically
-In order to express an analysis wanting to use information from many facts of a given kind, I introduce monotonic aggregators\todo{forward secref}.
+In order to express an analysis wanting to use information from many facts of a given kind, I introduce monotonic aggregators (\S~\ref{sec:monagg}).
 % * Use hypothetical circumscription (secref) to enable functions to consume 'all' of something in a non-monotonic way, while still allowing the database to maintain a monotonic view
-For those analyses which intend to use aggregated information in a non-monotonic way (such as knowing that a fact has not yet been discovered), I introduce hypothetical circumscription\todo{forward secref}.
+For those analyses which intend to use aggregated information in a non-monotonic way (such as knowing that a fact has not yet been discovered), I introduce hypothetical circumscription (\S~\ref{sec:hypcirc}).
 % * Use explicit backwards chaining to enable expensive or nonterminating functions (esp. fuzzing) (secref)
-To deal with an environment in which there are both analyses which run quickly and have nearly-always-used result, and those which are potentially expensive to run and will only be relevant to certain queries, \sysname\ mixes forwards and backwards chaining rules\todo{forward secref}.
+To deal with an environment in which there are both analyses which run quickly and have nearly-always-used result, and those which are potentially expensive to run and will only be relevant to certain queries, \sysname\ mixes forwards and backwards chaining rules (\S~\ref{sec:bidisearch}).
 % * Implement system in a way that is efficient and will scale to large datasets (secref)
-Finally, as I intend to analyze real binaries with the resulting system, \sysname\ will be built to be efficient and scale to large datasets --- the resulting implementation is intended to be practical.\todo{forward secref}
+Finally, as I intend to analyze real binaries with the resulting system, \sysname\ will be built to be efficient and scale to large datasets --- the resulting implementation is intended to be practical (\S~\ref{sec:impl}).
 
 As I explain the additional features, begin by assuming \sysname\ is Datalog with the key difference that saturation may not be possible due to external predicates which are possibly non-terminating.
 This gives rise to a notion that a new fact for any given predicate may appear in the database at any time, and informs the design of the new features.
@@ -29,7 +29,11 @@ Sometimes, we need to describe a property over a group of facts.
 For example, consider the statement ``My upper bounds on $\id{x}$ preclude the unsafe inputs to the function $\id{f}$, so $\id{f}(\id{x})$ is safe.''
 We can model our initial knowledge in this situation by declaring a predicate $\pred{unsafeInputs}{\cdot, \cdot}$ which gives a relation between functions and a superset of their unsafe inputs, and a predicate $\pred{upperBound}{\cdot, \cdot}$ which gives an upper bound on the values a variable may contain.
 We also want to express a rule which gathers together upper bounds to check if together they can rule out all the unsafe inputs.
-\todo{Make sure strided intervals are explained before this (in the binary analysis background)}
+Using strided interval notation\cite{vsa}\footnote{\
+Strided intervals are a set notation described by a lower bound, an upper bound, and a stride.
+The set includes the lower bound, and every element less than or equal to the upper bound which is a multiple of the stride above the lower bound.
+It is written $\textrm{stride}[\textrm{lower}, \textrm{upper}]$.
+}
 \begin{gather*}
         \pred{upperBound}{\id{x}, 2[1, 5]} \quad \pred{upperBound}{\id{x}, 4[1, 9]}\\
         \pred{unsafeInputs}{\id{f}, \{3, 9\}}\\
@@ -75,7 +79,7 @@ As union is known idempotent, commutative, and associative, it is order independ
 Since a union can only grow the set, if a query set was a subset before a merge, it will be so after as well.
 
 % * Abstract interpretation example (strided intervals)
-In the example problem, we dealt with upper bounds defined as strided intervals\todo{backref}.
+In the example problem, we dealt with upper bounds defined as strided intervals\footnote{\S~\ref{sec:cfgexample}}.
 Here, the aggregator's null element can be defined as the empty set, merge as intersection, and query as non-intersection of a parameter set.
 Similarly to union, intersection is well behaved in terms of order independence.
 Since intersection can only shrink the strided interval, any set which was non-intersecting before will be non-intersecting afterwards.
@@ -94,7 +98,9 @@ However, this would be non-monotonic, since the upper bound could later rule it 
 Since we may never have a final upper bound, we need some way to safely perform this type of reasoning.
 
 A driving example for this feature is control flow graph recovery.
-As mentioned earlier\todo{background backref}, this procedure involves explicitly postulating that our current knowledge of control flow is complete, computing potential values, and determining whether our assumptions were violated, updating them if they were.
+As mentioned earlier\footnote{\
+        \S~\ref{sec:cfg} and \S~\ref{sec:valanal}
+}, this procedure involves explicitly postulating that our current knowledge of control flow is complete, computing potential values, and determining whether our assumptions were violated, updating them if they were.
 Enumerating the successors or predecessors of the node (the initial assumption phase) is fundamentally non-monotonic, as it gives us information about which facts are not yet in the database.
 
 % * Definition (reveal domain explicitly)
@@ -103,7 +109,7 @@ If at any point later, that aggregate value changes, any rules which circumscrib
 
 % * Why is this circumscription? (Minimizing the extent of a given pattern)
 It may not be immediately clear why this is circumscription.
-Recall that circumscription consists of picking from amongst multiple possible assignments of truth by minimizing the extent of portion of the model\todo{backref to background}.
+Recall that circumscription consists of picking from amongst multiple possible assignments of truth by minimizing the extent of portion of the model (\S~\ref{sec:circumscription}).
 In this case, we are minimizing the extent of a given match by making the assumption that no new matching facts will be discovered.
 % * Why is this hypothetical? (It is possible we will receive future evidence suggesting the minimum extent is larger)
 However, since it is expected that in some cases new facts \emph{will} be discovered which change the extent of the match, we need to track these assumptions and consider reasoning off one of these branches to be hypothetical --- it makes the falsefiable hypothesis that the circumscription will not be contradicted.
@@ -119,6 +125,7 @@ As a side note, it could be more powerful if we did not require the merge order 
 
 % * Call-CC
 \subsection{Call-CC}
+\label{sec:callcc}
 While circumscription captures reasoning from the assumption that new information will not be discovered, by itself it fails to describe the information gained from a failed assumption.
 Specifically, if by assuming $\neg A$ we derive $A$, it becomes clear that our circumscription of $\neg A$ was inconsistent, and $A$ should be added as part of the circumscription instead.
 One way to deal with this would be to attempt to mandate that we assign truth values consistent with the whole formula (translated from the program).
@@ -129,6 +136,9 @@ This approach fails in our context because the functions attached to the rules m
 The motivating example for including call-cc as part of evaluation is hypothetical circumscription of control flow graphs.
 After computing a partial control flow graph, we want to reason from the assumption that it is a complete control flow graph in order to derive information about values, which may in turn violate the original circumscription.
 However, this information came from inside the circumscription, and so does not have an obvious derivation.
+
+\subsubsection{Example}
+\label{sec:cfgexample}
 %   * Simplified 1,2,3 -> 1,2,3,neg4 -> 1,2,3,neg4,4 -> 1,2,3,4 example
 More concretely, consider the program in Figure~\ref{fig:simpprog}
 \begin{figure}
@@ -169,6 +179,7 @@ As a result, outside the circumscribed world, we want $A$ to be visible as a fac
 
 % Bidirectional Proof Search
 \section{Bidirectional Proof Search}
+\label{sec:bidisearch}
 In the background, I reviewed forwards\footnote{\S~\ref{sec:fchain}} and backwards\footnote{\S~\ref{sec:bchain}} chaining analyses.
 Which to use is generally selected situationally, but I argue that for our use case, both are needed.
 % * Forwards chaining = datalog
@@ -244,13 +255,14 @@ In parallel, using transactions, Holmes will
 \end{itemize}
 
 \section{Implementation Strategy}
+\label{sec:impl}
 As I've begun the implementation of this system, I have already made several design decisions.
 
 % * Lang = rust
 %   * Safe
 %   * Efficiently handles large data
 %   * Threading story
-For implementation of the logic engine itself, I have decided to use Rust.
+For implementation of the logic engine itself, I have decided to use Rust\cite{rust}.
 Rust is a safe, multithreaded language which provides C/C++ style direct control of allocation, copies, and other such processes.
 This means that while I will not suffer as much overhead as more traditional safe languages, I will not be plagued by the issues I had with an initial C++ prototype.\footnote{\
         Combining C++ closures for asynchronous callbacks with multithreading brings up a number of surprising edge cases, none of which are checked for by the compiler.
@@ -263,7 +275,7 @@ To hold the data, I've selected Postgres.
 %   * Joins (avoid writing a custom query compiler for match terms, just compile to joins)
 Like most modern SQL systems, Postgres supports transactions and joins.
 Transactions are important to allowing multiple rules in flight, as they provide clean synchronization.
-Joins allow me to compile the match clauses of rules into SQL queries, substantially speeding up search in larger databases.\footnote{
+Joins allow me to compile the match clauses of rules into SQL queries, substantially speeding up search in larger databases.\footnote{\
         An earlier naive in-memory prototype was actually much slower despite the faster access speed.
 I made the decision to use a database layer when I realized the indexing code I was about to begin writing was roughly equivalent to the code in a standard SQL database.
 }
@@ -276,7 +288,7 @@ To bind analyses to the logic engine to allow their functions to be called, I ei
 I ruled out linking in to allow for interpreted languages and avoid recompilation.
 Plugins (shared library building) were ruled out because they are tricky for potential developers to build, and would again rule out interpreted languages.
 As a result, \sysname\ requires an RPC system.
-To fill this gap, I selected Cap'n'proto\todo{cite both capnproto and capnproto-rust}, a system from a creator of Google's Protobuf\todo{cite}.
+To fill this gap, I selected Cap'n Proto\cite{capnproto}, a system from a creator of Google's Protobuf\cite{protobuf}.
 The primary reasons for selecting Cap'n'proto were multilanguage support, capability support, efficiency, and embeddability of dynamic structures.
 Supporting many languages will ease the writing of analyses for \sysname.
 Capability support both allows analyses to easily follow a ``registration'' pattern (sending an object to the server constructed with the relevant callbacks), and allows for lazy reading of large values such as traces or process image dumps.

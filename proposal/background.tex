@@ -211,24 +211,34 @@ In a backwards chaining search procedure, this could give rise to an alternating
 Consider a query for $\pred{related}{\id{john}, \id{mary}}$.
 This backwards chaining rule would search for $\pred{related}{\id{john}, \id{mary}}$, then by the rule, see that it could instead search for $\pred{related}{\id{mary}, \id{john}}$.
 However, it would then trigger again, bringing us back to a search for $\pred{related}{\id{john}, \id{mary}}$, looping infinitely.
-While this simple example could be avoided by checking if this subgoal had already occurred in the tree, more complex examples are possible which are unavoidable.\todo{citation?}
-
-%   * TODO prolog example showing extra power
+While this simple example could be avoided by checking if this subgoal had already occurred in the tree, more complex examples are possible which cannot be avoided this way.
 
 % * Circumscription
 \subsection{Circumscription}
+\label{sec:circumscription}
 Circumscription is a concept in logic related to including Occam's Razor, or ``common sense'' into deriving a model from logic statements.
 I discuss it here because it will be relevant to the \sysname\ treatment of reasoning from incomplete information.
 
-As an example of why this might be necessary, consider the following:
-\todo{Write a good example. I'm trying to avoid fluents or negation. Formula $a \wedge (b \vee c)$ is good, but need to pair real world meaning to it}
+\newcommand{\true}{\textrm{true}}
+\newcommand{\false}{\textrm{false}}
+As an example of why this might be useful, consider the following:
+There are three cups marked $a$, $b$, and $c$.
+There are balls in cup $a$, and at least one of cups $b$ and $c$.
+This encodes to:
+\[a \wedge (b \vee c)\]
+We know the above formula is true, but not the truth values for $a$, $b$, and $c$, there are three possible satisfying assignments:
+\[
+        (\true, \true, \false), (\true, \false, \true), (\true, \true, \true)
+\]
+Circumscription is a mode of reasoning that in this situation allows us to examine the first two options rather than the third.
+It is about picking the minimal situation that could correspond to what we know.
 
-More examples are given in McCarthy's paper introducing the idea\todo{cite McCarthy's circumscription paper}.
+More examples are given in McCarthy's paper introducing the idea\cite{circumscription}.
 An slightly simpler (if imprecise) way of thinking about circumscription is to consider it as taking a specification of truth which is irrefutable, while saying as little as possible --- you're not saying something grounded in fact, you're saying something nobody can prove wrong, while taking as few risks as possible.
 %   * Original definition by McCarthy
 \subsubsection{Original Definition}
 Originally, circumscription was defined with respect to first order logic.
-Specifically, the circumscription of a predicate $P$ in a formula $A$ is defined\todo{cite mccarthy}\ as
+Specifically, the circumscription of a predicate $P$ in a formula $A$ is defined~\cite{circumscription} as
 \[
 (A [P/Q] \wedge \forall x. Q(x) \rightarrow P(x)) \rightarrow (\forall x. P(x) \rightarrow Q(x))
 \]
@@ -298,22 +308,24 @@ However, the bottom line remains: the state space is so large that a number of t
 Static analyses are those which focus on deriving information from the structure of the complete program.
 While not always true, these are usually properties that talk about many or all paths.
 
-%   * Control flow recovery
+\subsubsection{Control Flow Recovery}
+\label{sec:cfg}
 Control flow recovery is usually thought of as a static analysis.
 The goal is to generate a complete graph of possible program counter transitions in the program while containing as few spurious edges as possible.
 While information from a concrete execution can be useful to the final product (as it contains a series of jumps which the output graph must contain to be correct) it does not allow for the declaration of any control flow graph as complete.
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point, watching for a transition to a distinguished exit node (usually via a function return).
 However, indirect jumps due to function pointers, C++ method calls, and even creative compilation of case statements can wreak havoc on this method, since the value being jumped to is not known ahead of time.
 
-%   * Value analysis (Abstract Interpretation)
+\subsubsection{Value Analysis}
+\label{sec:valanal}
 It follows then, that recovering upper bounds on the range of various pieces of state in a program would be useful.
-One common way to do this is to perform abstract interpretation of the program over a domain which is expected to model the range of values well.\cite{vsa}\todo{cite wrapped intervals}
+One common way to do this is to perform abstract interpretation of the program over a domain which is expected to model the range of values well.\cite{vsa,wrappedintervals,wrappedintervals2}
 
 Unfortunately, this abstract interpretation assumes that the control flow graph has already been determined in order to sequence its transformations.
 Additionally, it can be tripped up by loops which do not converge nicely in its particular domain.
 The state of the art approach to this is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis\cite{jakstab}.
 
-%   * Type recovery
+\subsubsection{Type Recovery}
 Another important fundamentally static analysis is type recovery.
 While there is no rule that says there must be types as we usually think of them in a binary program, they are usually present due to a source language or programmer volition.
 Even assembly programmers and dynamic language users\todo{cite javascript speedup through type inference} usually use consistent types to some extent.
