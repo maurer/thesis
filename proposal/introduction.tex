@@ -13,9 +13,11 @@
 The bulk of modern software is distributed in binary-only form, for reasons ranging from a desire to keep proprietary information secret to wanting to avoid compilation or interpretation overhead on the client.
 Given that these programs are given privileges to act on behalf of the user, either poorly or maliciously coded software can cause significant damage.
 Unfortunately, inspecting the behavior of machine code is a known difficult problem:
-It is undecidable for pathological cases, and difficult to approximate in common ones.
+It is undecidable for pathological cases,\footnote{\
+        Rice's theorem gives this, assuming we ignore the technically finite size of memory.
+} and difficult to approximate in common ones.
  
-Existing tools tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next as some form of data structure.
+Existing tools\cite{ida} tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next as some form of data structure.
 This model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
 Since these tools lack any framework for integrating with each other, they have to deal with a variety of pitfalls.
 Analyses do not use infomation that would be helpful to them, in order to avoid reimplementing previous work that is not strictly required.\todo{forwardref}

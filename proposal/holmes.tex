@@ -116,54 +116,174 @@ It is at least as powerful since we could define an aggregator adding elements t
 It is at most as powerful because we could manually fold the merge operation over the membership results of circumscription, acquiring the aggregate.
 %   * It could be more powerful if order-indep wasn't a property on aggregators
 As a side note, it could be more powerful if we did not require the merge order independence property --- then it could potentially be relevant in what order the database had arrived at each conclusion, and it would not be possible to replicate the aggregate just by knowing the membership of the database.
+
 % * Call-CC
+\subsection{Call-CC}
+While circumscription captures reasoning from the assumption that new information will not be discovered, by itself it fails to describe the information gained from a failed assumption.
+Specifically, if by assuming $\neg A$ we derive $A$, it becomes clear that our circumscription of $\neg A$ was inconsistent, and $A$ should be added as part of the circumscription instead.
+One way to deal with this would be to attempt to mandate that we assign truth values consistent with the whole formula (translated from the program).
+This approach fails in our context because the functions attached to the rules may prevent termination.
+
+%TODO do I want to introduce proof terms? that would make describing this easier
 %   * Why do we need this extension? (CFG->CFG example)
+The motivating example for including call-cc as part of evaluation is hypothetical circumscription of control flow graphs.
+After computing a partial control flow graph, we want to reason from the assumption that it is a complete control flow graph in order to derive information about values, which may in turn violate the original circumscription.
+However, this information came from inside the circumscription, and so does not have an obvious derivation.
 %   * Simplified 1,2,3 -> 1,2,3,neg4 -> 1,2,3,neg4,4 -> 1,2,3,4 example
+More concretely, consider the program in Figure~\ref{fig:simpprog}
+\begin{figure}
+        \begin{lstlisting}
+                xor %eax, %eax
+                add %eax, 4
+                jmp %eax
+                jmp 2
+                nop
+                nop
+                nop
+                call foo
+        \end{lstlisting}
+        \caption{Simple Program}
+\label{fig:simpprog}
+\end{figure}
+Here we pretend that all instructions are 1 byte long for simplicity of addressing.
+Starting with a simple recursive disassembly, we get the partial CFG in Figure~\ref{fig:cfg0}.
+\begin{figure}
+        \caption{Initial CFG}
+\label{fig:cfg0}
+\end{figure}
+Hypothetically circumscribing over the $\pred{successor}{\cdot, \cdot}$ predicate representing known transitions gives us a ``complete'' control flow graph to pass to a value analysis.
+This circumscription assumed that $\neg \pred{successor}{3, \var{X}}$.
+However, the value analysis will quickly determine that \texttt{eax} may hold 4, and so finds $\pred{successor}{3, 4}$.
+At this point, the informal version of this analysis reasons that since $\neg \pred{successor}{3, 4}$ contradicts itself, the next step is to assume $\pred{successor}{3, 4}$.\footnote{\
+        It is actually possible to avoid reasoning from contradiction here: since VSA\cite{vsa} will only widen its value upper bound in response to new edges, and new edges are being discovered via these upper bounds, at a minimum those edges found in the current graph will be found in the true graph.
+        However, VSA is still nonmonotonic, since the upper bounds it produces are invalidated (since they could become wider).
+        Without modeling a property only present in composition, contradiction-based reasoning is unavoidable.
+}
+
 %   * Why is this call-CC?
-%   * Why can we do "bag" circumscription (e.g. circumscribe neg4 and neg5 "simultaneously" and pick one to break out on)
+One way to express such an ability would be to tie it to the law of excluded middle: $A \vee \neg A$.
+However, an equivalent property $((A \imp \bot) \imp A) \imp A$ better captures the action of the evaluation procedure conceptually.
+First, the evaluator guesses that $A$ cannot happen during the circumsctiption, e.g. $(A \imp \bot)$.
+From that, it derives $A$.
+As a result, outside the circumscribed world, we want $A$ to be visible as a fact.
 
 % Bidirectional Proof Search
+\section{Bidirectional Proof Search}
+In the background, I reviewed forwards\footnote{\S~\ref{sec:fchain}} and backwards\footnote{\S~\ref{sec:bchain}} chaining analyses.
+Which to use is generally selected situationally, but I argue that for our use case, both are needed.
 % * Forwards chaining = datalog
+\subsection{Forwards Chaining}
+Forwards chaining corresponds to the simpler ``do this when possible'' style of of organization that program analysis authors are likely more familiar with.
 %   * Want this to represent things which
 %     * Almost always need to be done
+It is good for representing things that will nearly always need to be done,
 %     * Can be done efficiently
+can be done efficiently,
 %     * Have a reasonably bounded extent
-%   * Good for preprocessing/directed auto-analysis
+and whose extent is reasonably bounded.
+If the analysis does not usually need to be done, it will fire when it does not need to.
+If it cannot be done efficiently, it will burn resources that may be needed elsewhere.
+If its extent is not reasonably bounded, the analysis will pollute the database with a large morass of facts.
+
 %   * Examples
+There are several good examples of analyses which fit the forward chaining mold well.
 %     * Parse
+Parsing the binary container format will need to be done before nearly every other kind of analysis, is quite fast, and will produce facts bounded linearly in the size of the input binary.
 %     * Lifting
-%     * Initial CFG
-%     * Loaded memory image
+Lifting of an address identified as executable will nearly always be needed to make any further queries about it, is a constant time operation per address, and produces a bounded data value.
+
+%   * Good for preprocessing/directed auto-analysis
+Overall, forwards chaining gives a good representation of what is normally viewed as preprocessing or auto-analysis.
+
 % * Backwards chaining = prolog
+\subsection{Backwards Chaining}
+Backwards chaining corresponds to the ``do this when needed'' strategy of execution analogous to what occurs in user facing analysis tools or program property checker.
 %   * Want this to represent things which
+Backwards chaining is more appropriate for representing analyses which
 %     * Rarely need to be done
-%     * Have an enormous or infinite extent
+are rarely needed,
 %     * Are potentially expensive
-%   * Good for directed queries from a user
+are potentially expensive to run,
+%     * Have an enormous or infinite extent
+or have a large (or infinite) extent.
+
 %   * Examples
+While I expect most basic functionality to work well as forward-chaining analyses, some standard techniques simply do not fit well with it.
 %     * Fuzz
+Fuzzing is possibly one of the clearest cases.
+A fuzzing run generates a vast amount of data, and can potentially generate an arbitrary amount by triggering with new random values.
+These runs are also generally expensive.
 %     * Solve this function for stack overflow with symex + smt
+Another example of an analysis that fits better with backwards chaining is property checking via symbolic execution and smt solving.
+While the extent is small, it is potentially slow and has a wide variety of potential entry points/properties, very few of which are actually interesting.
 %     * TODO more examples
 % * Execution strategy
+\subsection{Execution Strategy}
+While my execution strategy is largely informed by my implementation strategy, it still reflects similar semantics to what is seen in the inspiration languages.
 %   * Queries / rule firing acts as a transaction, multiple may be in flight
+First, rule firings are treated as transactions, with conflicts being negotiated by the database.
+This allows for a good deal of parallelism because with the exception of circumscription, no conflicting writes should occur to the database.
+The one apparent downside of this is that analyses may potentially need to be rolled back (especially if they take longer to finish) if the database had a conflicting update via a circumscription.
+However, had the same operations been performed in order, the run would still have been invalidated eventually.
+In parallel, using transactions, Holmes will
+\begin{itemize}
 %   * Try to fire any legal forwards chaing rules until quiescence
+\item Run any forwards chaining rules which have new body matches. 
 %   * If a query is received
+\item If a query is recieved,
+        \begin{enumerate}
 %     * Output known matches
-%     * Do a backwards search (strategy tbd), treating forwards rules as backwards rules
-%     * Commit results of backwards search to database and output
+                \item Output known matches
+                \item Add a goal root to the database for the given goal if not already present.
+                \item Upon a request for more, give any new results present to the client
+                \item Upon termination, decrement the goal root refcount or remove it if this is the only request.
+        \end{enumerate}
+\item Perform a tabling backwards search\footnote{\
+                Strategy is to be decided, but may be anything from rule order to previous execution time, to a learning system.
+        } for any root goals whose search has not been completed.
+\end{itemize}
 
-% Implementation Strategy
+\section{Implementation Strategy}
+As I've begun the implementation of this system, I have already made several design decisions.
+
 % * Lang = rust
 %   * Safe
 %   * Efficiently handles large data
 %   * Threading story
+For implementation of the logic engine itself, I have decided to use Rust.
+Rust is a safe, multithreaded language which provides C/C++ style direct control of allocation, copies, and other such processes.
+This means that while I will not suffer as much overhead as more traditional safe languages, I will not be plagued by the issues I had with an initial C++ prototype.\footnote{\
+        Combining C++ closures for asynchronous callbacks with multithreading brings up a number of surprising edge cases, none of which are checked for by the compiler.
+        This was consuming too much development time, and I forecasted it would only get worse.
+}
+
 % * Database engine = postgres
+To hold the data, I've selected Postgres.
 %   * Transactions (multiple rules in flight)
 %   * Joins (avoid writing a custom query compiler for match terms, just compile to joins)
+Like most modern SQL systems, Postgres supports transactions and joins.
+Transactions are important to allowing multiple rules in flight, as they provide clean synchronization.
+Joins allow me to compile the match clauses of rules into SQL queries, substantially speeding up search in larger databases.\footnote{
+        An earlier naive in-memory prototype was actually much slower despite the faster access speed.
+I made the decision to use a database layer when I realized the indexing code I was about to begin writing was roughly equivalent to the code in a standard SQL database.
+}
 %   * Efficient jsonb support for custom user data structures
+Finally, Postgres is unique in providing efficiciently indexable, binary stored \texttt{JSON} objects through its \texttt{jsonb} extension.
+While this will not be required initially, it will make allowing user defined datatypes, especially ASTs and similar structures, much easier later.
+
 % * RPC system = Cap'n'proto
-%   * Efficiently handles large data
-%   * Encoding of structured data for user types
-%   * Supports "sturdy refs" for resuming analysis services
-%   * Multilang support (python, rust, C++, js, partial ocaml)
+To bind analyses to the logic engine to allow their functions to be called, I either need to link them in, load shared libraries, or use an RPC system.
+I ruled out linking in to allow for interpreted languages and avoid recompilation.
+Plugins (shared library building) were ruled out because they are tricky for potential developers to build, and would again rule out interpreted languages.
+As a result, \sysname\ requires an RPC system.
+To fill this gap, I selected Cap'n'proto\todo{cite both capnproto and capnproto-rust}, a system from a creator of Google's Protobuf\todo{cite}.
+The primary reasons for selecting Cap'n'proto were multilanguage support, capability support, efficiency, and embeddability of dynamic structures.
+Supporting many languages will ease the writing of analyses for \sysname.
+Capability support both allows analyses to easily follow a ``registration'' pattern (sending an object to the server constructed with the relevant callbacks), and allows for lazy reading of large values such as traces or process image dumps.
+Efficiency of the encoding is important to allow for the transfer of larger objects involved in binary analysis, such as traces\footnote{\
+Traces are regularly many gigabytes in size.
+}
+The ability to embed dynamic structured binary data through reflection will make it easier to support analysis-defined types later on in the effort.
+
 % * See impl in progress at my github
+You can view the implementation in progress on GitHub.\footnote{\url{http://github.com/maurer/holmes}}
