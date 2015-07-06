@@ -1,18 +1,51 @@
+\chapter{Proposed Work}
+My proposed work can be split into three areas.
+I will implement \sysname, allowing for integration of analyses and experimentation.
+I will prove basic properties about the logic behind \sysname\ to show it can be reasoned about.
+I will run experiments to quantify the interactions between various analyses.
+
 % Implement Holmes
+\section{Implement Holmes}
 % * Logic server/backing
+First, I will implement the logic engine itself.
+Work has already begun on this, and it supports forward chaining rules with external functions over RPC already.
+
 % * Analyses
-%   * CFG (pure holmes?)
-%   * VSA
-%   * BiTR
-%   * Fuzz
-%   * Alias (TODO decide which)
+Secondly, I need to actually write or connect analyses to the system.
+My current targets are:
+\begin{itemize}
+        \item Control Flow Graph Recovery
+        \item Value Set Analysis\cite{vsa}
+        \item Type Recovery\cite{bitr}
+        \item Fuzzing
+        \item Alias Analysis (undecided which)
+\end{itemize}
 
-% Verify Reasoning over Holmes
-% * Proof of monotonicity of aggregators
-% * Soundness of hypothetical circumscription
+\section{Verify Reasoning}
+I intend to verify the ability to reason based on a \sysname\ database.
+This boils down to a soundness property.
+Since the precursor language is already sound, there are two main properties to prove:
+\begin{itemize}
+        \item Monotonicity of Monotonic Aggregators
+        \item Soundness of Hypothetical Circumscription
+\end{itemize}
+
 % * (Optional/extension) Subset which terminates
+Should more time be available, I will attempt to find as large a fragment of the language which terminates to aid in writing preprocessing-style analyses.
 
-% Quantify interactions between analyses
-% * Measure improvements from integrating analyses over traditional implementations
-% * Meaure the marginal improvements from each interaction
-% * Look to see if any of the improvements are greater than the sum of their parts
+\section{Quantify Interactions}
+While I expect there to be gains from integrating analyses with logic language beyond ease of implementation, in cases other than CFG recovery\cite{jakstab} their interactions are not documented or measured.
+To this end, I intend to measure for each implemented analysis its result quality and resource usage with and without integration with each other.
+To guard against implementation differences, I intend to also measure against existing baseline implementations when available.
+Essentially, if the dependency closure of analysis $A$ includes analyses $D_1 \ldots D_N$, I will  end up with datapoints for:
+\begin{itemize}
+        \item Full integration
+        \item Each optional dependency on/off (all combinations)
+        \item Integrated vs one-shot for each required dependency (all combinations)
+\end{itemize}
+assuming the amount of time required does not become prohibitive.
+If it does, I will manually select potentially interesting subsets of dependencies to integrate/pre-run or enable/disable, but will be sure to include all off/one-shot and all on/integrated among them.
+
+Within this data, I am looking to see improvements primarily in accuracy, though I would not be surprised to see them in resource usage occasionally.
+Primarily though, I am interested in locating analyses whose combination improves more than the sum of its parts.
+Specifically, if $A$, $B$, and $C$ are related, and $A + B + C$ performs well on $A$'s metric in cases where neither $A + B$ nor $A + C$ did, that is a potentially interesting finding.
