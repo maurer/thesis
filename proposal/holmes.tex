@@ -4,7 +4,7 @@
 % * Binary analysis information as facts in a deductive database
 The general approach of \sysname\ is to view information about the binary as facts in a deductive database, and analyses as logic-language style rules used to derive additional facts.
 % * Traditional logic language approaches treated the logic language as an analysis module in a larger scheme
-Logic language as used in binary analysis has traditionally been relegated to a role of implementing a particular analysis, to be later integrated by custom code\todo{cite}.
+Logic language as used in binary analysis has traditionally been relegated to a role of implementing a particular analysis, to be later integrated by custom code\cite{bddbddb,Alpuente2011,Brumley2006b,Lam2005a,Smaragdakis}.
 % * Use the logic language to integrate other analyses, treating external code as where-clause-functions (analogous to external predicates)
 Instead, I seek to use logic language as the medium for integration, treating traditional analyses in a manner similar to external predicates.
 I expect to see benefits in the form of explicit provenance, ease of integrating new analyses, and clarity of what forms of reasoning are in use (\S~\ref{sec:callcc}).
@@ -131,7 +131,6 @@ Specifically, if by assuming $\neg A$ we derive $A$, it becomes clear that our c
 One way to deal with this would be to attempt to mandate that we assign truth values consistent with the whole formula (translated from the program).
 This approach fails in our context because the functions attached to the rules may prevent termination.
 
-%TODO do I want to introduce proof terms? that would make describing this easier
 %   * Why do we need this extension? (CFG->CFG example)
 The motivating example for including call-cc as part of evaluation is hypothetical circumscription of control flow graphs.
 After computing a partial control flow graph, we want to reason from the assumption that it is a complete control flow graph in order to derive information about values, which may in turn violate the original circumscription.
@@ -227,7 +226,6 @@ These runs are also generally expensive.
 %     * Solve this function for stack overflow with symex + smt
 Another example of an analysis that fits better with backwards chaining is property checking via symbolic execution and smt solving.
 While the extent is small, it is potentially slow and has a wide variety of potential entry points/properties, very few of which are actually interesting.
-%     * TODO more examples
 % * Execution strategy
 \subsection{Execution Strategy}
 While my execution strategy is largely informed by my implementation strategy, it still reflects similar semantics to what is seen in the inspiration languages.

@@ -31,7 +31,8 @@ For two programs $P$ and $P'$, if both $P$ and $P'$ terminate on a given goal an
 
 \subsection{Soundness of Hypothetical Circumscription}
 I define the soundness of hypothetical circumscription to be:
-If a program has an intermediate fact database $\neg A_0,\ldots, \neg A_n \vdash D$ then $A_i \not \in D$.\todo{Add re-expression of traditional datalog soundness theorem with additional construction for call-cc} 
+If a program has an intermediate fact database and assumes the negation of some fact, that fact is not in the database.
+If a fact is in the intermediate fact database, then there is either a derivation from the intensional database via the rules and call-cc.
 
 \subsection{Terminating Fragment}
 % * (Optional/extension) Subset which terminates

@@ -2,7 +2,7 @@ all: proposal.pdf
 
 .PHONY: FORCE, clean, all
 %.pdf: FORCE
-	latexmk $* -pdf
+	latexmk -f $* -pdf
 FORCE:
 
 clean:

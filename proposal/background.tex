@@ -289,7 +289,7 @@ Function locations, variable locations and bounds, variable types, and control f
 
 %   * CFG unknown
 While all of these can cause difficulties, the inability to recover a complete control flow graph can be one of teh most difficult to deal with.
-Nearly every algorithm for recovering any of the other missing abstractions depends strongly on having a pre-existing control flow graph.\todo{citations}
+Many algorithms for recovering any of the other missing abstractions depends strongly on having a pre-existing control flow graph\cite{vsa,bddbddb,maymust,tie,bitr,wrappedintervals,Ramalingam2002b}.
 However, without the abstractions present in the source language, determining the potential targets of an indirect (computed) jump becomes somewhere between difficult and impossible.
 Being unsound here can result in unsoundness in every analysis down the road, but frequently ``good enough'' approximations are used due to the difficulty of this problem.
 
@@ -300,7 +300,6 @@ Binary code however, takes this to a whole new level of complexity.
 With no bounds on variables, arrays, or inputs, it becomes quickly difficult to determine what parts of memory and registers are really the relevant state executing forwards from a particular point.
 Due to the lack of scope or lifetime abstractions, once a new piece of state enters an execution, it is rare for it to leave at a later point --- much of the program image in memory is potential state.
 There are things that can be done to alleviate this, some approximations, some sound.
-However, the bottom line remains: the state space is so large that a number of traditional exploration techniques break down.\todo{cite examples}
 
 % * Static
 \subsection{Static Analyses}
@@ -328,7 +327,7 @@ The state of the art approach to this is to combine value analysis with control 
 \subsubsection{Type Recovery}
 Another important fundamentally static analysis is type recovery.
 While there is no rule that says there must be types as we usually think of them in a binary program, they are usually present due to a source language or programmer volition.
-Even assembly programmers and dynamic language users\todo{cite javascript speedup through type inference} usually use consistent types to some extent.
+Even assembly programmers and dynamic language users\cite{jsinfer} usually use consistent types to some extent.
 
 Since the annotations have all been compiled away, there are two primary sources for type information: propagation from code boundaries and program action.
 Propagation~\cite{howard} from code boundaries entails knowing a priori that a particular library or service in use by the program matches some signature, then following definitions of its arguments and uses of its results to annotate the program with this information.
@@ -345,7 +344,7 @@ However, they tend to do a poor job at making definitive statements about whole-
 \subsubsection{Fuzzing}
 One common modern way to find issues in code, especially non-introspectable code like binaries, is to simply perform a very large number of executions with varied inputs.
 This technique is known as ``fuzzing'', and is widely used in the search for security flaws.
-There are a number of axes along which this technique can differ, but the primary two are blackbox\todo{cite peach} vs whitebox\todo{cite grammar based whitebox fuzzing (pldi) and concolic testing} and generational\todo{cite peach} vs mutational\todo{cite zzuf}.
+There are a number of axes along which this technique can differ, but the primary two are blackbox\cite{peach,zzuf,rebert2014b} vs whitebox\cite{klee,godefroid2008a,Avgerinos2014a} and generational\cite{peach} vs mutational\cite{zzuf}.
 
 %   * Symbolic Execution + SMT
 \subsubsection{Symbolic Execution}
@@ -356,6 +355,6 @@ When a potentially dangerous operation is about to be performed (such as jumping
 SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solver whose variables have a extra domains and additional operations. In this work, we primarily consider the theory of bitvectors.       
 }.
 The formula is created by taking the conjunction of the path constraint with whatever condition suffices to cause the badly behaved event.
-If the SMT solver returns a solution, a bad input has been found\todo{cite mayhem+co}.
+If the SMT solver returns a solution, a bad input has been found\cite{aeg,mayhem}.
 If instead of simply sufficing, the condition passed is complete (e.g.\ the operation is \emph{only} dangerous if the check passes), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
 Since loops create an infinite number of paths, it is difficult to demonstrate any region safe this way, but it can rule out certain kinds of exploration.

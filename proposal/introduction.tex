@@ -20,9 +20,6 @@ It is undecidable for pathological cases,\footnote{\
 Existing tools\cite{ida} tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next as some form of data structure.
 This model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
 Since these tools lack any framework for integrating with each other, they have to deal with a variety of pitfalls.
-Analyses do not use infomation that would be helpful to them, in order to avoid reimplementing previous work that is not strictly required.\todo{forwardref}
-Similarly, even when a piece of information is required, the state of the art methods for determining it are not always employed to reduce implementation complexity.\todo{forwardref}
-Additionally, the interface between analyses is a source of soundness issues, as dependent analyses do not fully realize the assumptions results are based on, or attempt to simplify a result to one they feel they can consume.\todo{forwardref}
 
 % Past work sets the stage for / encourages this
 Previous work in program analysis suggests that logic languages can help to structure this problem.
@@ -31,6 +28,7 @@ Datalog has previously been successfully used to analyze programs\cite{Lam2005a,
 %   * Shows fact-like representation of program properties is feasible
 While the ability to write analyses directly in logic language is interesting, of more potential importance to the feasability of this project is that they were able to model both their input and output knowledge as logic language predicates successfully.
 A wide variety of properties from aliasing in binary code\cite{Brumley2006b} to security properties such as SQL injectability and XSS\cite{Lam2005a} have been modeled as facts in a deductive database, suggesting this as a potential common representation. 
+Dataflow analyses are also well representable\cite{McAllester} in this way.
 
 %   * Natural way to describe incremental information buildup
 Logic languages also provide a natural way to describe incremental discovery of new information.
@@ -49,9 +47,6 @@ May-analysis derives facts about procedures stating that if a given property hol
 Must-analysis derives facts stating that within a given set of inputs, there exists at least one that goes to each of a given set of outputs (traditionally corresponding to dynamic analysis).
 The authors were able to prune a number of search paths via this combination, leading to property checks terminating which previously took too long to be feasible to run.
 With a (backwards-chaining\footnote{Goal driven execution, more explanation in \S\ref{sec:bchain}}) representation of may and must analyses separately, their analysis could be derived by adding a relatively small number of rules to describe the yes/no property check fact they introduce.
-
-% * Analysis soundness-failure
-% TODO I can't argue for this without concrete examples, which I don't have.
 
 % External code
 Using a fairly common extension of logic language, we can even call out to code not written as logical rules\footnote{We will use a system similar to external predicates \S\ref{sec:extpred}}.
