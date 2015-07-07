@@ -2,7 +2,7 @@
 \usepackage{silence}
 \WarningFilter*{latex}{Marginpar on page \thepage\space moved}
 \usepackage{fullpage}
-\usepackage{todonotes}
+%\usepackage{todonotes}
 \usepackage{syntax}
 \usepackage{amsmath}
 \usepackage{wasysym}
@@ -29,11 +29,11 @@
 %my eyes, so we'll turn it on later.
 %\usepackage{setspace}
 %\doublespacing
-%\usepackage[
-%  backref,pageanchor=true,plainpages=false, pdfpagelabels, bookmarks,bookmarksnumbered
-%]{hyperref}
-%\hypersetup{linktoc=all}
-\newcommand{\url}[1]{\texttt{#1}}
+\usepackage[
+  backref,pageanchor=true,plainpages=false, pdfpagelabels, bookmarks,bookmarksnumbered
+]{hyperref}
+\hypersetup{linktoc=all}
+%\newcommand{\url}[1]{\texttt{#1}}
 
 \include{ll}
 \begin{document}
