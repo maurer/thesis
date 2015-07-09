@@ -1,7 +1,11 @@
 all: proposal.pdf
 
 .PHONY: FORCE, clean, all
-%.pdf: FORCE
+
+cfg.pdf: cfg.dot
+	dot -Tpdf cfg.dot > cfg.pdf
+
+%.pdf: FORCE cfg.pdf
 	latexmk -f $* -pdf
 FORCE:
 
