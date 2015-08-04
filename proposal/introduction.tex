@@ -57,7 +57,7 @@ There are still some restrictions on how such code can operate (for example, no 
 
 \begin{inset}
 {\bf Thesis statement.}
-Codependence in binary program analysis can be represented in a logic language framework that allows for formal reasoning.
+Codependence in binary program analysis can be represented in a logic language framework that allows for formal reasoning about the derivation of its conclusions.
 \end{inset}
 % Roadmap to defending the thesis statement
 \section{Thesis Roadmap}
@@ -74,8 +74,7 @@ This implementation should provide evidence for feasibility of this technique an
 %     * Circumscription with our restrictions
 %   * Attempting to slice out a restricted segment which is terminating
 I will attempt to demonstrate that this approach, as realized in \sysname, can be reasoned about by writing proofs supporting the soundness of the reasoning system.
-Being able to reason about a system constructed with this approach supports the claim that it is simpler to work with.
-The two primary properties I will investigate are proving the monotonicity of my aggregation scheme (\S~\ref{sec:monagg}) and the soundness of my circumscription (\S~\ref{sec:hypcirc}).
+The two primary formal reasoning properties I will investigate are proving the monotonicity of my aggregation scheme (\S~\ref{sec:monagg}) and the soundness of my circumscription (\S~\ref{sec:hypcirc}).
 If time permits, I will try to determine a restricted segment of \sysname\ which can be proved to terminate, providing a subset within which to write preprocessing phases.
 
 % * Show result improvement by
@@ -96,8 +95,11 @@ In the case of CFG recovery, I anticipate success even more strongly than in the
 % * Practical system implementation
 The main contributions of this work will be:
 \begin{itemize}
-        \item Monotonic Aggregators --- adding the ability to efficiently reason about collections of facts in a single rule invocation while not breaking monotonicity.
-        \item Hypothetical Circumscription --- giving a ``stuck'' or incomplete system an Occam's razor motivated set of assumptions to allow it to proceed hypothetically, re-examining the plausibility of the hypotheses when necessary.
-        \item Study of interaction between binary analysis techniques --- using \sysname\ to quantitatively examine combinations of existing analyses for improvements in performance or efficiency.
-        \item A practical system implementation --- designing \sysname\ such that it is stable, efficient, and usable enough to see continued use after the completion of this thesis.
+       \item Study of interaction between binary analysis techniques --- using \sysname\ to quantitatively examine combinations of existing analyses for improvements in performance or efficiency.
+       \item Language extensions to fit the technique better to the application
+       \begin{itemize}
+         \item Monotonic Aggregators --- adding the ability to efficiently reason about collections of facts in a single rule invocation while not breaking monotonicity.
+         \item Hypothetical Circumscription --- giving a ``stuck'' or incomplete system an Occam's razor motivated set of assumptions to allow it to proceed hypothetically, re-examining the plausibility of the hypotheses when necessary.
+       \end{itemize}
+       \item A real system implementation --- designing \sysname\ such that it is stable, efficient, and usable enough to see continued use after the completion of this thesis.
 \end{itemize}
