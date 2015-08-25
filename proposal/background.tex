@@ -84,21 +84,20 @@ At this point, neither rule applies, and so the program has finished.
 It has also derived the only two uncle facts possible.
 \subsubsection{Example: Related}
 Alternatively, perhaps we only wish to know if two people are related.
-This is potentially more interesting because it is an obviously recursive search, unlike the previous example which was clearly considerable as a two-step search: find the siblings, then find siblings of parents.
-However, since Datalog applies its rules until saturation, this is not any more difficult than the previous qurery.
 Consider the rules
 \begin{gather*}
         \frule{\pred{related}{\var{X}, \var{Y}}}{\pred{parent}{\var{X}, \var{Y}}}\\
         \frule{\pred{related}{\var{Y}, \var{X}}}{\pred{related}{\var{X}, \var{Y}}}\\
         \frule{\pred{related}{\var{X}, \var{Z}}}{\pred{related}{\var{X}, \var{Y}}, \pred{related}{\var{Y}, \var{Z}}}
 \end{gather*}
+This is potentially more interesting because it is a recursive build up of information, unlike the previous example which was considerable as a two-step procedure: find the siblings, then find siblings of parents.
+However, since Datalog applies its rules until saturation, this is not any more difficult than the previous qurery.
 The first rule translates a parent/child relationship into being related.
 The second provides symmetry.
 The third provides transitivity.
 This is sufficient to compute the actual related set.
 Execution proceeds much the same as the previous example, simply firing each rule until no rules are able to fire.
-The only real difference is that the second and third rule will be fired interleaved due to the nature of the search.
-However, as the intensional database is quite large for any nontrivial extensional database with these rules, the resulting database is omitted.
+The only real difference is that the second and third rule will fire recursively.
 %   * Termination
 \subsubsection{Termination}
 It might be surprising to realize that despite recursive rules being permitted, the language as described thus far is actually terminating.
@@ -107,21 +106,17 @@ If constructed with a variable, the variable must have been bound in the body cl
 If the variable was bound in the body clause, its value must have been in the database.
 As a result, the only possible values are those which were in the extensional database and those mentioned concretely in the rules.
 With a finite domain of values, and a finite list of predicates, there is a finite list of facts which could be instantiated.
+
 Structure evaluation as a series of steps, each of which fires the first rule it can find which matches, or if none match, terminate.
 Since this evaluation strategy is always productive or terminating, and we have established a finite upper bound on the database, we have a bound on the length of such an evaluation.
 Since this evaluation strategy only produces facts according to the rules, and only stops when no rules apply, it matches the saturation/fixpoint semantics of Datalog.
 
 While termination is a convenient property for a language to have, there are several caveats.
 %
-The upper bound is not a very practical one.
-It is finite, which is sufficient for the proof, but will be very large even for simple quickly terminating programs.
-The upper bound on the Uncle example from earlier would be $3 \times 5^2 = 75$ (5 database values, max arity of 2, 3 predicates).
-This overapproximation will only get worse as new values or increased arity predicates appear.
-%
 Termination directly implies a limit to the language's power.
 While a number of different kind of closure or search procedures are specifiable as Datalog programs, its inability to create new symbols is fairly limiting.
 %
-The proof is quite fragile, since many language modifications will introduce the ability to generate new symbols.
+The proof is quite fragile, since many language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
 \subsubsection{External Predicates}
 \label{sec:extpred}
 %   * Motivation for external predicates (e.g. +2)
@@ -132,7 +127,6 @@ However, having such a table is massively impractical.
 %   * External predicates
 One way to deal with this issue is to introduce external predicates: predicates whose extents are not stored in the database, but are rather computed or queried from some external system when needed.
 This leads to the need for a mode system.
-Since I do not intend to use moded predicates in \sysname\, I will only give a general picture of the problem they solve.
 Consider an external predicate $\pred{sum}{\cdot, \cdot, \cdot}$, where the first entry is the sum of the other two.
 When trying to match the body clause of a rule, it becomes important that at least two entries be provided, or the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
 In the case of functions which are designed to be hard to invert (e.g.\ a hash function), this becomes not only a result size concern and an actual implementability concern.
@@ -149,8 +143,8 @@ rather than needing to assume the presence of subtraction and possible-addends o
 %   * External predicates can break termination
 Unfortunately, adding external predicates adds all possibilities for their result values to the upper bound for the termination.
 Adding an external predicate which only produces a small type such as a boolean has little effect on our ability to bound execution.
-Adding a large, but still finite bounded type like $\textrm{uint64}$ makes any numerical approximation of runtime from value count irrelevant, but still technicaly gives termination.
-Adding a type with non-finite size like lists or strings \emph{breaks termination} despite these features being commonly desired for good reasons.
+Adding a large, but still finite bounded type like $\texttt{uint64}$ makes any numerical approximation of runtime from value count irrelevant, but still technicaly gives termination.
+Adding a type with non-finite size like lists or strings \emph{breaks termination}.
 
 %   * Stratified negation
 \subsubsection{Stratified Negation}
@@ -176,7 +170,7 @@ However, when recursive rules and negation are mixed, it can cause termination a
         \frule{\pred{p}{\var{X}}}{\neg \pred{q}{\var{X}}}\\
         \frule{\pred{q}{\var{X}}}{\neg \pred{p}{\var{X}}}
 \end{gather*}
-There is no interpretation of this which terminates with the fixpoint semantics, or which provides a minimal model (not discussed here).
+There is no interpretation of this which terminates with the fixpoint semantics, or which provides a minimal model~\cite{prologbook}.
 To deal with this, Datalog imposes a requirement on negation known as stratification.
 This requirement can be phrased as a graph property:
 
@@ -184,10 +178,6 @@ Create a graph where the predicates are nodes, and there is an edge between two 
 Additionally, label all those edges where the premise predicate was negated.
 There must be no cycles which include one or more negated edges.
 
-% * Prolog
-\subsection{Prolog}
-While \sysname\ is primarily modeled after Datalog, some ideas more related to those in Prolog are also necessary.
-%   * Forwards vs backwards chaining
 \subsubsection{Backwards Chaining}
 \label{sec:bchain}
 The evaluation model discussed thus far is what is commonly known as forward chaining, or bottom-up search.
@@ -197,21 +187,6 @@ However, there are some applications for which this approach does not work well 
 The other approach is known as backwards chaining, or top-down search, and is what is used in Prolog.
 In backwards chaining, search is directed by a particular goal instead.
 The logic engine examines the goal and the available rules, and by unification breaks it down to a series of potential subgoals, and recurses.
-There are various methods to control the backtracking behavior of such a search, but they are not immediately relevant.
-
-%   * Nontermination
-\subsubsection{Nontermination}
-While Datalog has termination as a key property, Prolog and most backwards chaining languages do not.
-As a simple example, consider the related-symmetry rule we used before, constructed instead as a backwards chaining rule:
-\begin{gather*}
-        \brule{\pred{related}{\var{X}, \var{Y}}}{\pred{related}{\var{Y}, \var{X}}}
-\end{gather*}
-In Datalog, this terminated because the engine would fail to derive any new facts eventually.
-In a backwards chaining search procedure, this could give rise to an alternating search tree.
-Consider a query for $\pred{related}{\id{john}, \id{mary}}$.
-This backwards chaining rule would search for $\pred{related}{\id{john}, \id{mary}}$, then by the rule, see that it could instead search for $\pred{related}{\id{mary}, \id{john}}$.
-However, it would then trigger again, bringing us back to a search for $\pred{related}{\id{john}, \id{mary}}$, looping infinitely.
-While this simple example could be avoided by checking if this subgoal had already occurred in the tree, more complex examples are possible which cannot be avoided this way.
 
 % * Circumscription
 \subsection{Circumscription}
@@ -233,19 +208,19 @@ We know the above formula is true, but not the truth values for $a$, $b$, and $c
 Circumscription is a mode of reasoning that in this situation allows us to examine the first two options rather than the third.
 It is about picking the minimal situation that could correspond to what we know.
 
-More examples are given in McCarthy's paper introducing the idea\cite{circumscription}.
+More examples are given in McCarthy's paper introducing the idea~\cite{circumscription}.
 An slightly simpler (if imprecise) way of thinking about circumscription is to consider it as taking a specification of truth which is irrefutable, while saying as little as possible --- you're not saying something grounded in fact, you're saying something nobody can prove wrong, while taking as few risks as possible.
 %   * Original definition by McCarthy
 \subsubsection{Original Definition}
 Originally, circumscription was defined with respect to first order logic.
-Specifically, the circumscription of a predicate $P$ in a formula $A$ is defined~\cite{circumscription} as
+Specifically, the circumscription of a predicate $P$ to a predicate $Q$ in a formula $A$ is defined~\cite{circumscription} as
 \[
 (A [P/Q] \wedge \forall x. Q(x) \rightarrow P(x)) \rightarrow (\forall x. P(x) \rightarrow Q(x))
 \]
-McCarthy calls this a ``sentence schema'', and is essentially a statement in second order logic (since $Q$ is implicitly quantified here).
+McCarthy calls this a ``sentence schema'', and is essentially a statement in second order logic (since $Q$ is implicitly existentially quantified here).
 Essentially, this says that for a given formula $A$ we know to be true, and some predicate $P$ we have incomplete information about, if some other (usually artificially defined) predicate $Q$ could be used in $A$ everywhere $P$ was without changing its truth value, and $Q$ is true whenever we know $P$ to be true, then we can have the other half of the implication, making $Q$ a legitimate proxy for $P$.
 Practically applying this usually involves declaring a $Q$ which is true in exactly those situations we know $P$ to be.
-As a simple example, take the formula 
+As a simple example, consider the formula
 \[
         P(0) \wedge P(1) \wedge P(2)
 \]
@@ -315,24 +290,30 @@ While information from a concrete execution can be useful to the final product (
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point, watching for a transition to a distinguished exit node (usually via a function return).
 However, indirect jumps due to function pointers, C++ method calls, and even creative compilation of case statements can wreak havoc on this method, since the value being jumped to is not known ahead of time.
 
+Each of these can be fairly accurately determined by the compiler when source is provided.
+The type of a C++ object determines a small subset of legal function targets for a given method.
+Switch statements have explicit targets and can be resolved exactly.
+Function pointers are the most difficult to resolve, but the compiler at least has the ability to restrict the possible targets to functions of the right type, or in a conservative approximation to any function.
+All of these methods are not directly usable on raw binary code, since the abstractions used have been stripped away.
+
 \subsubsection{Value Analysis}
 \label{sec:valanal}
 It follows then, that recovering upper bounds on the range of various pieces of state in a program would be useful.
-One common way to do this is to perform abstract interpretation of the program over a domain which is expected to model the range of values well.\cite{vsa,wrappedintervals,wrappedintervals2}
+One common way to do this is to perform abstract interpretation of the program over a domain which is expected to model the range of values well~\cite{vsa,wrappedintervals,wrappedintervals2}.
 
 Unfortunately, this abstract interpretation assumes that the control flow graph has already been determined in order to sequence its transformations.
 Additionally, it can be tripped up by loops which do not converge nicely in its particular domain.
-The state of the art approach to this is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis\cite{jakstab}.
+The state of the art approach to this is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis~\cite{jakstab}.
 
 \subsubsection{Type Recovery}
 Another important fundamentally static analysis is type recovery.
 While there is no rule that says there must be types as we usually think of them in a binary program, they are usually present due to a source language or programmer volition.
-Even assembly programmers and dynamic language users\cite{jsinfer} usually use consistent types to some extent.
+Even assembly programmers and dynamic language users~\cite{jsinfer} usually use consistent types to some extent.
 
 Since the annotations have all been compiled away, there are two primary sources for type information: propagation from code boundaries and program action.
 Propagation~\cite{howard} from code boundaries entails knowing a priori that a particular library or service in use by the program matches some signature, then following definitions of its arguments and uses of its results to annotate the program with this information.
 This helps some, but largely fails on any kind of internal data structure.
-Usage based analysis\cite{tie,bitr} tends to do better at this, and works by examining how the code defines and uses state and generating constraints for types based on that.
+Usage based analysis~\cite{tie,bitr} tends to do better at this, and works by examining how the code defines and uses state and generating constraints for types based on that.
 
 % * Dynamic
 \subsection{Dynamic Analyses}
@@ -344,7 +325,7 @@ However, they tend to do a poor job at making definitive statements about whole-
 \subsubsection{Fuzzing}
 One common modern way to find issues in code, especially non-introspectable code like binaries, is to simply perform a very large number of executions with varied inputs.
 This technique is known as ``fuzzing'', and is widely used in the search for security flaws.
-There are a number of axes along which this technique can differ, but the primary two are blackbox\cite{peach,zzuf,rebert2014b} vs whitebox\cite{klee,godefroid2008a,Avgerinos2014a} and generational\cite{peach} vs mutational\cite{zzuf}.
+There are a number of axes along which this technique can differ, but the primary two are blackbox~\cite{peach,zzuf,rebert2014b} vs whitebox~\cite{klee,godefroid2008a,Avgerinos2014a} and generational~\cite{peach} vs mutational~\cite{zzuf}.
 
 %   * Symbolic Execution + SMT
 \subsubsection{Symbolic Execution}
@@ -352,7 +333,7 @@ A slightly more sophisticated (though more expensive) approach is to attempt to 
 Essentially, if an exact value is not needed in order to take a step, expressions based on inputs are used in place of concrete values as long as possible.
 When a conditional branch is taken, the condition is added to a path constraint, restricting the range of inputs for which this execution is considered feasible.
 When a potentially dangerous operation is about to be performed (such as jumping to or dereferencing a symbolic value), a check for the plausibility of the ``bad'' scenario can be fed to an SMT solver\footnote{\
-SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solver whose variables have a extra domains and additional operations. In this work, we primarily consider the theory of bitvectors.       
+SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solver whose variables have a extra domains and additional operations. In this work, we primarily consider the theory of bitvectors.
 }.
 The formula is created by taking the conjunction of the path constraint with whatever condition suffices to cause the badly behaved event.
 If the SMT solver returns a solution, a bad input has been found\cite{aeg,mayhem}.
