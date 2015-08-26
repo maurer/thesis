@@ -243,7 +243,7 @@ In parallel, using transactions, Holmes will
 \section{Semantics}
 \newcommand{\ds}{\vdash}
 \begin{gather*}
-  \infer[id]{\Gamma, a : P; \Delta \ds a : P}{}\\
+  \infer[id]{\Gamma, a : P, \Gamma'; \Delta \ds a : P}{}\\
   \infer[xchg]{\Gamma_0, x, \Gamma_1, y, \Gamma_2; \Delta \ds z}{\Gamma_0, y, \Gamma_1, x, \Gamma_2; \Delta \ds z}\\
   \infer[weaken]{\Gamma, x; \cdot \ds y}{\Gamma; \cdot \ds y}\\
   \infer[rule]{\Gamma, r : \forall \tau_0 \ldots \tau_n. ((P_1^{\vec{\tau}} \ldots P_m^{\vec{\tau}}) \rightarrow Q^{\vec{\tau}}); \Delta \ds r(\vec{\sigma}, \vec{p}) : Q^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}{\Gamma; \Delta \ds p_1 : P_1^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}] & \cdots & \Gamma; \Delta \ds p_m : P_m^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}\\
