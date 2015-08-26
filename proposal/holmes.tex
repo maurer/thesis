@@ -243,15 +243,15 @@ In parallel, using transactions, Holmes will
 \section{Semantics}
 \newcommand{\ds}{\vdash}
 \begin{gather*}
-  \infer[id]{\Gamma, a : P, \Gamma'; \Delta \ds a : P}{}\\
+  \infer[id]{\Gamma, a : P; \Delta \ds a : P}{}\\
   \infer[xchg]{\Gamma_0, x, \Gamma_1, y, \Gamma_2; \Delta \ds z}{\Gamma_0, y, \Gamma_1, x, \Gamma_2; \Delta \ds z}\\
   \infer[weaken]{\Gamma, x; \cdot \ds y}{\Gamma; \cdot \ds y}\\
   \infer[rule]{\Gamma, r : \forall \tau_0 \ldots \tau_n. ((P_1^{\vec{\tau}} \ldots P_m^{\vec{\tau}}) \rightarrow Q^{\vec{\tau}}); \Delta \ds r(\vec{\sigma}, \vec{p}) : Q^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}{\Gamma; \Delta \ds p_1 : P_1^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}] & \cdots & \Gamma; \Delta \ds p_m : P_m^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}\\
   \infer[monagg]{\Gamma; \Delta \ds \{\vec{a}\} : P^\tau[\tau/(\leq \rho)]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma; \Delta \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} \leq \rho}\\
   \infer[hypcirc]{\Gamma; \Delta\vdash [\vec{a}] : (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow P^\tau[\tau/\vee = \rho]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} = \rho}\\
-  \infer[assume]{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}{\Gamma; \Delta \ds (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow e : Q}\\
-  \infer[unassume]{\Gamma; \Delta \ds (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow e : Q}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}\\
-  \infer[call/cc]{\Gamma; \Delta, (\vec{\sigma'}, \tau, P^\tau) \ds callcc(e) : \rho}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : \rho & \vec{\sigma'} = \vec{\sigma} - \rho}
+  \infer[assume]{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}{\Gamma; \Delta \ds e: (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow Q & \forall a : P^\tau[\tau/\rho] \in \Gamma. \rho \in \vec{\sigma}}\\
+  \infer[unassume]{\Gamma; \Delta \ds e : (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow Q}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}\\
+  \infer[call/cc]{\Gamma; \Delta, (\vec{\sigma'}, \tau, P^\tau) \ds callcc(e) : P^\tau[\tau/\rho]}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : P^\tau[\tau/\rho] & \vec{\sigma'} = \vec{\sigma} + \rho}
 \end{gather*}
 
 \section{Implementation Strategy}
