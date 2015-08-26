@@ -121,7 +121,7 @@ The proof is quite fragile, since many language modifications (including those n
 \label{sec:extpred}
 %   * Motivation for external predicates (e.g. +2)
 One example of a case where introducing new symbols might be desirable is the ability to perform arithmetic.
-It is possible to encode arithmetic over some finite domain (e.g.\ $0-(2^{64} - 1)$) by adding a predicate for each binary operation and prepopulating the extensional database with all the values.
+It is possible to encode arithmetic over some finite domain (e.g.,\ $0-(2^{64} - 1)$) by adding a predicate for each binary operation and prepopulating the extensional database with all the values.
 However, having such a table is massively impractical.
 
 %   * External predicates
@@ -129,7 +129,7 @@ One way to deal with this issue is to introduce external predicates: predicates 
 This leads to the need for a mode system.
 Consider an external predicate $\pred{sum}{\cdot, \cdot, \cdot}$, where the first entry is the sum of the other two.
 When trying to match the body clause of a rule, it becomes important that at least two entries be provided, or the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
-In the case of functions which are designed to be hard to invert (e.g.\ a hash function), this becomes not only a result size concern and an actual implementability concern.
+In the case of functions which are designed to be hard to invert (e.g.,\ a hash function), this becomes not only a result size concern and an actual implementability concern.
 To deal with this, external predicates can have mode signatures, explaining which entries are logical inputs, and which are outputs. For example, we could have
 \[
         \pred{sum}{+, -, -} \quad \pred{hash}{+, -}
@@ -249,7 +249,7 @@ For example, take the system
         \brule{\pred{copper}{\var{X}}}{\neg \pred{silver}{\var{X}}}\\
         \brule{\pred{penny}{\var{X}}}{\pred{copper}{\var{X}}, \pred{circle}{\var{X}}}\\
 \end{gather*}
-If we ask ``Is $\id{y}$ a penny?'', e.g.\ $\query{\pred{penny}{\id{y}}}$, the system without circumscription cannot answer yes.
+If we ask ``Is $\id{y}$ a penny?'', i.e.\ $\query{\pred{penny}{\id{y}}}$, the system without circumscription cannot answer yes.
 There is no way to derive that $\id{y}$ is circular, or failing that, that it is simply non-square.
 Circumscribing over both $\pred{square}{\cdot}$ and $\pred{silver}$ in the system allows us to derive $\neg \pred{square}{\id{y}}$ and $\neg \pred{silver}{\id{y}}$.
 In this way, circumscription forms the basis for the form of negation present in logic languages.
@@ -337,5 +337,5 @@ SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solv
 }.
 The formula is created by taking the conjunction of the path constraint with whatever condition suffices to cause the badly behaved event.
 If the SMT solver returns a solution, a bad input has been found\cite{aeg,mayhem}.
-If instead of simply sufficing, the condition passed is complete (e.g.\ the operation is \emph{only} dangerous if the check passes), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
+If instead of simply sufficing, the condition passed is complete (i.e.\ the operation is \emph{only} dangerous if the check passes), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
 Since loops create an infinite number of paths, it is difficult to demonstrate any region safe this way, but it can rule out certain kinds of exploration.

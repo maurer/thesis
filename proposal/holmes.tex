@@ -2,11 +2,11 @@
 % Overview
 \section{Overview}
 % * Binary analysis information as facts in a deductive database
-The general approach of \sysname\ is to view information about the binary as facts in a deductive database, and analyses as logic-language style rules used to derive additional facts.
+The general approach of \sysname\ is to view information about the binary as facts in a deductive database, and analyses as logic-language rules used to derive additional facts.
 % * Traditional logic language approaches treated the logic language as an analysis module in a larger scheme
-Logic language as used in binary analysis has traditionally been relegated to a role of implementing a particular analysis, to be later integrated by custom code\cite{bddbddb,Alpuente2011,Brumley2006b,Lam2005a,Smaragdakis}.
+Logic languages used in binary analysis have traditionally been relegated to a role of implementing a particular analysis, to be later integrated by custom code\cite{bddbddb,Alpuente2011,Brumley2006b,Lam2005a,Smaragdakis}.
 % * Use the logic language to integrate other analyses, treating external code as where-clause-functions (analogous to external predicates)
-Instead, I seek to use logic language as the medium for integration, treating traditional analyses in a manner similar to external predicates.
+Instead, I seek to use a logic language as the medium for integration, treating traditional analyses in a manner similar to external predicates.
 I expect to see benefits in the form of explicit provenance, ease of integrating new analyses, and clarity of what forms of reasoning are in use (\S~\ref{sec:callcc}).
 However, existing logic languages have limitations which make them less than ideal for this purpose.
 % * Use monotonic aggregators (secref) to enable functions to consume 'all' of something monotonically
@@ -29,48 +29,39 @@ Sometimes, we need to describe a property over a group of facts.
 For example, consider the statement ``My upper bounds on $\id{x}$ preclude the unsafe inputs to the function $\id{f}$, so $\id{f}(\id{x})$ is safe.''
 We can model our initial knowledge in this situation by declaring a predicate $\pred{unsafeInputs}{\cdot, \cdot}$ which gives a relation between functions and a superset of their unsafe inputs, and a predicate $\pred{upperBound}{\cdot, \cdot}$ which gives an upper bound on the values a variable may contain.
 We also want to express a rule which gathers together upper bounds to check if together they can rule out all the unsafe inputs.
-Using strided interval notation\cite{vsa}\footnote{\
-Strided intervals are a set notation described by a lower bound, an upper bound, and a stride.
-The set includes the lower bound, and every element less than or equal to the upper bound which is a multiple of the stride above the lower bound.
-It is written $\textrm{stride}[\textrm{lower}, \textrm{upper}]$.
-}
+Consider the facts:
 \begin{gather*}
-        \pred{upperBound}{\id{x}, 2[1, 5]} \quad \pred{upperBound}{\id{x}, 4[1, 9]}\\
-        \pred{unsafeInputs}{\id{f}, \{3, 9\}}\\
+  \pred{upperBound}{\id{x}, \{1, 3, 5\}} \quad \pred{upperBound}{\id{x}, \{1, 5, 9\}}\\
+  \pred{unsafeInputs}{\id{f}, \{3, 9\}}\\
+\end{gather*}
+If we match on each fact, neither upper bound can demonstrate that the unsafe inputs are excluded.
+If working in regular Datalog, here we could use a rule to create derived upper bounds, producing the desired aggregate fact ($\pred{upperBound}{\id{x}, \{1, 5\}}$).
+However, we would have many aggregate facts lying around, only one of which would represent the current ``best estimate'' of the upper bound, and all rules depending on this value would have to evaluate against all of them.
+This approach quickly becomes inefficient as the number of contributed upper bound sets scales up.
+A combination rule will run $n$ choose 2 times initially, then $n'$ choose 2 times, etc. until it fails to produce a new bound.
+By writing the rule somewhat more cleverly, making the derived upper bounds a separate predicate, and only allowing a derived upper bound to be combined with a concrete upper bound, this can be made more efficient: only $n^2$ firings.
+However, both of these situations are worse than we would like to see both in number of rule firings, and the number of facts stored.
+
+An alternative approach is to explicitly represent this notion of an improving best estimate of information.
+However, naive aggregation (i.e. making the intersection of all upper bounds available) quickly enters into the realm of non-monotonic reasoning since added facts change its value.
+I propose to solve this by combining an aggregation method with a safe query method, such that the aggregated value will never change the result of the query method from match to no match when additional facts are aggregated.
+With such an extension, the rule we want might looks something like this:
+\begin{gather*}
         \brule{\pred{safeCall}{\var{F}, \var{X}}}{\pred{upperBound}{\var{X}, \var{U} \not \cap}, \pred{unsafeInputs}{\var{F}, \var{U}}}
 \end{gather*}
-At first glance, this kind of operation may seem infeasible.
-If we match on each fact, neither upper bound can demonstrate that the unsafe inputs are excluded.
-We cannot create and match on an intermediate fact containing the sum knowledge of all upper bounds in the general case, as this intermediate fact would need to change as more upper bounds were added in the future.
-However, it is clear that this rule is accessing the available information in a monotonic way: No amount of additional restriction to the upper bound would make the predicate no longer match.
-% * Definition (see agda in contributions localfile)
+While this rule is matching on an aggregation of all current upper bounds, it is doing so in a monotonic way.
+Since it is only checking for the ability of the aggregate value to rule out inputs, and adding more upper bounds will never cause it to rule out fewer inputs, this rule is still monotonic.
 
-The general idea of a monotonic aggregator is to describe this kind of reasoning while formalizing what requirements are needed to ensure monotonicity.
-There are two basic components to a monotonic aggregator: a merge function and a query function.
-The aggregation function serves to combine the pieces of information about the same property (the upper bounds in the example).
-The query function defines a way in which the aggregated information can be matched against monotonically.
-Specifically,
-\begin{verbatim}
-monotonicAggregator = {
-  domain : Set
-  null   : domain
-  merge  : domain → domain → domain
-  params : Set
-  query  : params → domain → Set
-  -- Order independence (doesn't matter in what order merge happens),
-  -- repetition is irrelevant
-  order-ind : (xs ys : List domain) --Two lists of domains
-            -- All elements of xs are in ys
-            → ((x : domain) → (x ∈ xs) → (x ∈ ys))
-            -- All elements of ys are in xs
-            → ((y : domain) → (y ∈ ys) → (y ∈ xs))
-            -- Merging either list results in the same value
-            → ((foldl merge null xs) ≈ (foldl merge null ys))
-  -- Merging in new information cannot invalidate a match
-  monotone : (p : params) → (x y : domain)
-           → query p x → query p (merge x y)
-}
-\end{verbatim}
+% * Definition (see agda in contributions localfile)
+The general idea of a monotonic aggregator is to describe reasoning about a collection of facts of reasoning while formalizing the requirements to ensure monotonicity.
+
+A monotonic aggregator is defined by an bounded semilattice.
+The join operation functions as the merge (set intersection in the case above).
+The unit value for the semilattice is the value the aggregation takes when no facts matching the collection are present.
+The partial ordering defined on the lattice defines the set of allowable queries.
+Queries must be of the form $P \leq A$ where $P$ is a rule varying parameter, and $A$ is the current aggregate.
+Intuitively, this formulation creates a monotonic framework for aggregation since the aggregate can only move in one direction along the semilattice, and the query operation can only go from false to true along this direction.
+I want to attempt to show this more formally as part of my thesis work.
 
 % * Set-bound examples
 As a simple example, consider an aggregator for lower bounds defined as sets.
@@ -79,29 +70,23 @@ As union is known idempotent, commutative, and associative, it is order independ
 Since a union can only grow the set, if a query set was a subset before a merge, it will be so after as well.
 
 % * Abstract interpretation example (strided intervals)
-In the example problem, we dealt with upper bounds defined as strided intervals\footnote{\S~\ref{sec:cfgexample}}.
+In the example problem, we dealt with upper bounds.
 Here, the aggregator's null element can be defined as the empty set, merge as intersection, and query as non-intersection of a parameter set.
 Similarly to union, intersection is well behaved in terms of order independence.
-Since intersection can only shrink the strided interval, any set which was non-intersecting before will be non-intersecting afterwards.
-
-% * Lattice connection
-It seems likely that most (if not all) instances of monotonic aggregators will relate to a semilattice.
-The meet operation corresponds naturally with merge, and the queries I have conceived of thus far all correspond to partial ordering operations on the semilattice.
+Since intersection can only shrink the set, any set which was non-intersecting before will be non-intersecting afterwards.
 
 % Hypothetical Circumscription
 \section{Hypothetical Circumscription}
 \label{sec:hypcirc}
 % * Why do we need this? (CFG example)
 Unfortunately, sometimes the reasoning we need to do is fundamentally nonmonotonic.
-Following the previous example, we might want to know that a particular input was not ruled out by the upper bound before proceeding (e.g.\ was a member of the upper bound aggregate).
+Following the previous example, we might want to know that a particular input was not ruled out of the feasible set of inputs before proceeding with symbolic execution, fuzzing, or some other form of expensive analysis.
 However, this would be non-monotonic, since the upper bound could later rule it out upon discovery of stricter upper bounds.
 Since we may never have a final upper bound, we need some way to safely perform this type of reasoning.
 
 A driving example for this feature is control flow graph recovery.
-As mentioned earlier\footnote{\
-        \S~\ref{sec:cfg} and \S~\ref{sec:valanal}
-}, this procedure involves explicitly postulating that our current knowledge of control flow is complete, computing potential values, and determining whether our assumptions were violated, updating them if they were.
-Enumerating the successors or predecessors of the node (the initial assumption phase) is fundamentally non-monotonic, as it gives us information about which facts are not yet in the database.
+As mentioned earlier (\S~\ref{sec:cfg}), this procedure involves explicitly postulating that our current knowledge of control flow is complete, computing potential values, and determining whether our assumptions were violated, updating them if they were.
+Acquiring a complete list of known successors or predecessors of the node (the initial assumption phase) is fundamentally non-monotonic, as it gives us information about which facts are not yet in the database.
 
 % * Definition (reveal domain explicitly)
 Initially, we define hypothetical circumscription as accessing an aggregate value from one of the previous aggregators, but with direct access to the value rather than via a query function.
@@ -127,7 +112,7 @@ As a side note, it could be more powerful if we did not require the merge order 
 \subsection{Call-CC}
 \label{sec:callcc}
 While circumscription captures reasoning from the assumption that new information will not be discovered, by itself it fails to describe the information gained from a failed assumption.
-Specifically, if by assuming $\neg A$ we derive $A$, it becomes clear that our circumscription of $\neg A$ was inconsistent, and $A$ should be added as part of the circumscription instead.
+Specifically, if by assuming $\neg A$ we derive $A$, our circumscription of $\neg A$ was inconsistent, and $A$ should be added as part of the circumscription instead.
 One way to deal with this would be to attempt to mandate that we assign truth values consistent with the whole formula (translated from the program).
 This approach fails in our context because the functions attached to the rules may prevent termination.
 
@@ -164,7 +149,7 @@ Starting with a simple recursive disassembly, we get the partial CFG in Figure~\
 \label{fig:cfg0}
 \end{figure}
 Hypothetically circumscribing over the $\pred{successor}{\cdot, \cdot}$ predicate representing known transitions gives us a ``complete'' control flow graph to pass to a value analysis.
-This circumscription assumed that $\neg \pred{successor}{3, \var{X}}$.
+This circumscription assumed that $\forall{X}. \neg \pred{successor}{3, \var{X}}$.
 However, the value analysis will quickly determine that \texttt{eax} may hold 4, and so finds $\pred{successor}{3, 4}$.
 At this point, the informal version of this analysis reasons that since $\neg \pred{successor}{3, 4}$ contradicts itself, the next step is to assume $\pred{successor}{3, 4}$.\footnote{\
         It is actually possible to avoid reasoning from contradiction here: since VSA\cite{vsa} will only widen its value upper bound in response to new edges, and new edges are being discovered via these upper bounds, at a minimum those edges found in the current graph will be found in the true graph.
@@ -175,14 +160,14 @@ At this point, the informal version of this analysis reasons that since $\neg \p
 %   * Why is this call-CC?
 One way to express such an ability would be to tie it to the law of excluded middle: $A \vee \neg A$.
 However, an equivalent property $((A \imp \bot) \imp A) \imp A$ better captures the action of the evaluation procedure conceptually.
-First, the evaluator guesses that $A$ cannot happen during the circumsctiption, e.g. $(A \imp \bot)$.
+First, the evaluator guesses that $A$ cannot happen during the circumscription, i.e. $(A \imp \bot)$.
 From that, it derives $A$.
 As a result, outside the circumscribed world, we want $A$ to be visible as a fact.
 
 % Bidirectional Proof Search
 \section{Bidirectional Proof Search}
 \label{sec:bidisearch}
-In the background, I reviewed forwards\footnote{\S~\ref{sec:fchain}} and backwards\footnote{\S~\ref{sec:bchain}} chaining analyses.
+In the background, I reviewed forwards (\S~\ref{sec:fchain}) and backwards (\S~\ref{sec:bchain}) chaining analyses.
 Which to use is generally selected situationally, but I argue that for our use case, both are needed.
 % * Forwards chaining = datalog
 \subsection{Forwards Chaining}
@@ -227,7 +212,7 @@ Fuzzing is possibly one of the clearest cases.
 A fuzzing run generates a vast amount of data, and can potentially generate an arbitrary amount by triggering with new random values.
 These runs are also generally expensive.
 %     * Solve this function for stack overflow with symex + smt
-Another example of an analysis that fits better with backwards chaining is property checking via symbolic execution and smt solving.
+Another example of an analysis that fits better with backwards chaining is property checking via symbolic execution and SMT solving.
 While the extent is small, it is potentially slow and has a wide variety of potential entry points/properties, very few of which are actually interesting.
 % * Execution strategy
 \subsection{Execution Strategy}
