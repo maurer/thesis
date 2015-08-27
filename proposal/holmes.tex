@@ -241,6 +241,16 @@ In parallel, using transactions, Holmes will
 \end{itemize}
 
 \section{Semantics}
+To give a slightly more formal view of what I expect this system to do, I provide a derivability relation.
+These rules are rough, but I hope they will help make my intentions more clear.
+
+In these rules, the $\Gamma$ context is a bag context that is allowed weakening only when $\Delta$ is empty.
+$\Gamma$ represents monotonically true facts and rules, a context of immutable truth.
+$\Delta$ is an ordered context.
+$\Delta$ is used to contain assumptions made thus far, with the rightmost assumption being the most recent.
+$P^\tau$ and similar expressions are used to represent a predicate which has $\tau$ used as a free variable.
+$E[x/y]$ is used to represent the substitution of $y$ for $x$ in the expression $E$.
+I use $\vec{x}$ throughout to act as a shorthand for $x_1 \ldots x_n$.
 \newcommand{\ds}{\vdash}
 \begin{gather*}
   \infer[id]{\Gamma, a : P; \Delta \ds a : P}{}\\
@@ -248,12 +258,45 @@ In parallel, using transactions, Holmes will
   \infer[weaken]{\Gamma, x; \cdot \ds y}{\Gamma; \cdot \ds y}\\
   \infer[rule]{\Gamma, r : \forall \tau_0 \ldots \tau_n. ((P_1^{\vec{\tau}} \ldots P_m^{\vec{\tau}}) \rightarrow Q^{\vec{\tau}}); \Delta \ds r(\vec{\sigma}, \vec{p}) : Q^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}{\Gamma; \Delta \ds p_1 : P_1^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}] & \cdots & \Gamma; \Delta \ds p_m : P_m^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}\\
   \infer[monagg]{\Gamma; \Delta \ds \{\vec{a}\} : P^\tau[\tau/(\leq \rho)]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma; \Delta \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} \leq \rho}\\
-  \infer[hypcirc]{\Gamma; \Delta\vdash [\vec{a}] : (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow P^\tau[\tau/\vee = \rho]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} = \rho}\\
-  \infer[assume]{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}{\Gamma; \Delta \ds e: (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow Q & \forall a : P^\tau[\tau/\rho] \in \Gamma. \rho \in \vec{\sigma}}\\
-  \infer[unassume]{\Gamma; \Delta \ds e : (\not \exists \gamma, b. (\gamma \not \in \vec{\sigma}) \wedge b : P^\tau[\tau/\gamma]) \Rightarrow Q}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}\\
-  \infer[call/cc]{\Gamma; \Delta, (\vec{\sigma'}, \tau, P^\tau) \ds callcc(e) : P^\tau[\tau/\rho]}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : P^\tau[\tau/\rho] & \vec{\sigma'} = \vec{\sigma} + \rho}
+  \infer[hypcirc]{\Gamma; \Delta\vdash [\vec{a}] : (|\tau. P^\tau| = \vec{\sigma}) \Rightarrow P^\tau[\tau/\vee = \rho]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma; \Delta \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} = \rho}\\
+  \infer[assume]{\Gamma; \Delta,  |\tau. P^\tau| = \vec{\sigma} \ds e : Q}{\Gamma; \Delta \ds e: (|\tau. P^\tau| = \vec{\sigma}) \Rightarrow Q & \forall a : P^\tau[\tau/\rho] \in \Gamma. \rho \in \vec{\sigma}}\\
+  \infer[unassume]{\Gamma; \Delta \ds e : (|\tau. P^\tau| = \vec{\sigma}) \Rightarrow Q}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}\\
+  \infer[callcc]{\Gamma; \Delta, |\tau. P^\tau| = \vec{\sigma'} \ds callcc(e, e') : P^\tau[\tau/\vee = \rho']}{
+    \begin{array}{ccc}
+      \vec{\sigma'} = \vec{\sigma} + \gamma & \rho' = \rho \vee \gamma & \gamma \not \in \vec{\sigma} \\
+      \Gamma; \Delta, |\tau. P^\tau| = \vec{\sigma} \ds e : P^\tau[\tau/\gamma] & & \Gamma; \Delta, |\tau.P^\tau|=\vec{\sigma} \ds e' : P^\tau[\tau/\vee = \rho]
+  \end{array}}
 \end{gather*}
+The first three rules (id, xchg, weaken) establish the basic framework in which we are working (as per the context explanations above).
 
+The ``rule'' rule expresses the basic way in which rules can be applied to facts.
+It looks similar to parametrically polymorphic function execution because it is.
+The primary difference is that $Q$'s expression may contain an invocation of an external function, and so until the selection of the type paramter vector $\vec{\tau}$, you can't actually know what type the proof term has.
+
+The ``monagg'' rule describes monotonic aggregation.
+I use the notation $\leq \rho$ to represent a value for which we know that the meet of all values is at least less than $\rho$.
+In actual use, you'd likely see e.g., $P(1, \leq \{2, 3\})$ or something similar.
+The rule itself essentially says that if you have a proof for $P^\tau$ with each of a nubmer of different options, and their meet is less than some bound, then their set comprises a proof of $P^\tau$ with $\tau$ monotonically aggregated to $\rho$.
+
+The ``hypcirc'' rule describes the procedure for hypothetical circumscription.
+The construct $|\tau.P^\tau| = \vec{\sigma}$ is meant to represent that the total extent of assignments to $\tau$ for which $P^\tau$ may be derived is $\vec{\sigma}$.
+This can be thought of (roughly, this is informal) as $\not \exists \gamma. (\gamma \not \in \vec{\sigma}) \wedge \Gamma; \Delta \vdash e : P^\tau[\tau/\gamma])$
+What hypcirc allows is the use of the meet of a set of possible assignments to $\tau$ as an approximation of the true meet of all assignments, with the assumption added to the type.
+
+``assume'' and ``unassume'' are a pair of rules to help guide search.
+``assume'' is a rule for limited movement of an assumption from the type of a proof term into the context.
+``unassume'' inverts assume, but is unlimited, since we are not limited in what assumptions may occur on the right of the turnstile.
+``assume'' in particular is very much not in its final form.
+Currently, it only allows movement from the left hand side of a $\Rightarrow$ to the $\Delta$ context if there is not an identity-based proof of its assumption being wrong.
+In a more complete version of this rule, the premises would contain a stronger notion of the concept of having failed, potentially temporarily, to produce contradictory proofs despite trying.
+In this way, hypothetical circumscriptions which can be absorbed into the assumption context will be similar to stratified negation.
+The primary difference between a limited assume and stratified negation will be that it is more permissive in what having tried hard enough to derive the fact is before it is allowed to assume it is false.
+
+``callcc'' implements the assumption expansion in case of contradiction discussed previously (\S \ref{sec:callcc}).
+If we can derive a contradiction to the most recent assumption, the $callcc$ constructor allows us to update the meet based on the knowledge of the flawed assumption.
+It takes in a proof of a contradiction of the assumption, a predicate derived from the meet of that assumption, and updates it to contain the new information.
+
+While these rules are rough, I hope they serve to give an idea of the intended derivability relationship.
 \section{Implementation Strategy}
 \label{sec:impl}
 As I've begun the implementation of this system, I have already made several design decisions.
