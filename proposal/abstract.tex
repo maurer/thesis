@@ -1,3 +1,4 @@
+{\fontsize{10}{12}\selectfont
 %Scope Statement
 %tl;dr I want to deal with the interaction of binary analyses
 This thesis is focused on the interleaving, interaction, and scheduling of analyses over binary code.
@@ -20,7 +21,9 @@ One variety of value analysis (alias analysis) is sometimes done using type info
   \url{http://llvm.org/docs/doxygen/html/TypeBasedAliasAnalysis_8cpp_source.html}
 }
 While co-dependency is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
+}
 
+{\fontsize{10}{12}\selectfont
 I intend investigate the effects of integrating codependent binary analyses result quality, and how using logic language to do this affects progammer burden.
 %This is Holmes
 To do this, I intend to build \sysname, a system implementing a logic language inspired by Datalog with features geared towards the ability to use a logic program as a means of coordinating independent analyses.
@@ -30,3 +33,4 @@ I will also evaluate the power of combining analyses via \sysname\ which have be
 %Work Plan
 I will design \sysname\ with the goal of providing a way to mesh existing styles of analysis together, taking into account the potential for nontermination or high cost analyses.
 This thesis will provide semantics for the \sysname\ language, an implementation of a program which actually runs the language, and example applications coordinating multiple analyses.
+}
