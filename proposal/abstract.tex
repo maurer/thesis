@@ -10,7 +10,7 @@ In order to perform security audits of libraries and executables, continue the u
 When code is compiled, it strips away information the original programmer had access to, such as intended control flow, types, and variable locations.
 Software analyzing compiled code faces a number of unique challenges as a direct consequence of dropping information during the compilation process.
 %General statement about how we can help?
-Researchers have developed a wide variety of techniques for attacking this problem from different angles have been developed, but are typically not integrated with one another.
+Researchers have developed a wide variety of techniques for attacking this problem from different angles, but these approaches are typically not integrated with one another.
 %Previous Work
 Previous work in analyzing binary code has performed type recovery~\cite{bitr}, variable identification~\cite{divine}, control flow recovery~\cite{jakstab,phoenix}, and value analysis~\cite{vsa}.
 However, previous work tended to focus on one or two specific questions at a time rather than holistic analysis.
@@ -24,11 +24,11 @@ While co-dependency is most prevalent in control flow analysis, it finds its way
 }
 
 {\fontsize{10}{12}\selectfont
-I intend investigate the effects of integrating codependent binary analyses result quality, and how using logic language to do this affects progammer burden.
+I intend investigate the effects of integrating codependent binary analyses result quality, and how using a logic language to do this affects progammer burden.
 %This is Holmes
 To do this, I intend to build \sysname, a system implementing a logic language inspired by Datalog with features geared towards the ability to use a logic program as a means of coordinating independent analyses.
 I will to use this system to investigate how the use of logic languages to describe the dependency between analyses can make writing interdependent analyses easier.
-I want to explore the formal properties of the \sysname\ language, specifically with respect to termination and monotonicity of reasoning off subsumed facts.
+I want to explore the formal properties of the \sysname\ language, specifically with respect to termination and monotonicity of reasoning off of subsumed facts.
 I will also evaluate the power of combining analyses via \sysname\ which have been traditionally examined separately.
 %Work Plan
 I will design \sysname\ with the goal of providing a way to mesh existing styles of analysis together, taking into account the potential for nontermination or high cost analyses.

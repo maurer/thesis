@@ -13,9 +13,7 @@
 Poorly or maliciously coded software can cause significant damage.
 The bulk of modern software is distributed in binary-only form, for reasons ranging from a desire to keep proprietary information secret to wanting to avoid compilation or interpretation overhead on the client.
 Unfortunately, inspecting the behavior of machine code is a known difficult problem:
-It is undecidable for pathological cases\footnote{\
-        Rice's theorem gives this, assuming we ignore the technically finite size of memory.
-}, and difficult to approximate in common ones.
+It is undecidable for pathological cases and difficult to approximate in common ones.
 
 Existing tools~\cite{ida, bap, bitblaze, bindead} tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next.
 In this model, the analysis authors manually acquire the inputs for their analysis, determine where in the sequence to run it, and where to put the outputs.
@@ -44,7 +42,7 @@ Jakstab~\cite{jakstab} is one example where simply integrating two analyses (val
 If both analyses had been specified as logical rules within the same environment, the additional power Jakstab found by integrating them would have come for free.
 
 %   * Compositional May Must
-Similarly, \textsc{Smash}~\cite{maymust} combined two \textsc{Dash}'s~\cite{dash} may and must analysis.
+Similarly, \textsc{Smash}~\cite{maymust} combined \textsc{Dash}'s~\cite{dash} may and must analyses.
 \textsc{Dash}-may-analysis derives facts about procedures stating that if a given property holds on an input, a separate property holds at the output.
 \textsc{Dash}-must-analysis derives facts stating that within a given set of inputs, there exists at least one that goes to each of a given set of outputs.
 The authors were able to prune a number of search paths via this combination, leading to property checks terminating which previously took too long to be feasible to run.

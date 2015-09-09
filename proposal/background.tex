@@ -257,30 +257,29 @@ In this way, circumscription forms the basis for the form of negation present in
 % Binary analysis
 \section{Binary Analysis}
 % * Spiel about how binary analysis is different
-While at its core binary analysis is fundamentally similar to program analysis, there are a number of challenges preventing the direct application of techniques from the program analysis world.
+While at its core binary analysis is fundamentally similar to program analysis, we encounter challenges when applying techniques from the program analysis world.
 %   * Abstractions stripped out
 Most of these challenges fall into the category of absent abstraction.
 Function locations, variable locations and bounds, variable types, and control flow graphs are all generally taken for granted even in the analysis of ``low level'' languages such as C.
 
 %   * CFG unknown
-While all of these can cause difficulties, the inability to recover a complete control flow graph can be one of teh most difficult to deal with.
-Many algorithms for recovering any of the other missing abstractions depends strongly on having a pre-existing control flow graph\cite{vsa,bddbddb,maymust,tie,bitr,wrappedintervals,Ramalingam2002b}.
-However, without the abstractions present in the source language, determining the potential targets of an indirect (computed) jump becomes somewhere between difficult and impossible.
+While all of these can cause difficulties, the inability to recover a complete control flow graph can be one of the most difficult to deal with.
+Many algorithms for recovering any of the other missing abstractions depend strongly on having a pre-existing control flow graph\cite{vsa,bddbddb,maymust,tie,bitr,wrappedintervals,Ramalingam2002b}.
+However, without the abstractions present in the source language, determining the potential targets of an indirect (computed) jump becomes difficult, if not impossible.
 Being unsound here can result in unsoundness in every analysis down the road, but frequently ``good enough'' approximations are used due to the difficulty of this problem.
 
 %   * Extraordinarily stateful, with large state
 One of the features of functional code that makes it easier to analyze is its thorough reduction of state.
 Traditional procedural/imperative langauges make this slightly more difficult through the use of variables in many places, expanding the set of implicit inputs to each step greatly.
-Binary code however, takes this to a whole new level of complexity.
+Binary code is yet more difficult to analyze.
 With no bounds on variables, arrays, or inputs, it becomes quickly difficult to determine what parts of memory and registers are really the relevant state executing forwards from a particular point.
 Due to the lack of scope or lifetime abstractions, once a new piece of state enters an execution, it is rare for it to leave at a later point --- much of the program image in memory is potential state.
-There are things that can be done to alleviate this, some approximations, some sound.
 
 % * Static
 \subsection{Static Analyses}
 %   * What is static?
 Static analyses are those which focus on deriving information from the structure of the complete program.
-While not always true, these are usually properties that talk about many or all paths.
+While not a hard and fast rule, these are usually properties that talk about many or all paths.
 
 \subsubsection{Control Flow Recovery}
 \label{sec:cfg}
@@ -290,7 +289,7 @@ While information from a concrete execution can be useful to the final product (
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point, watching for a transition to a distinguished exit node (usually via a function return).
 However, indirect jumps due to function pointers, C++ method calls, and even creative compilation of case statements can wreak havoc on this method, since the value being jumped to is not known ahead of time.
 
-Each of these can be fairly accurately determined by the compiler when source is provided.
+Each of these can be fairly accurately determined by the compiler when the source is provided.
 The type of a C++ object determines a small subset of legal function targets for a given method.
 Switch statements have explicit targets and can be resolved exactly.
 Function pointers are the most difficult to resolve, but the compiler at least has the ability to restrict the possible targets to functions of the right type, or in a conservative approximation to any function.
@@ -306,19 +305,19 @@ Additionally, it can be tripped up by loops which do not converge nicely in its 
 The state of the art approach to this is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis~\cite{jakstab}.
 
 \subsubsection{Type Recovery}
-Another important fundamentally static analysis is type recovery.
-While there is no rule that says there must be types as we usually think of them in a binary program, they are usually present due to a source language or programmer volition.
+Another important static analysis is type recovery.
+While there is no rule that says there must be types as we think of them in a binary program, they are usually present due to a source language or programmer volition.
 Even assembly programmers and dynamic language users~\cite{jsinfer} usually use consistent types to some extent.
 
 Since the annotations have all been compiled away, there are two primary sources for type information: propagation from code boundaries and program action.
-Propagation~\cite{howard} from code boundaries entails knowing a priori that a particular library or service in use by the program matches some signature, then following definitions of its arguments and uses of its results to annotate the program with this information.
+Propagation~\cite{howard} of type information from code boundaries entails knowing a priori that a particular library or service in use by the program matches some signature, then following definitions of its arguments and uses of its results to annotate the program with this information.
 This helps some, but largely fails on any kind of internal data structure.
 Usage based analysis~\cite{tie,bitr} tends to do better at this, and works by examining how the code defines and uses state and generating constraints for types based on that.
 
 % * Dynamic
 \subsection{Dynamic Analyses}
 Dynamic analyses are those which focus on properties of individual executions, or statements of the form ``there exists a trace with the property\ldots''.
-These analyses are frequently good at narrowing down/pinpointing problems, or increasing the accuracy of approximations.
+These analyses are frequently good at pinpointing problems or increasing the accuracy of approximations.
 However, they tend to do a poor job at making definitive statements about whole-program properties.
 
 %   * Fuzzing
@@ -338,4 +337,4 @@ SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solv
 The formula is created by taking the conjunction of the path constraint with whatever condition suffices to cause the badly behaved event.
 If the SMT solver returns a solution, a bad input has been found\cite{aeg,mayhem}.
 If instead of simply sufficing, the condition passed is complete (i.e.\ the operation is \emph{only} dangerous if the check passes), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
-Since loops create an infinite number of paths, it is difficult to demonstrate any region safe this way, but it can rule out certain kinds of exploration.
+Since loops create an infinite number of paths, it is difficult to demonstrate that any region is safe this way, but it can rule out certain kinds of exploration.

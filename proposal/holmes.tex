@@ -66,7 +66,7 @@ I want to attempt to show this more formally as part of my thesis work.
 % * Set-bound examples
 As a simple example, consider an aggregator for lower bounds defined as sets.
 In this case, the aggregator's null element is the empty set, merge function is union, and query function is subset.
-As union is known idempotent, commutative, and associative, it is order independent.
+As union is known to be idempotent, commutative, and associative, it is order independent.
 Since a union can only grow the set, if a query set was a subset before a merge, it will be so after as well.
 
 % * Abstract interpretation example (strided intervals)
@@ -85,12 +85,12 @@ However, this would be non-monotonic, since the upper bound could later rule it 
 Since we may never have a final upper bound, we need some way to safely perform this type of reasoning.
 
 A driving example for this feature is control flow graph recovery.
-As mentioned earlier (\S~\ref{sec:cfg}), this procedure involves explicitly postulating that our current knowledge of control flow is complete, computing potential values, and determining whether our assumptions were violated, updating them if they were.
+As mentioned earlier (\S~\ref{sec:cfg}), this procedure involves explicitly postulating that our current knowledge of control flow is complete, computing potential values, determining whether our assumptions were violated, and updating them if they were.
 Acquiring a complete list of known successors or predecessors of the node (the initial assumption phase) is fundamentally non-monotonic, as it gives us information about which facts are not yet in the database.
 
 % * Definition (reveal domain explicitly)
 Initially, we define hypothetical circumscription as accessing an aggregate value from one of the previous aggregators, but with direct access to the value rather than via a query function.
-If at any point later, that aggregate value changes, any rules which circumscribed based on it must be re-executed, and if they produce differing results, anything depending on the previous execution dropped.
+If at any point later, that aggregate value changes, any rules which circumscribed based on it must be re-executed, and if they produce differing results, anything depending on the previous execution needs to be forgotten.
 
 % * Why is this circumscription? (Minimizing the extent of a given pattern)
 It may not be immediately clear why this is circumscription.
@@ -171,7 +171,7 @@ In the background, I reviewed forwards (\S~\ref{sec:fchain}) and backwards (\S~\
 Which to use is generally selected situationally, but I argue that for our use case, both are needed.
 % * Forwards chaining = datalog
 \subsection{Forwards Chaining}
-Forwards chaining corresponds to the simpler ``do this when possible'' style of of organization that program analysis authors are likely more familiar with.
+Forwards chaining corresponds to the simpler ``do this when possible'' style of organization that program analysis authors are likely more familiar with.
 %   * Want this to represent things which
 %     * Almost always need to be done
 It is good for representing things that will nearly always need to be done,
@@ -270,7 +270,7 @@ I use $\vec{x}$ throughout to act as a shorthand for $x_1 \ldots x_n$.
 The first three rules (id, xchg, weaken) establish the basic framework in which we are working (as per the context explanations above).
 
 The ``rule'' rule expresses the basic way in which rules can be applied to facts.
-It looks similar to parametrically polymorphic function execution because it is.
+This rule is similar to parametrically polymorphic function application.
 The primary difference is that $Q$'s expression may contain an invocation of an external function, and so until the selection of the type paramter vector $\vec{\tau}$, you can't actually know what type the proof term has.
 
 The ``monagg'' rule describes monotonic aggregation.
@@ -283,9 +283,9 @@ The construct $|\tau.P^\tau| = \vec{\sigma}$ is meant to represent that the tota
 This can be thought of (roughly, this is informal) as $\not \exists \gamma. (\gamma \not \in \vec{\sigma}) \wedge \Gamma; \Delta \vdash e : P^\tau[\tau/\gamma])$
 What hypcirc allows is the use of the meet of a set of possible assignments to $\tau$ as an approximation of the true meet of all assignments, with the assumption added to the type.
 
-``assume'' and ``unassume'' are a pair of rules to help guide search.
-``assume'' is a rule for limited movement of an assumption from the type of a proof term into the context.
-``unassume'' inverts assume, but is unlimited, since we are not limited in what assumptions may occur on the right of the turnstile.
+The rules ``assume'' and ``unassume'' help guide search.
+The ``assume'' rule is for limited movement of an assumption from the type of a proof term into the context.
+The ``unassume'' rule inverts assume, but is unlimited, since we are not limited in what assumptions may occur on the right of the turnstile.
 ``assume'' in particular is very much not in its final form.
 Currently, it only allows movement from the left hand side of a $\Rightarrow$ to the $\Delta$ context if there is not an identity-based proof of its assumption being wrong.
 In a more complete version of this rule, the premises would contain a stronger notion of the concept of having failed, potentially temporarily, to produce contradictory proofs despite trying.
