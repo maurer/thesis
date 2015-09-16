@@ -19,7 +19,9 @@ For example,
 \]
 could be used to represent a relation in which the left argument is the parent of the right argument.
 %   * Facts
-The concept of a ``fact'' is used to represent a particular member of a relation. For example,
+The concept of a ``fact'' is used to represent a particular member of a relation.
+Here, I use the notation $\id{foo}$ to denote a constant named foo.
+As an example,
 \[
         \pred{parent}{\id{alice}, \id{bob}}
 \]
@@ -28,6 +30,7 @@ The set of facts known is sometimes referred to as the database, and is separate
 The extensional portion of the database is those facts which are given to the system prior to execution, while the intensional database consists of those derived from the extensional database.
 %   * Rules
 In order to actually perform computation with this system and create such an extensional database, logic languages use ``rules'', which function very much like inference rules from traditional proof writing.
+To write rules, I'll use $\var{X}$ to represent a variable named x.
 Following in the vein of the previous examples,
 \[
         \frule{\pred{sibling}{\var{X}, \var{Y}}}{\pred{parent}{\var{P}, \var{X}}, \pred{parent}{\var{P}, \var{Y}}}
@@ -187,6 +190,10 @@ However, there are some applications for which this approach does not work well 
 The other approach is known as backwards chaining, or top-down search, and is what is used in Prolog.
 In backwards chaining, search is directed by a particular goal instead.
 The logic engine examines the goal and the available rules, and by unification breaks it down to a series of potential subgoals, and recurses.
+For the purposes of this proposal, I'll write backwards chaining rules as
+\[
+  \brule{\pred{P}{\var{X}}}{\pred{Q}{\var{X}}}
+\]
 
 % * Circumscription
 \subsection{Circumscription}
