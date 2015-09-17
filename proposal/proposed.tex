@@ -56,3 +56,20 @@ If it does, I will manually select potentially interesting subsets of dependenci
 Within this data, I am looking to see improvements primarily in accuracy, though I would not be surprised to see them in resource usage occasionally.
 Primarily though, I am interested in locating analyses whose combination improves more than the sum of its parts.
 Specifically, if $A$, $B$, and $C$ are related, and $A + B + C$ performs well on $A$'s metric in cases where neither $A + B$ nor $A + C$ did, that is a potentially interesting finding.
+
+\section{Timeline}
+\begin{itemize}
+  \item[Oct 2015] Get control flow recovery working on \sysname
+  \item[Nov-Dec 2015] Implement BiTR~\cite{bitr} on \sysname
+  \item[Jan-Feb 2016] Backwards chaining with fuzzing as an example case
+  \item[Mar 2016] Implement an existing alias analysis and implementation clean-up work
+  \item[Apr-May 2016] Perform measurements of performance on real programs\footnote{
+      I'll be testing things as I go, but at this point I will try to do a truly comprehensive measurement.
+    }
+  \item[Jun-Jul 2016] Prove soundness and monotonicity\footnote{
+      I intend to be working on this gradually throughout my time, but until I have a practical working model of \sysname, I do not know that the language is done evolving.
+      At this point in my timeline, the language should be more or less known, and so I can finish the proofs off and work on ensuring their formal accuracy.
+    }
+  \item[Aug-Sept 2016] Writing.
+  \item[Oct 2016] Presentation preparation and buffer time.
+\end{itemize}

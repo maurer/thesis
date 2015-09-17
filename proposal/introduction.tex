@@ -57,8 +57,8 @@ There are still some restrictions on how such code can operate (for example, no 
 {\bf Thesis statement.}
 Co-dependence in binary program analysis can be represented in a logic language that allows for formal reasoning about the derivation of its conclusions and increased modularity of analyses.
 \end{inset}
+
 % Roadmap to defending the thesis statement
-\section{Thesis Roadmap}
 % * Show the power by
 %   * Implementing the integration of several real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
@@ -72,32 +72,10 @@ This implementation should provide evidence for feasibility of using a logic lan
 %     * Circumscription with our restrictions
 %   * Attempting to slice out a restricted segment which is terminating
 I will attempt to demonstrate that this approach, as realized in \sysname, can be reasoned about by writing proofs supporting the soundness of the reasoning system.
-The two primary formal reasoning properties I will investigate are proving the monotonicity of my aggregation scheme (\S~\ref{sec:monagg}) and the soundness of my circumscription (\S~\ref{sec:hypcirc}).
+Primarily, this will focus on my extensions to the base logic language (datalog), since its properties are well known.
+I will attempt to prove the monotonicity of my aggregation scheme (\S~\ref{sec:monagg}) and the soundness of my circumscription (\S~\ref{sec:hypcirc}).
 If time permits, I will try to determine a restricted segment of \sysname\ which can be proved to terminate, providing a subset within which to write preprocessing phases.
 
-% * Show result improvement by
-%   * Measuring integrated/unintegrated analyses against ground truth on several tasks
-%     * CFG recovery
-%     * Value analysis
-%     * Type recovery
-%     * Alias analysis
 I intend to show improvements from integration by comparing integrated and unintegrated analyses against ground truth on a number of tasks.
 Primarily, I intend to focus on CFG recovery, value analysis, type recovery, and alias analysis.
 In the case of CFG recovery, I anticipate success even more strongly than in the other cases, as it should meet or exceed the boost previously observed\cite{jakstab} due to the presence of strictly more information.
-
-\section{Contributions}
-% Contribution Summary
-% * Monotonic aggregators
-% * Hypothetical circumscription
-% * Study of interaction between binary analysis techniques
-% * Practical system implementation
-The main contributions of this work will be:
-\begin{itemize}
-       \item Study of interaction between binary analysis techniques --- using \sysname\ to quantitatively examine combinations of existing analyses for improvements in performance or efficiency.
-       \item Language extensions to fit the technique better to the application:
-       \begin{itemize}
-         \item Monotonic Aggregators --- adding the ability to efficiently reason about collections of facts in a single rule invocation without allowing facts to transition from derivable to underivable.
-         \item Hypothetical Circumscription --- giving a ``stuck'' or incomplete system an Occam's razor motivated set of assumptions to allow it to proceed hypothetically, re-examining the plausibility of the hypotheses when necessary.
-       \end{itemize}
-       \item A real system implementation --- I am designing \sysname\ such that it is stable, efficient, and usable enough to see continued use after the completion of this thesis.
-\end{itemize}
