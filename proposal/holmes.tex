@@ -60,7 +60,7 @@ A monotonic aggregator is defined by an bounded semilattice.
 The join operation functions as the merge (set intersection in the case above).
 The unit value for the semilattice is the value the aggregation takes when no facts matching the collection are present.
 The partial ordering defined on the lattice defines the set of allowable queries.
-Queries must be of the form $P \leq A$ where $P$ is a rule varying parameter, and $A$ is the current aggregate.
+Queries must be of the form $A \geq P$ where $P$ is a rule varying parameter, and $A$ is the current aggregate.
 Intuitively, this formulation creates a monotonic framework for aggregation since the aggregate can only move in one direction along the semilattice, and the query operation can only go from false to true along this direction.
 I want to attempt to show this more formally as part of my thesis work.
 
@@ -75,6 +75,14 @@ In the example problem, we dealt with upper bounds.
 Here, the aggregator's null element can be defined as the empty set, merge as intersection, and query as non-intersection of a parameter set.
 Similarly to union, intersection is well behaved in terms of order independence.
 Since intersection can only shrink the set, any set which was non-intersecting before will be non-intersecting afterwards.
+
+The ideas behind monotonic aggregators are very similar to those behind LVars~\cite{lvar}.
+LVars use lattice-based shared state between threads in order to provide determinism in parallel computation.
+An LVar starts at the lattice lower bound, then moves monodirectionally up the join semilattice when $\texttt{put}$ is called by taking the join of the provided update with the current value.
+When $\texttt{get}$ is called, the user must supply a list of bounds, each of whose pairwise join is the lattice upper bound.
+When LVar passes one of those bounds, the system will unblock and inform the computation which bound was passed.
+The \texttt{put} operation in the LVar system corresponds to adding another fact to the database which matches a given clause.
+The \texttt{get} operation corresponds to using several matches of the kind described in this section, one for each of the bounds in the list.
 
 % Hypothetical Circumscription
 \section{Hypothetical Circumscription}
@@ -108,6 +116,15 @@ It is at least as powerful since we could define an aggregator adding elements t
 It is at most as powerful because we could manually fold the merge operation over the membership results of circumscription, acquiring the aggregate.
 %   * It could be more powerful if order-indep wasn't a property on aggregators
 As a side note, it could be more powerful if we did not require the merge order independence property --- then it could potentially be relevant in what order the database had arrived at each conclusion, and it would not be possible to replicate the aggregate just by knowing the membership of the database.
+
+The relationship to LVars~\cite{lvar} continues here.
+LVars also have a \texttt{consume} operation, intended to be used only once all updates are done, which provides the inner value of the LVar.
+This allows the programmer to access the totality of the structure, rather than only bounds, once the nondeterministic update ordering is complete.
+This matches circumscription, since it is making the assumption that the LVar is done being updated, and so it is safe to access the contents.
+In our case, were we wrong about this, it would cause trouble for monotonicity, in theirs, for determinism.
+The LVar system generates a runtime error if a \texttt{put} is performed after a \texttt{consume}.
+This makes sense in their domain, as the program may well be side-effectful.
+In our domain however, rule firing is assumed to have benign side effects only, and so we can view running a hypothetical circumscription as speculatively executing a \texttt{consume}, rolling back if a relevant update would later occur.
 
 % * Call-CC
 \subsection{Call-CC}
@@ -258,7 +275,7 @@ I use $\vec{x}$ throughout to act as a shorthand for $x_1 \ldots x_n$.
   \infer[xchg]{\Gamma_0, x, \Gamma_1, y, \Gamma_2; \Delta \ds z}{\Gamma_0, y, \Gamma_1, x, \Gamma_2; \Delta \ds z}\\
   \infer[weaken]{\Gamma, x; \cdot \ds y}{\Gamma; \cdot \ds y}\\
   \infer[rule]{\Gamma, r : \forall \tau_0 \ldots \tau_n. ((P_1^{\vec{\tau}} \ldots P_m^{\vec{\tau}}) \rightarrow Q^{\vec{\tau}}); \Delta \ds r(\vec{\sigma}, \vec{p}) : Q^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}{\Gamma; \Delta \ds p_1 : P_1^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}] & \cdots & \Gamma; \Delta \ds p_m : P_m^{\vec{\tau}}[\vec{\tau}/\vec{\sigma}]}\\
-  \infer[monagg]{\Gamma; \Delta \ds \{\vec{a}\} : P^\tau[\tau/(\leq \rho)]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma; \Delta \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} \leq \rho}\\
+  \infer[monagg]{\Gamma; \Delta \ds \{\vec{a}\} : P^\tau[\tau/(\geq \rho)]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma; \Delta \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} \geq \rho}\\
   \infer[hypcirc]{\Gamma; \Delta\vdash [\vec{a}] : (|\tau. P^\tau| = \vec{\sigma}) \Rightarrow P^\tau[\tau/\vee = \rho]}{\Gamma; \Delta \ds a_1 : P^\tau[\tau/\sigma_1] & \cdots & \Gamma; \Delta \ds a_n : P^\tau[\tau/\sigma_n] & \bigvee \vec{\sigma} = \rho}\\
   \infer[assume]{\Gamma; \Delta,  |\tau. P^\tau| = \vec{\sigma} \ds e : Q}{\Gamma; \Delta \ds e: (|\tau. P^\tau| = \vec{\sigma}) \Rightarrow Q & \forall a : P^\tau[\tau/\rho] \in \Gamma. \rho \in \vec{\sigma}}\\
   \infer[unassume]{\Gamma; \Delta \ds e : (|\tau. P^\tau| = \vec{\sigma}) \Rightarrow Q}{\Gamma; \Delta, (\vec{\sigma}, \tau, P^\tau) \ds e : Q}\\
@@ -275,14 +292,14 @@ This rule is similar to parametrically polymorphic function application.
 The primary difference is that $Q$'s expression may contain an invocation of an external function, and so until the selection of the type paramter vector $\vec{\tau}$, you can't actually know what type the proof term has.
 
 The ``monagg'' rule describes monotonic aggregation.
-I use the notation $\leq \rho$ to represent a value for which we know that the meet of all values is at least less than $\rho$.
-In actual use, you'd likely see e.g., $P(1, \leq \{2, 3\})$ or something similar.
-The rule itself essentially says that if you have a proof for $P^\tau$ with each of a nubmer of different options, and their meet is less than some bound, then their set comprises a proof of $P^\tau$ with $\tau$ monotonically aggregated to $\rho$.
+I use the notation $\geq \rho$ to represent a value for which we know that the join of all values is at least more than $\rho$.
+In actual use, you'd likely see e.g., $P(1, \geq \{2, 3\})$ or something similar.
+The rule itself essentially says that if you have a proof for $P^\tau$ with each of a nubmer of different options, and their join is more than some bound, then their set comprises a proof of $P^\tau$ with $\tau$ monotonically aggregated to $\rho$.
 
 The ``hypcirc'' rule describes the procedure for hypothetical circumscription.
 The construct $|\tau.P^\tau| = \vec{\sigma}$ is meant to represent that the total extent of assignments to $\tau$ for which $P^\tau$ may be derived is $\vec{\sigma}$.
 This can be thought of (roughly, this is informal) as $\not \exists \gamma. (\gamma \not \in \vec{\sigma}) \wedge \Gamma; \Delta \vdash e : P^\tau[\tau/\gamma])$
-What hypcirc allows is the use of the meet of a set of possible assignments to $\tau$ as an approximation of the true meet of all assignments, with the assumption added to the type.
+What hypcirc allows is the use of the join of a set of possible assignments to $\tau$ as an approximation of the true join of all assignments, with the assumption added to the type.
 
 The rules ``assume'' and ``unassume'' help guide search.
 The ``assume'' rule is for limited movement of an assumption from the type of a proof term into the context.
@@ -294,8 +311,8 @@ In this way, hypothetical circumscriptions which can be absorbed into the assump
 The primary difference between a limited assume and stratified negation will be that it is more permissive in what having tried hard enough to derive the fact is before it is allowed to assume it is false.
 
 ``callcc'' implements the assumption expansion in case of contradiction discussed previously (\S \ref{sec:callcc}).
-If we can derive a contradiction to the most recent assumption, the $callcc$ constructor allows us to update the meet based on the knowledge of the flawed assumption.
-It takes in a proof of a contradiction of the assumption, a predicate derived from the meet of that assumption, and updates it to contain the new information.
+If we can derive a contradiction to the most recent assumption, the $callcc$ constructor allows us to update the join based on the knowledge of the flawed assumption.
+It takes in a proof of a contradiction of the assumption, a predicate derived from the join of that assumption, and updates it to contain the new information.
 
 While these rules are rough, I hope they serve to give an idea of the intended derivability relationship.
 \section{Implementation Strategy}
