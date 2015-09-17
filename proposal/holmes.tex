@@ -7,18 +7,18 @@ The general approach of \sysname\ is to view information about the binary as fac
 Logic languages used in binary analysis have traditionally been relegated to a role of implementing a particular analysis, to be later integrated by custom code\cite{bddbddb,Alpuente2011,Brumley2006b,Lam2005a,Smaragdakis}.
 % * Use the logic language to integrate other analyses, treating external code as where-clause-functions (analogous to external predicates)
 Instead, I seek to use a logic language as the medium for integration, treating traditional analyses in a manner similar to external predicates.
-I expect to see benefits in the form of explicit provenance, ease of integrating new analyses, and clarity of what forms of reasoning are in use (\S~\ref{sec:callcc}).
+I expect to see benefits in the form of explicit provenance (knowledge of what information was used in the derivation of any given property), ease of integrating new analyses, and clarity of what forms of reasoning are in use (\S~\ref{sec:callcc}).
 However, existing logic languages have limitations which make them less than ideal for this purpose.
 % * Use monotonic aggregators (secref) to enable functions to consume 'all' of something monotonically
-In order to express an analysis wanting to use information from many facts of a given kind, I introduce monotonic aggregators (\S~\ref{sec:monagg}).
+In order to express an analysis wanting to use information from many facts of a given kind, I introduce \emph{monotonic aggregators} (\S~\ref{sec:monagg}).
 % * Use hypothetical circumscription (secref) to enable functions to consume 'all' of something in a non-monotonic way, while still allowing the database to maintain a monotonic view
-For those analyses which intend to use aggregated information in a non-monotonic way (such as knowing that a fact has not yet been discovered), I introduce hypothetical circumscription (\S~\ref{sec:hypcirc}).
+For those analyses which intend to use aggregated information in a non-monotonic way (such as knowing that a fact has not yet been discovered), I introduce \emph{hypothetical circumscription} (\S~\ref{sec:hypcirc}).
 % * Use explicit backwards chaining to enable expensive or nonterminating functions (esp. fuzzing) (secref)
 To deal with an environment in which there are both analyses which run quickly and have nearly-always-used result, and those which are potentially expensive to run and will only be relevant to certain queries, \sysname\ mixes forwards and backwards chaining rules (\S~\ref{sec:bidisearch}).
 % * Implement system in a way that is efficient and will scale to large datasets (secref)
 Finally, as I intend to analyze real binaries with the resulting system, \sysname\ will be built to be efficient and scale to large datasets --- the resulting implementation is intended to be practical (\S~\ref{sec:impl}).
 
-As I explain the additional features, begin by assuming \sysname\ is Datalog with the key difference that saturation may not be possible due to external predicates which are possibly non-terminating.
+As I explain the additional features, begin by assuming \sysname\ is Datalog with the key difference that saturation may not be possible due to non-terminating external predicates (normally these are assumed to terminate).
 This gives rise to a notion that a new fact for any given predicate may appear in the database at any time, and informs the design of the new features.
 
 % Monotonic Aggregators
@@ -27,7 +27,7 @@ This gives rise to a notion that a new fact for any given predicate may appear i
 % * Why does external code need this? (explicit example)
 Sometimes, we need to describe a property over a group of facts.
 For example, consider the statement ``My upper bounds on $\id{x}$ preclude the unsafe inputs to the function $\id{f}$, so $\id{f}(\id{x})$ is safe.''
-We can model our initial knowledge in this situation by declaring a predicate $\pred{unsafeInputs}{\cdot, \cdot}$ which gives a relation between functions and a superset of their unsafe inputs, and a predicate $\pred{upperBound}{\cdot, \cdot}$ which gives an upper bound on the values a variable may contain.
+We can model our initial knowledge in this situation by declaring a predicate $\pred{unsafeInputs}{\cdot, \cdot}$ which gives a relation between functions and a superset of their unsafe inputs, and a predicate $\pred{upperBound}{\cdot, \cdot}$ which gives an overapproximation of the possible values a variable may contain.
 We also want to express a rule which gathers together upper bounds to check if together they can rule out all the unsafe inputs.
 Consider the facts:
 \begin{gather*}
@@ -45,10 +45,11 @@ However, both of these situations are worse than we would like to see both in nu
 An alternative approach is to explicitly represent this notion of an improving best estimate of information.
 However, naive aggregation (i.e. making the intersection of all upper bounds available) quickly enters into the realm of non-monotonic reasoning since added facts change its value.
 I propose to solve this by combining an aggregation method with a safe query method, such that the aggregated value will never change the result of the query method from match to no match when additional facts are aggregated.
-With such an extension, the rule we want might looks something like this:
+With such an extension, the rule we want might look something like this:
 \begin{gather*}
         \brule{\pred{safeCall}{\var{F}, \var{X}}}{\pred{upperBound}{\var{X}, \var{U} \not \cap}, \pred{unsafeInputs}{\var{F}, \var{U}}}
 \end{gather*}
+Here, I am using $U \not \cap$ to indicate that the intersection of $U$ with everything residing in that slot of the predicate with a matching $X$ is the empty set.
 While this rule is matching on an aggregation of all current upper bounds, it is doing so in a monotonic way.
 Since it is only checking for the ability of the aggregate value to rule out inputs, and adding more upper bounds will never cause it to rule out fewer inputs, this rule is still monotonic.
 
