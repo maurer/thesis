@@ -1,0 +1,165 @@
+\documentclass{article}
+\usepackage{proof}
+\usepackage{listings}
+\usepackage{rotating}
+\begin{document}
+\section{Goal}
+As a demonstration of the Holmes methodology, prove simple portions of compiled code safe, up to reasonable constraints and assumptions, as a method of triage for manual analysis.
+\section{Methods}
+\begin{enumerate}
+\item For each instruction, lift it to BIL semantics
+\item Create any number of summary typings for each instruction (conditions under which executing this instruction is safe)
+\item Compose these as far as they will go
+\end{enumerate}
+
+\subsection{Example Instruction Typing}
+
+\subsubsection{Addition}
+\[\mathrm{code} [ \texttt{0x42} ] = \texttt{add r0, 3}\]
+
+Possibilities: arithmetic, struct indexing, array indexing stride 1, array indexing stride 3
+\[\mathbf{fall} : \{r0 : u32, r1 : \tau_0, r2 : \tau_1, ... \}+S \vdash \texttt{0x42} : \{r0 : u32, r1 : \tau_0, r2 : \tau_1, ...\}+S\]
+\[\mathbf{fall} : \{r0 : *\alpha, r1 : \tau_0, r2 : \tau_1, ... \}+S \vdash \texttt{0x42} : \{r0 : *{3:\alpha}, r1 : \tau_0, r2 : \tau_1, ...\}+S\]
+\[\mathbf{fall} : \{r0 : *\alpha, r1 : \tau_0, r2 : \tau_1, ... \}+S, n \geq 3, \texttt{sizeof}(\alpha) = 1 \vdash \texttt{0x42} : \{r0 : \alpha[n], r1 : \tau_0, r2 : \tau_1, ...\}+S\]
+\[\mathbf{fall} : \{r0 : *\alpha, r1 : \tau_0, r2 : \tau_1, ... \}+S, n \geq 1, \texttt{sizeof}(\alpha) = 3 \vdash \texttt{0x42} : \{r0 : \alpha[n], r1 : \tau_0, r2 : \tau_1, ...\}+S\]
+
+\subsubsection{Pop}
+Here, $S(n)$ indicates the stack shifted by that amount, and $S[n]$ indicates the type in the stack at that slot.
+\[\mathrm{code} [ \texttt{0x43} ] = \texttt{pop r0}\]
+\[\mathbf{fall} : \{r0 : S[0], r1 : \tau_0, ...\}+S(+4) \vdash \texttt{0x43} : \{r0 : \alpha, r1 : \tau_0, ...\}+S\]
+
+\subsubsection{Return}
+Here, $\mathrm{release}(S)$ indicates a stack for whom all the updates since the last $\mathrm{allocate}(S)$ are gone.
+\[\mathrm{code} [ \texttt{0x44} ] = \texttt{bx lr}\]
+\[\vdash \texttt{0x44} : \{lr : \{r0 : \tau_0, ...\}+\mathrm{release}(S), r0 : \tau_0, ..\}\]
+
+\subsection{Example Function Typing}
+
+\begin{lstlisting}
+int doubler(int x) {
+  return 2 * x;
+}
+\end{lstlisting}
+
+\subsubsection{Opt}
+\begin{lstlisting}
+00000000 <doubler>:
+0: lsl r0, r0, #1
+4: bx  lr
+\end{lstlisting}
+\paragraph{Instruction types}
+\[\mathbf{fall} : \{r0 : u32, r1 : \tau_0, ...\}+S \vdash 0: {r0 : u32, r1 : \tau_0, ...}+S\]
+\[\vdash 4: \{lr : {r0 : u32, r1 : \tau_0, ...\}+S, r0 : u32, r1 : \tau_0, ...}+S\]
+\[\vdash 4: \{lr : {r0 : u32, r1 : \tau_0, ...\}+\mathrm{release}(S), r0 : u32, r1 : \tau_0, ...}+S\]
+\paragraph{Composition}
+\begin{turn}{-90}
+  \begin{minipage}{\textheight}
+\[\infer{\vdash \{lr : \{r0 : u32, r1 : \tau_0, ...\}+S, r0 : u32, r1 : \tau_0, ...\}+S}
+        {\infer{\mathrm{4} : \{r0 : u32, r1 : \tau_0, ...\}+S \vdash 0: \{r0 : u32, r1 : \tau_0, ...\}+S}
+               {\mathbf{fall} : \{r0 : u32, r1 : \tau_0, ...\}+S \vdash 0: \{r0 : u32, r1 : \tau_0, ...\}+S & \mathrm{next}(0) = 4}
+         & \vdash 4: \{lr : \{r0 : u32, r1 : \tau_0, ...\}+S, r0 : u32, r1 : \tau_0, ...\}+S}
+\]
+  \end{minipage}
+\end{turn}
+\subsubsection{Unopt}
+Asm unopt:
+\begin{lstlisting}
+00000000 <doubler>:
+ 0: push  {fp}    ; (str fp, [sp, #-4]!)
+ 4: add fp, sp, #0
+ 8: sub sp, sp, #12
+ c: str r0, [fp, #-8]
+10: ldr r3, [fp, #-8]
+14: lsl r3, r3, #1
+18: mov r0, r3
+1c: sub sp, fp, #0
+20: pop {fp}    ; (ldr fp, [sp], #4)
+24: bx  lr
+\end{lstlisting}
+\paragraph{Instruction types}
+.\\
+\texttt{push fp}
+\[\mathbf{fall} : \{r0 : tau_0, ...\}+(S-4)\{0 \rightarrow \alpha\} \vdash 0: \{fp : \alpha, r0 : \tau_0, ...\}+S\]
+\[\mathbf{fall} : \{r0 : \tau_0, ...\}+(\mathrm{allocate}(S)-4)\{0 \rightarrow \alpha\} \vdash 0: \{fp : \alpha, r0 : \tau_0, ...\}+S\]
+\texttt{add fp, sp, 0}
+\[\mathbf{fall} : \{fp : S, r0 : \tau_0, ...\}+S \vdash 4: \{r0 : \tau_0, ...\}+S\]
+\texttt{sub sp, sp, 12}
+\[\mathbf{fall} : \{r0 : \tau_0, ...\}+(S-12) \vdash 8: \{r0 : \tau_0, ...\}+S\]
+\texttt{str r0, [fp, -8]}
+\[\mathbf{fall} : \{fp : S + n, r0 : \tau_0, ...\}+S\{(n - 8)\rightarrow \tau_0\} \vdash c: \{fp : S + n, r0 : \tau_0, ...\}+S\]
+\texttt{ldr r3, [fp -8]}
+\[\mathbf{fall} : \{fp : S + n, r3 : S[n - 8], r0 : \tau_0, ...\}+S \vdash 10: \{fp : S + n, r0 : \tau_0, ...\}+S\]
+\texttt{lsl r3, r3, 1}
+\[\mathbf{fall} : \{r3 : u32, r0 : \tau_0, ...\}+S \vdash 14 : \{r3 : u32, r0 : \tau_0, ...\}+S\]
+\texttt{mov r0, r3}
+\[\mathbf{fall} : \{r3 : \tau_0, r0 : \tau_0, ...\}+S \vdash 18 : \{r0 : \tau_0, ...\}+S\]
+\texttt{sub sp, fp, 0}
+\[\mathbf{fall} : \{fp : S + n, r0 : \tau_0, ...\}+(S+n) \vdash 1c : \{fp : S + n, r0 : \tau_0, ...\}+S\]
+\texttt{pop fp}
+\[\mathbf{fall} : \{fp : S[0], r0 : \mathrm{stack}(\tau_0, 4), ...\}+(S+4)\ \vdash 20: \{r0 : \tau_0, ...\}+S\]
+\texttt{bx lr}
+\[\vdash 24: \{lr : {r0 : u32, r1 : \tau_0, ...\}+S, r0 : u32, r1 : \tau_0, ...}+S\]
+\[\vdash 24: \{lr : {r0 : u32, r1 : \tau_0, ...\}+\mathrm{release}(S), r0 : u32, r1 : \tau_0, ...}+S\]
+\paragraph{Composition}
+\[4 : \{r0 : \tau_0, ...\}+(\mathrm{allocate}(S)-4)\{0 \rightarrow \alpha\} \vdash 0: \{fp : \alpha, r0 : \tau_0, ...\}+S\]
+\[S' = \mathrm{allocate}(S), 8 : \{fp : S'-4, r0 : \tau_0, ...\}+(S'-4)\{0 \rightarrow \alpha\} \vdash 0: \{fp : \alpha, r0 : \tau_0, ...\}+S\]
+\[S' = \mathrm{allocate}(S), c : \{fp : S'-4, r0 : \tau_0, ...\}+(S'-16)\{12 \rightarrow \alpha\} \vdash 0: \{fp : \alpha, r0 : \tau_0, ...\}+S\]
+\[S' = \mathrm{allocate}(S), 10 : \{fp : S'-4, r0 : \tau_0, ...\}+(S'-16)\{12 \rightarrow \alpha, 0 \rightarrow \tau_0\} \vdash 0: \{fp : \alpha, r0 : \tau_0, ...\}+S\]
+\[S' = \mathrm{allocate}(S), 14 : \{fp : S'-4, r3 : \tau_0, r0 : \tau_0, ...\}+(S'-16)\{12 \rightarrow \alpha, 0 \rightarrow \tau_0\} \vdash 0: \{fp : \alpha, r0 : \tau_0, ...\}+S\]
+\[S' = \mathrm{allocate}(S), 18 : \{fp : S'-4, r3 : u32, r0 : u32, ...\}+(S'-16)\{12 \rightarrow \alpha, 0 \rightarrow \tau_0\} \vdash 0: \{fp : \alpha, r0 : u32, ...\}+S\]
+\[S' = \mathrm{allocate}(S), 1c : \{fp : S'-4, r3 : u32, r0 : u32, ...\}+(S'-16)\{12 \rightarrow \alpha, 0 \rightarrow \tau_0\} \vdash 0: \{fp : \alpha, r0 : u32, ...\}+S\]
+\[S' = \mathrm{allocate}(S), 20 : \{fp : S'-4, r3 : u32, r0 : u32, ...\}+(S'-4)\{12 \rightarrow \alpha, 0 \rightarrow \tau_0\} \vdash 0: \{fp : \alpha, r0 : u32, ...\}+S\]
+\[S' = \mathrm{allocate}(S), 24 : \{fp : \alpha, r3 : u32, r0 : u32, ...\}+S'\{-4 \rightarrow \alpha, -15 \rightarrow \tau_0\} \vdash 0: \{fp : \alpha, r0 : u32, ...\}+S\]
+\[\mathrm{release}(\mathrm{allocate}(S)) = S\]
+\[\vdash 0: \{lr : \{fp : \alpha, r0 : u32, r3 : u32, r1 : \tau_1, ...\}+S, fp : \alpha, r0 : u32, r1 : \tau_1, ...\}+S\]
+\subsection{Complications}
+\begin{itemize}
+  \item Intersection functions
+
+    Some operations in machine code are best represented as an intersection.
+    The prime example of this is addition, it can be any of:
+    \begin{itemize}
+      \item Pointer indexing?
+      \item Regular math?
+      \item Array indexing?
+    \end{itemize}
+    I handle this by allowing multiple assignments of a type to an instruction
+  \item Pointer release requires alias information to do correctly.
+
+    Specifically, modeling \texttt{free}() in a way that will allow it to be usually safe when actually safe is likely an entirely separate avenue of research. However, we can avoid that complication for the current implementation by claiming:
+    \begin{itemize}
+      \item I am looking for other types of bugs
+      \item You can statically convert a binary which frees to one which does not, either by leaking memory intentionally, or by linking in e.g. the Boehm conservative gc
+    \end{itemize}
+
+    This leaves the other way memory can be released: moving up a stack frame.
+    By the end of the project, I hope to have a simple alias analysis for pointers to the stack based on a special type of pointer which records exactly which stack slot it corresponds to.
+    For the moment though, I intend to only type as safe code for which only pointers to the current stack frame exist, and for which all stack frame pointers are released before the next stack frame release.
+
+  \item Circular composition
+
+    In order to deal with loops in code, or mutually recursive functions, we need a way to compose safety proofs each of which must assume the other. Tentatively, I expect a rule like this to work:
+    \[
+      \infer{\texttt{addr0} : \sigma}{\Gamma, \texttt{addr1} : \sigma' \vdash \texttt{addr0} : \sigma & \Gamma', \texttt{addr0} : \sigma \vdash \texttt{addr1} : \sigma'}
+    \]
+
+  \item Indirect jumps
+
+    Similar to first class functions in high level languages, sometimes low level code jumps to an address not known statically (usually due to return, case splitting, or function pointers).
+    I intend to handle this by typing the value it is to jump to the same way I type instructions.
+\end{itemize}
+
+\subsection{FAQ}
+Why multiple typings instead of designing a system with a most general choice?
+
+In previous experience with BiTR, expressing a general type for a variable after using a heavily intersection typed function (like addition - it does math, struct indexing, array indexing...) gets very tricky, and quickly became a type that just encompassed a description of all the possibilities.
+
+Addtitionally, This system gives a clean location to insert heuristic knowledge by choosing more specific types.
+A good example of this would be \texttt{pop lr} in ARM.
+Technically, \texttt{lr} is a general purpose register, and so all we really know is that the stack has been adjusted, and whatever was in \texttt{lr} has been moved to \texttt{lr}.
+However, concretizing that type variable to be a code pointer ahead of time may be a useful hint to the inference system.
+A slightly more useful version of this specialization is the knowledge "when you return (\texttt{bx lr}) we will get a more useful type if we assume the stack frame is released here".
+
+Finally, it allows for the expression of otherwise complex properties (e.g. "The stride of this array must divide X cleanly") by the generation of all legal representatives.
+
+\end{document}
