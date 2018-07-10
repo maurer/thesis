@@ -1,0 +1,125 @@
+\chapter{Holmes}
+\section{Semantics}
+Holmes consists of several extensions off of base datalog:
+\begin{itemize}
+\item External predicates
+\item Monotonic Aggregation
+\item Hypothetical Circumscription
+\item call/cc for Hypothetical Circumscription
+\end{itemize}
+External predicates allow use of procedurally implemented analyses and functions.
+The most obvious necessity here is for access to lifters and loaders, but more uses are present in the examples.
+%TODO forward citation to example sections.
+Monotonic aggregation describes a system to efficiently allow consideration of an unordered set of facts.
+%TODO give example of use
+Hypothetical Circumscription allows us to temporarily use a closed-world hypothesis with regards to a particular match.
+It does this by allowing unique access to the largest monotonic aggregation.
+This is needed for cases where we can't know a predicate is actually complete, e.g. with a candidate successor relation.
+Adding call/cc allows the expansion of a closed-world hypothesis to include new facts by virtue of the closed world itself being a contradiction.
+This is useful for allowing the expansion of the control flow graph based on inferences from a subset graph.
+
+%TODO is minimal model where I want to start?
+I assume here the minimal model semantics of base datalog from the background, and expand upon them in each subsection to add the relevant feature.
+%TODO ref background
+I discuss what how to interpret the new feature, what properties (if any) are lost, and plausible evaluation strategies.
+\subsection{External Predicates}
+External predicates are traditionally expressed as predicates in the language, equipped with modes for each field and a function which transforms from the input fields to some representation of the output fields.
+This model can add some complexity to both the inference engine and writing code in the language.
+If an external predicate is present in the match, how should it be searched?
+There are several potential strategies, and complexity only increases when there are two external predicates present.
+From the programmer's point of view, the monodirectionality of the predicate is concealed, which can lead to surprise when a predicate can't be used the same way as others.
+
+To address this, I explicitly phase the application of rules.
+First, there is an initial match phase that works as usual.
+Then, optionally, the rule may have a function which takes as input a set of assignments to variables in the match clause, and gives back a list of assignments to any variables present in the head which were not defined in the match.
+This list may be empty, and this result indicates match failure.
+
+For example, in the rule
+\begin{verbatim}
+simple_func: p(y) <- q(x) & r(x) + func
+\end{verbatim}
+\texttt{func} would be expected to take in the value of x, and return a list of values for y.
+
+Immediately with this feature we lose gauranteed datalog termination.
+Even if the functions provided all terminate, they have the capability to produce new symbols.
+If the program does terminate however, we could translate each predicate into an incomplete representation of itself as all the inputs received and outputs generated during program execution.
+Adding this to the EDB as a predicate and rewriting from callback style to external predicate style will produce a base datalog program with the same behavior.
+%TODO prove?
+As a result, all other properties of datalog are preserved for terminating programs with external functions.
+
+\subsection{Monotonic Aggregation}
+Monotonic aggregation is defined as a property of a subset of predicate fields.
+A result is legal in a match against an aggregated predicate if there exists a specific subset of derivable facts which match via equality on all non-aggregation fields, and for whom applying the aggregation function provided to the remaining fields would produce the result.
+A result is mandatory if the selected subset is the largest possible for some indices.
+For a predicate \texttt{p(i32, i32, IntSet\^union, i64\^max)}, an attempt to match against \texttt{p(a, b, c, d)} with a database \texttt{p(1, 2, {3}, 4), p(1, 2, {4}, 3), p(1, 1, {}, 7)} would be \texttt{p(1, 2, {3, 4}, 4), p(1, 1, {}, 7)}.
+
+%TODO finish section
+%TODO: mention reason for not using a lattice initialism is that there would be a potentially infinite number of matches that produce it, so matching against a predicate with aggregation whose indices were not fully constrained by the rest of the match clause would produce an infinite number of results in the case of non-finite domains
+\subsection{Hypothetical Circumscription}
+Hypothetical circumscription extends monotonic aggregation by allowing the rule to receive only the largest subset.
+
+This is a form of negation.
+To illustrate, consider the program
+\begin{verbatim}
+p(unit)
+neg_p(unit)
+q(bool^and)
+
+q_init: q(true) <-
+pq: q(false) <- p(())
+neg: neg_p(()) <- ~q(true)
+\end{verbatim}
+
+The predicate \texttt{neg_p} now contains the negation of \texttt{p}.
+This formulation can be extended in a straightforwards way for predicates whose indices have finite domain:
+
+\begin{verbatim}
+p(finite_type)
+neg_p(finite_type)
+q(finite_type, bool^and)
+
+q_init_i: q(x_i, true) <- 
+pq: q(x, false) <- p(x)
+neg: neg_p(x) <- ~q(x, true)
+\end{verbatim}
+where \texttt{q_init_i} is reproduced for every $x_i$ in \texttt{finite_type}
+
+The intuitive reason for this connection is that knowing the largest possible aggregation also entails the knowledge that all of the other possible members of the aggregation cannot be derived.
+In the case of finite domain indices, this allows us to negate the predicate in the way described above, since we can subtract the aggregation returned form the universal aggregation.
+
+When the domain of an index is infinite, we could still construct the negation through use of an external function capable of enumerating the index values, e.g.
+\begin{verbatim}
+q_init: q(x_0, true) <-
+q_step: q(x', true) <- q(x, true) + succ
+\end{verbatim}
+however, the resulting database would be infinite, so this would really only have solid meaning under a minimal model interpretation.
+
+Since I am adding a construct with the power of negation, a natural question is how I will deal with inconsistency.
+The traditional approach here is to stage computation, requiring a predicate to saturate before its negation can be considered.
+For the call/cc feature next, and to deal with new facts (e.g. from a concrete program execution) added to the database after inference has begun, I can't actually use this stratification.
+
+In an intuitive form, my solution here is to consider all negation as hypothetical, and consider answers from as far along a consistent hypothetical tree as possible.
+
+More formally, I describe this relation using kripke semantics.
+Initially, I will deal only with finite-domain indices.
+When dealing with finite domain indices, we can rewrite (however inefficiently) every rule requiring circumscription to one making use of negation.
+Specifically, for each rule containing a circumscription in the match, for all aggregated variables, for all values in their domain, write the rule with the variable substituted for the value and appended with the negation of all other values.
+%TODO proof sketch of the equivalence.
+Chaining this with the rewriting of aggregation into a less efficient form without aggregation, and using the finite domain property to reduce external functions to tables, I can reason about datalog with negation here.
+Specifically, assuming a finite domain for all index variables, all extensions described so far can be reduced to basic datalog with the added ability to negate clauses in the body of a rule.
+Note that negated heads are not required here, and so are not under consideration.
+
+Define a candidate world $\omega$ to be a tuple of a context $\Gamma$ containing program rules and some set of negated facts $N$.
+Define $\omega \models P$ to mean that $P$ is in the minimal model of $\Gamma$, interpreting the matching of negated facts to only be able to match those facts explicitly in $N$.
+Define the candidate accessibility relation $\omega \cac \omega'$ to mean that $\omega'$ is $\omega$ with its $N$ augmented with a $P$ not in $N$, which is present in the right hand side of some rule in $\Gamma$.
+
+Define a world to be a candidate world in which $\omega \models P \imp \omega \not \models \neg P$, $\models$ to be as in the candidate case, and the accessibility relation $\leq$ to be the subset of $\cac$ which is only between worlds at this level, augmented with reflexivity.
+Additionally, define $w \vdash P$ to mean either $w \models P$, or in the case of $P = A \rightarrow B$, $\forall w'. w \leq w', w' \vdash A \imp w' \vdash B$.
+This forms an intuitionistic Kripke frame.
+By definition of the upgrade from candidate world to world, $w \not \models \bot$.
+By construction of $\cac$, the accessibility relation leads only to worlds where more things are in the context, and since the only non-monotonic operation in the logic is circumscription, which is excluded at the $\models$ layer, $(w \leq w') \imp (w \models P \imp w' \models P)$.
+
+\subsection{call/cc}
+
+\section{Implementation}
+\section{Benchmarks and Evaluation}

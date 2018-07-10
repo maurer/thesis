@@ -1,0 +1,93 @@
+\RequirePackage[final]{graphicx}
+\documentclass[12pt,draft]{cmuthesis}
+\usepackage{silence}
+\WarningFilter*{latex}{Marginpar on page \thepage\space moved}
+\usepackage{latexsym}
+\usepackage{todonotes}
+\usepackage{syntax}
+\usepackage{amsmath}
+\usepackage{wasysym}
+\usepackage{subfigure}
+\usepackage{proof}
+\usepackage{ucs}
+\usepackage[utf8x]{inputenc}
+\usepackage{enumitem}
+\usepackage[numbers,sort]{natbib}
+\usepackage[letterpaper,twoside]{geometry}
+\usepackage{changepage}
+\usepackage[final]{listings}
+\lstset{numbers=left}
+\draftstamp{\today}{DRAFT}
+
+\newcommand{\fyes}{\CIRCLE}
+\newcommand{\fhalf}{\LEFTcircle}
+\newcommand{\fno}{\Circle}
+
+\newenvironment{inset}{\begin{adjustwidth}{1cm}{1cm}}{\end{adjustwidth}}
+
+%I'll need to double space it for submission, but double
+%spacing is a terrible relic of a time gone by, and hurts
+%my eyes, so we'll turn it on later.
+%\usepackage{setspace}
+%\doublespacing
+\usepackage[
+  backref,pageanchor=true,plainpages=false, pdfpagelabels, bookmarks,bookmarksnumbered,
+  final
+]{hyperref}
+\hypersetup{linktoc=all}
+
+\usepackage{autofe}
+
+\include{ll}
+\begin{document}
+\frontmatter
+\pagestyle{empty}
+\newcommand{\sysname}{Holmes}
+\title{\bf \sysname}
+\author{Matthew Maurer}
+\Year{2018}
+\trnumber{}
+
+\committee{\
+David Brumley, Chair \\
+Frank Pfenning \\
+Lujo Bauer \\
+Manuel Egele, Boston University 
+}
+
+%\support{}
+%\disclaimer{}
+
+\keywords{binary analysis, logic programming}
+\maketitle
+
+%\begin{dedication}
+%\end{dedication}
+
+\pagestyle{plain}
+\clearpage
+
+\begin{abstract}
+        {\small \input{abstract.tex}}
+\end{abstract}
+
+%\begin{acknowledgements}
+%\end{acknowledgements}
+
+\tableofcontents
+
+\mainmatter
+\input{introduction}
+\input{background}
+\input{holmes}
+\input{alias}
+\input{codependence}
+\input{staticflow}
+\input{conclusion}
+
+\backmatter
+\renewcommand{\bibsection}{\chapter{\bibname}}
+\bibliographystyle{plain}
+\bibliography{thesis}
+
+\end{document}

@@ -1,0 +1,36 @@
+{\fontsize{10}{12}\selectfont
+%Scope Statement
+%tl;dr I want to deal with the interaction of binary analyses
+This thesis is focused on the interleaving, interaction, and scheduling of analyses over binary code.
+%Compiled code, sans source, is everywhere
+Most commercial software tends to come in the form of a compiled binary sans source.
+%Compiled code needs to be analyzable
+In order to perform security audits of libraries and executables, continue the use of legacy code, and develop attacks, we need the ability to analyze this software.
+%This is difficult because binaries are turing complete, and even "well behaved" code does crazy shit
+When code is compiled, it strips away information the original programmer had access to, such as intended control flow, types, and variable locations.
+Software analyzing compiled code faces a number of unique challenges as a direct consequence of dropping information during the compilation process.
+%General statement about how we can help?
+Researchers have developed a wide variety of techniques for attacking this problem from different angles, but these approaches are typically not integrated with one another.
+%Previous Work
+Previous work in analyzing binary code has performed type recovery~\cite{bitr}, variable identification~\cite{divine}, control flow recovery~\cite{jakstab,phoenix}, and value analysis~\cite{vsa}.
+However, previous work tended to focus on one or two specific questions at a time rather than holistic analysis.
+Without traditional programming abstractions designed to allow for modular reasoning, co-dependent analyses (those with cyclic dependencies on one another) become more important to understanding the program.
+Type recovery depends on dataflow information\cite{bitr,tie,sndwrite}, which in turn depends on control flow.
+Recovering non-trivial control flow requires value analysis to resolve jump targets.
+One variety of value analysis (alias analysis) is sometimes done using type information.\footnote {
+  \url{http://llvm.org/docs/doxygen/html/TypeBasedAliasAnalysis_8cpp_source.html}
+}
+While co-dependency is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
+}
+
+{\fontsize{10}{12}\selectfont
+I intend to investigate the effects of integrating co-dependent binary analyses on result quality, and how using a logic language to integrate analyses affects progammer burden.
+%This is Holmes
+To do perform this investigation, I intend to build \sysname, a system implementing a logic language inspired by Datalog with features geared towards coordinating independent analyses.
+I will to use this system to investigate how the use of logic languages can make writing interdependent analyses easier.
+I will explore the formal properties of the \sysname\ language, specifically with respect to monotonicity and soundness of reasoning off of incomplete, incrementally improved information.
+I will also evaluate the power of combining analyses via \sysname\ which have traditionally been examined separately.
+%Work Plan
+I will design \sysname\ with the goal of providing a way to mesh existing analyses together, taking into account the potential for nontermination and high cost analyses.
+This thesis will provide semantics for the \sysname\ language, an implementation of the language, and example applications coordinating multiple analyses.
+}
