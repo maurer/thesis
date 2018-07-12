@@ -253,9 +253,7 @@ It is my hope that these lessons learned will help a future external-database ba
 Most of the details here are focused on Postgres, but other systems take a generally similar approach so similar problems are likely to occur.
 
 As a result, this section is mostly focused on what went wrong, rather than on how the system was constructed.
-If you want to see how the system was constructed, source is 
-\href{https://github.com/maurer/holmes}{available},
-but be aware that it does not represent a complete implementation of the language.
+If you want to see how the system was constructed, source is available at \url{https://github.com/maurer/holmes}, but be aware that it does not represent a complete implementation of the language.
 In particular, it only has partial support for aggregation, and no support for circumscription.
 
 \subsubsection{Indices}
@@ -342,6 +340,122 @@ The second solution was to add another extension to datalog allowing some functi
 These all needed to be builtins, and while the approach was slightly more efficient, overall I no longer think the improvement warranted the complexity.
 
 If I were to address this again today, I would use a star schema database side, and implement a cache client side for fetched star objects.
-\subsection{Mycroft}
 
+\subsection{Mycroft}
+Mycroft is a row-oriented, single-threaded, in-memory datalog engine, taking into account the experiences of the initial implementation.
+It operates as a macro which transforms datalog into Rust code, which can then be compiled into a running program.
+In its current form, it addresses most, though not all, of the pain points encountered with Postgres.
+The query planner is replaced by a single plan, generated at compile time, which parameterizes itself only on the size of the relevant tables at that moment.
+This replacement also means that we know precisely what indices will be useful, and can generate them.
+The join algorithm is aware of the incrementality of append only joins, and uses this to speed up requests for new results. 
+As mycroft is in process and in memory, large objects are not a problem.
+They are returned as read-only references to the existing strucure, and can be operated on that way.
+The implementation is available at \url{https://github.com/maurer/mycroft}, and as a crate on \texttt{crates.io} for direct inclusion in rust projects.
+
+\subsubsection{Typed Storage}
+Rather than store data values directly in rows as was done in the Postgresql-based implementation, here we keep a separate deduplication table for each type of data on which we operate.
+This allows us to efficiently map back and forth between values, which the callbacks need to consume, and integer keys, which are convenient for or indexing and join algorithms. 
+This is reminiscent of the star schemas discussed before.
+As our system is mostly-append (other than retractions due to circumscription) we design this as an insert-only structure.
+An additional benefit, more relevant here than with Postgres, is that this greatly reduces our memory footprint.
+
+At compile time, each type present in one or more predicates has a modified robin-hood hash table declared for it.
+This table has two pieces: a vector backing which stores the actual data, and a vector of hash/key pairs.
+There are two operations this table needs to support: acquiring the key for an object, whether or not it's present already, and acquiring an object from its key.
+Finding the key for an object is accomplished by using a lookup on the hashtable portion of the structure, inserting into both the table and the vector of data in the event of a lookup failure.
+Finding the object for a key (the more common case) is works by indexing into the vector.
+
+The only principal difference between this and a simpler design (a standard hash table mapping from the value to the key, and a vector mapping from a key to a value) is that it stores the data only once, and without any indirection.
+While this may not sound like much, this gave a modest 23\% time performance boost over the standard library implementation in time, and approximately halved space on an earlier version of the use-after-free detector.
+The closest approach still using the standard data structure would have been to use a smart pointer to share data between the data structures, or a hashtable of hashes.
+The smart pointer caused trouble with the interfaces, and hashing twice incurred a performance penalty, so we used this solution.
+
+\subsubsection{Aggregation}
+As aggregation is described at the predicate level, we can implement it directly on the tuple storage.
+Tuple storage is structured as a map from the tuple of non-aggregate fields (reordered to the front) to a tuple of aggregate fields.
+These aggregate fields are represented by a triple of the value-keys to be aggregated, a current aggregate value, and an index indicating how many of the value-keys are aggregated in the cached value.
+This allows for a lazily updated computation of the meet.
+
+When a tuple is inserted into the store, if a value with the same non-aggregate fields is present, in which case the value-key list is extended, but the aggregate is left alone.
+If it is not present, we initialize the aggregate value with the value of the key in that slot, fill in the key in the keys-to-be-aggregated, and set the index to 1.
+When retrieving a tuple, we check whether the index is equal to the length of the comprising keys.
+If it is not, we start the iteration at the index, and perform iterative meets until the aggregate is up to date.
+We then return the tuple, extended by the aggregate fields and reordered.
+
+\subsubsection{Join Computation}
+Datalog computation is join-heavy, and as a result attempting to compute the join naively can lead to disasterous execution times.
+There are a variety of existing join approaches.
+% Cite postgres?
+RDBMSes tend to favor straightforwards strategies, such as nested looping, hash join, and merge join.
+Merge joins require a relevant index, but generally perform substantially better unless tables are extremely small.
+Hash joins operate by creating an intermediate data structure of one of the tables which is indexed by the hash of the joined values.
+
+However, for high-arity join patterns, better algorithms exist, usually formulated as ``worst-case join'' algorithms.
+Ngo showed~\cite{nprr} that it is possible to develop join algorithms which are optimal even under these conditions.
+This algorithm is rather complex, and is intended for theoretical results rather than actual implementation.
+However, LogicBlox~\cite{logicblox} developed an algorithm known as Leapfrog Triejoin~\cite{lftj} which achieves these same bounds while remaining practically implementable over traditional indices.
+Unfortunately, this algorithm is patented, and so could not be used.
+This indicates a potential for future implementations to derive a novel approach from the AGM~\cite{agm} bound or Ngo's~\cite{nprr} approach, but developing such an algorithm is beyond the scope of this thesis.
+
+In mycroft, we used a simultaneous merge join ordered from smallest table to largest table.
+An index is selected for each table which walks it in unification argument order, with constant arguments being sorted to the front.
+The first index is advanced to the first tuple where all the constant arguments match.
+This is made easier by the use of integer-only tuples, as the non-constant arguments can be represented as 0 in a query to the index.
+Then, candidate variable bindings are made to the unification terms (if possible) and the next table is considered.
+When on the last table, if a candidate set of assignments to the unification terms can be completed, it is emitted and the index advanced by one step.
+If the index cannot advance or the index fails to unify with earlier tables, we know that no further result is possible, and go back one table, and continue.
+This approach keeps around only a small amount of additional state, linear in the number of clauses in the query, as it is returning results.
+
+However, due to our need for \emph{incremental} results, we can improve this mechanism substantially.
+Rather than computing the entire join at once, we split it into subjoins, one for each clause in the query.
+We have a separate, much smaller index for ``new'' facts in referenced predicates, requested by the query at database initialization time.
+We perform a subjoin with each predicate's large index swapped for this small index to get exactly those results which we would receive that we did not before, then chain them for a result.
+The small indexes are emptied during this operation, so they will not yield the same results again.
+
+As an example, consider evaluating the query $A(x, y) \& B(y, z) \& C(z, x)$ for incremental results.
+The first time it is evaluated, we perform a full join, ignoring the subjoin strategy - it would be equivalent to performing the full join 3 times.
+Then, we insert two facts into $A$, and one into $C$.
+Running the query again, we perform three subjoins, one on $A', B, C$, one on $A, B', C$, and one on $A, B, C'$.
+In our join algorithm above, remember that we sorted the smallest table to the left.
+As a result, the join with $B'$ immediately terminates, yielding no results.
+For the join with $C'$, it essentially acts as a join on $A$ and $B$ only, with a constant restriction.
+The join with $A'$ is similar, but the $A'$ portion of the join yields two facts, so it essentialy runs two constant constrained joins of $B$ and $C$.
+
+\subsubsection{Provenance Tracking}
+In order to later manage circumscription, or to allow a human to trace the reasoning of a program, we need to keep track of where facts come from.
+To do this, in conjunction with each tuple we store a list of possible justifications.
+A justification is composed of the ID of a rule, and the IDs of the facts used to match the body clause of that rule.
+An aggregation is represented simply as the list of fact IDs aggregated for the match.
+A map is additionally maintained from fact IDs to justifications which contain them.
+
+\subsubsection{Circumscription, Call/CC, and Retraction}
+Implementing circumscription essentially involves monitoring accessed aggregations to see if they would change, and responding with a retraction.
+The previous description of aggregates does not easily allow for this.
+A tuple insertion does not know if something has depended on this aggregation's completeness, and if so what.
+To deal with this, if a tuple is circumscriptively fetched, we replace list of merged keys in the aggregate field with a newly minted aggregate ID.
+Three maps are maintained for aggregate IDs:
+\begin{itemize}
+	\item Aggregate ID to comprising Fact IDs
+	\item Aggregate ID to dependent justifications
+	\item Fact IDs to Aggregate IDs they comprise
+\end{itemize}
+
+If a tuple insertion occurs and would need to update an aggregate represented by an aggregate ID, that aggregate ID is retracted.
+The retraction code acts as a worklist, initially populated by the broken aggregation.
+First, it removes any justifications broken by the current retracted item.
+Then, it retracts (by adding to the worklist) any facts which now lack justification.
+If the current retracted item is a fact, it also retracts any aggregate IDs which now have one fewer fact.
+
+In the special case where the tuple just inserted was also retracted, we replace its justification with one referencing the members of its now broken aggregate ID.
+This ensures that while this justification no longer cares about the expansion of the circumscription, it will still be properly retracted if one of the facts in the original aggregate becomes invalid.
+
+\subsubsection{Future Work}
+% Index reduction
+% LFTJ, tetris join
+% Autotabling
+% Threading
+% Disk backed datastore
+% Cow backed storage
+% Disk backed tuplestore/indices
+% Distribution
 \section{Benchmarks}
