@@ -353,12 +353,10 @@ To pivot from our simple model to this primarily requires a shift in what modifi
 For every predicate which is circumscribed over, add to the model a new predicate $P_c$, and rewrite the rules to reference it instead when circumscribing.
 Add to the program the rules
 \todo{rename $P_d$ something more sensical}
-\[P_c(\vec{x}, \vec{a}) \leftarrow P(\vec{x}, \vec{a}) & P_d(\vec{x}, \vec{a})\]
+\[P_c(\vec{x}, \vec{a}) \leftarrow P(\vec{x}, \vec{a}) \& P_d(\vec{x}, \vec{a})\]
 \[P_c(x_0, ..., x_m, \wedge_0(a_0, b_0), \wedge_n(a_n, b_n)) \leftarrow P_c(x_0, ..., x_m, a_0, ..., a_n) \& P(x_0, ..., x_m, b_0, ..., b_n)\]
 and for i ranging from 0 to n, additional rules
-\[\bot \leftarrow P_c(x_0, ... x_m, ..., a_i, ...) & P_c(x_0, ... x_m, ..., b_i, ...) & a_i \neq b_i\]
-and finally
-\[\bot \leftarrow P_c(\vec{x})
+\[\bot \leftarrow P_c(x_0, ... x_m, ..., a_i, ...) \& P_c(x_0, ... x_m, ..., b_i, ...) \& a_i \neq b_i\]
 The modification to $\Pi$ which takes place is no longer adding $\neg P$, but rather adding an assumption to one of the $P_d$ predicates.
 Otherwise, the transformation is identical.
 
@@ -381,15 +379,15 @@ Specifically, we want an accessibility relation which allows non-negated assumpt
 
 First, we reform the previous accessibility relation into a directed graph.
 \todo{Stop using EDB of and IDB of everywhere, and use $\Pi_I$ and $\Pi_E$ after defining}
-$\Pi \squigarrow \Pi'$ here means that $\Pi'$ is a world with exactly one more allowed assumption than $\Pi$, essentially a single-step version of $\leq$.
-If $\Pi$ and $\Pi'$ have the same rules, and $\Pi'_E = \Pi_E \cup \{\neg P\}$ (and $\neg P \not \in \Pi_E$), then $\Pi \squigarrow \Pi'$.
+$\Pi \leadsto \Pi'$ here means that $\Pi'$ is a world with exactly one more allowed assumption than $\Pi$, essentially a single-step version of $\leq$.
+If $\Pi$ and $\Pi'$ have the same rules, and $\Pi'_E = \Pi_E \cup \{\neg P\}$ (and $\neg P \not \in \Pi_E$), then $\Pi \leadsto \Pi'$.
 We now define $\leq$ inductively.
 $\Pi \leq \Pi$.
-If $\Pi_0 \leq \Pi_1$, and $\Pi_1 \squigarrow \Pi_2$, then $\Pi_0 \leq \Pi_2$.
+If $\Pi_0 \leq \Pi_1$, and $\Pi_1 \leadsto \Pi_2$, then $\Pi_0 \leq \Pi_2$.
 
-To add support for call-cc, and unstable sets in general, we have two basic scenarios that $\squigarrow$ needs to be modified for.
+To add support for call-cc, and unstable sets in general, we have two basic scenarios that $\leadsto$ needs to be modified for.
 The uncovered cases here always start with, for some $P$, $\Pi$ with $\neg P$ appended is not a world, because $\Pi$ with $\neg P$ is able to derive $\bot$, and $\Pi \not \models P$.
-In the first scenario, $\Pi$ with $P$ forms a legal $\Pi'$, and we want to add $\Pi \squigarrow \Pi'$ for that instead.
+In the first scenario, $\Pi$ with $P$ forms a legal $\Pi'$, and we want to add $\Pi \leadsto \Pi'$ for that instead.
 In the second scenario, neither $P$ nor $\neg P$ may be legally added to $\Pi$, yet we do not have that $\Pi$ models either of them.
 Essentially, $P$ is \emph{inconsistent}.
 While there are some interesting logics involving inconsistency\todo{citations}, it is not an intended feature of Holmes.
@@ -402,10 +400,10 @@ More concretely, we now say a program $\Pi$ is a world iff:
 % Here, P is a non-negated ground fact, and it's universally quantified
 \begin{itemize}
 	\item $\Pi \not \models \bot$
-	\item If $\Pi \not \models P$ and $\Pi \not \models \neg P$, then $\Pi \squigarrow \Pi'$ s.t. $P \in \Pi'_E$ or $\neg P \in \Pi'_E$
+	\item If $\Pi \not \models P$ and $\Pi \not \models \neg P$, then $\Pi \leadsto \Pi'$ s.t. $P \in \Pi'_E$ or $\neg P \in \Pi'_E$
 \end{itemize}
 
-And we say $\Pi \squigarrow \Pi'$ if
+And we say $\Pi \leadsto \Pi'$ if
 \begin{itemize}
 	\item $\Pi'$ is a world
 	\item $\Pi \not \models \bot$
@@ -414,14 +412,14 @@ And we say $\Pi \squigarrow \Pi'$ if
 	\item One of:
 	\begin{itemize}
 		\item $\Pi'$ is $\Pi$ with $\neg P$ added
-		\item Adding $\neg P$ does not yield a legal world, and $\Pi' is $\Pi$ with $P$ added.
+		\item Adding $\neg P$ does not yield a legal world, and $\Pi'$ is $\Pi$ with $P$ added.
 	\end{itemize}
 \end{itemize}
 
 Reconstructing the $\leq$ relation inductively as above, we have acquired call/cc.
 Effectively what we have done is allowed positive assumptions, but only in the case that negative assumptions fail.
 We have also structurally ruled out those cases where we have made the truth or falsity of a fact inconsistent.
-It would be possible to write similar rules without the forced negative bias (simply removing the restriction in the $\squigarrow$ relation), and would possibly even be beneficial for a logic with guaranteed finite universes.
+It would be possible to write similar rules without the forced negative bias (simply removing the restriction in the $\leadsto$ relation), and would possibly even be beneficial for a logic with guaranteed finite universes.
 However, as we will see next, this enforced negative bias allows us to have this looser form of negation even in the presence of infinite universes.
 
 We actually need even less modification than last time to reach actual circumscription.
@@ -430,10 +428,10 @@ In this case, we are still adding positive facts, but we need different restrict
 We say a program $\Pi$ is a world iff:
 \begin{itemize}
 	\item $\Pi \not \models \bot$
-	\item If for any $P_c$, $\vec{x}$, $\vec{b} with $\Pi \models P(\vec{x}, \vec{b})$, there does not exist a $\vec{a}$ so that $\Pi \models P_c(\vec{x}, \vec{a})$, then $\Pi \squigarrow \Pi'$ s.t. for some $\vec{c}$ $P_c(\vec{x}, \vec{c}) \in \Pi'_E$ or $\exists \vec{d}. \Pi \not \models P(\vec{x}, \vec{d}) \& P(\vec{x}, \vec{d}) \in \Pi'_E$
+	\item If for any $P_c$, $\vec{x}$, $\vec{b}$ with $\Pi \models P(\vec{x}, \vec{b})$, there does not exist a $\vec{a}$ so that $\Pi \models P_c(\vec{x}, \vec{a})$, then $\Pi \leadsto \Pi'$ s.t. for some $\vec{c}$ $P_c(\vec{x}, \vec{c}) \in \Pi'_E$ or $\exists \vec{d}. \Pi \not \models P(\vec{x}, \vec{d}) \& P(\vec{x}, \vec{d}) \in \Pi'_E$
 \end{itemize}
 
-And we say $\Pi \squigarrow \Pi'$ if for some $\vec{x}$, there isn't a $\vec{a}$ so that
+And we say $\Pi \leadsto \Pi'$ if for some $\vec{x}$, there isn't a $\vec{a}$ so that
 \begin{itemize}
 	\item $\Pi'$ is a world
 	\item $\Pi \not \models \bot$
@@ -462,6 +460,7 @@ Verification procedure:
 
 \subsection{Search Procedure}
 \label{sec:search}
+Now that we've defined what the language should output, we present a search procedure for computing them which is implemented concretely as Mycroft (\S~\ref{sec:mycroft}).
 \subsection{Progress}
 \label{sec:progress}
 Here, we define progress for the search strategy to mean that we will never repeat a state.
