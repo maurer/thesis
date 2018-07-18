@@ -1,0 +1,168 @@
+\section{Informal Semantics}
+Before giving a more formal treatment of what outputs are correct for a given Holmes program, we describe how each feature functions informally, as you might see in a programmer's guide.
+Afterwards, there is a simple traced execution of a toy program which employs all of these features.
+\subsection{Initial Syntax}
+In Holmes, there are three kinds of possible statements, predicate declarations, rule declarations, and queries.
+In a predicate declaration, a predicate is given a name, and a series of typed fields.
+When done in a tuple-predicate style, this looks like:
+\begin{verbatim}
+derefs_var (Var, Location)
+\end{verbatim}
+where \texttt{Var} and \texttt{Location} are types in the embedding language.
+This style can be used in cases where the meaning of each field is obvious.
+In larger projects or more complicated predicates, it is preferable to name fields.
+A predicate with named fields is written as
+\begin{verbatim}
+derefs_var {var: Var, loc: Location}
+\end{verbatim}
+To avoid confusion, a predicate may only be defined in one of these two styles.
+
+Rule declarations contain a rule name, a head clause, and a body clause.
+The rule name is used purely for error reporting, debugging, and provenance reporting.
+It does not have any effect on the operation of the program.
+A body clause consists of a series of match clauses, joined by \texttt{\&} symbols.
+The order of match clauses in the body clause has no effect on the program.
+Match clauses are written in one of two styles depending on the style of the predicate.
+
+If the predicate is a tuple style predicate, we can write
+\begin{verbatim}
+tuple_predicate (w, ~1, _, q)
+\end{verbatim}
+This unifies the first field with the variable w, the second field with the constant 1, leaves the third field unconstrained, and binds the last field to the variable q.
+
+In the field style, we can instead write
+\begin{verbatim}
+field_predicate {w, x: ~1, z: q}
+\end{verbatim}
+assuming the predicate has fields named w, x, y, and z.
+This implements the same match as above.
+Matching on field predicates introduces two shorthands.
+First, unused fields need not be named (y in this case).
+We could write \texttt{y: \_}, but it is unnecessary, making it easier to work with higher arity predicates.
+Secondly, referencing a field with no binding implicitly binds it to a variable of the same name (we expand to \texttt{w: w} in the example).
+
+Head clauses are written exactly as match clauses, except that unbound fields and fields bound to variables not defined by the right side of the rule are disallowed.
+Putting it all together, a rule looks like
+\begin{verbatim}
+reaching_propagate: reaching {loc, var} <- reaching {loc: prev, var} & succ (prev, loc) & unchanged {loc: prev, var}
+\end{verbatim}
+Rules written like this act as normal datalog rules, interpreted with a fixpoint semantics.
+If facts are present in the database so that an assignment to variables exists for which the right side is all present, then the left hand side will be added to the database.
+
+Queries are essentially named body clauses, which may be evaluated as a way of querying the program state by the embedding language.
+The name of a query determines the name of the function which will appear in the interface of the resulting database object.
+Queries are written
+\begin{verbatim}
+?all_reaching: reaching {loc, var}
+\end{verbatim}
+When the database's \texttt{query\_all\_reaching} function is called, it will respond with a set of possible assignments to \texttt{loc} and \texttt{var}, essentially returning the current state of that predicate to the user.
+
+Facts are inserted at the level of the embedding language, the database can be run for an arbitrary number of steps (or to fixpoint), and queries can be performed whenever the database is not stepping.
+
+\subsection{Callbacks}
+Callbacks are used in Holmes to allow the use of more traditional procedural or functional style code for some rules.
+After writing a rule, add \texttt{+ f}, where \texttt{f} is the name of the callback you would like to use.
+When the rule is considered, it will first try to match its body clause.
+If this succeeds, the variable assignments which match will be passed, one at a time, to \texttt{f}.
+\texttt{f} will return for each input assignments a list of assignments to those variables present in the head clause, but unbound by the body clause.
+If there are no variables left undefined in the head clause, whether \texttt{f} returns a least an empty assignment structure (e.g. a list of one element, with that element being the null assignment) determines whether the rule will actually produce its head.
+For example, in the rule
+\begin{verbatim}
+simple_func: p(y) <- q(x) & r(x) + f
+\end{verbatim}
+\texttt{f} would be expected to take in the value of \texttt{x}, and return a list of values for \texttt{y}.
+If we wrote
+\begin{verbatim}
+check_even: special_even(x) <- special(x) + is_even
+\end{verbatim}
+A \texttt{is_even} function which checked the last bit of x, then either returned \texttt{[\{\}]} for true or \texttt{[]} for false could implement this rule.
+
+\subsection{Monotonic Aggregation}
+Monotonic aggregation defines a new way to declare predicate fields.
+When declaring a field, a caret (\texttt{\^{}}) followed by a function name in the embedding language with signature $(T, T) \rightarrow T$ where $T$ is the type of the field may be provided.
+Such a function should be a lattice meet operator - it should be associative, commutative, and idempotent.
+This function acts as an ``aggregator'' for that field.
+Whenever a new fact is added which matches the non-aggregated fields of a another fact, they will be combined according to this aggregator.
+Because the order of rule execution is up to the engine, this means that you may receive multiple, incomplete aggregations along the way, or you may not - your only gaurantee is that if run to a fixpoint, you will have received the final (largest) aggregation.
+
+For example, say that we wrote the program:
+\begin{verbatim}
+p(i32, IntSet^union)
+q(i32, IntSet)
+promote: q(x, ints) <- p(x, ints)
+?result: q(x, ints)
+\end{verbatim}
+and then inserted facts
+\begin{verbatim}
+p(0, {1, 2})
+p(1, {2, 5})
+p(0, {1, 3})
+p(0, {2, 4})
+\end{verbatim}
+
+When calling \texttt{query\_result} after the program completed, we would be gauranteed to always see the assignments \texttt{(0, \{1, 2, 3, 4\}), (1, \{2, 5\})}.
+However, we might also see present \texttt{(0, \{1, 2\}), (0, \{1, 3\}), (0, \{2, 4\}), (0, \{1, 2, 3\}), (0, \{1, 2, 4\})}.
+Their presence in the output is up to the discresion of the evaluation engine.
+
+Generally, this kind of aggregation is useful in cases where a rule wants to operate on all the information that is available, but future information will not make any of its actions incorrect.
+Imagine \texttt{p} in our example as having a first field representing a variable, and the second representing values it held in a specific evaluation of a program.
+In this case, the aggregation allows us to query for the set of values we know are possible to find in that variable.
+Our inferences will not become wrong in the future, because the predicate describes a lower bound, which is allowed to move up (via union).
+\subsection{Hypothetical Circumscription}
+\label{sec:inf-circ}
+Hypothetical circumscription extends monotonic aggregation by allowing us to only examine the largest aggregation we find.
+Circumscription is written on a match clause by prepending a tilde to the the query.
+If we extend the example from monotonic aggregation with a circumscriptive match on p, e.g.
+\begin{verbatim}
+promote_complete: r(x, ints) <- ~p(x, ints)
+\end{verbatim}
+\texttt{r} will contain only the pairs $(0, \{1, 2, 3, 4\})$ and $(1, \{2, 5\})$ once the program is done executing.
+Examining the database in the middle of execution may yield different results, but the engine will correct these before a fixpoint is reached.
+
+This tool is intended to be used to query an aggregation which aggregates in a different lattice direction than the one it is queried.
+As a concrete example, consider abstract interpretation.
+Abstract interpretation assigns bounds to a variable which get larger and larger as the computation proceeds.
+This can be monotonically queried to see if something is going to be in bounds - this will only ever go from false to true as the bounds expand, never the other direction.
+However, the most useful part of an abstract interpretation bound are the values it rules out - those which are outside the bounds.
+In order to know that a value is outside the bounds, we need to know that we are looking at the final aggregate for that particular domain, and there circumscription becomes important.
+
+\subsubsection{Well Behaved Circumscription}
+In the vast majority of programs, circumscription will not bring any surprises to the table.
+However, it is possible to encode a notion of choice using circumscription, causing the fixpoint evaluator to choose between one of two possible worlds.
+For example, consider the program
+\begin{verbatim}
+p(IntSet^union)
+q(IntSet^union)
+big_p_world: p(~{2}) <- ~q(~{1})
+big_q_world: q(~{2}) <- ~p(~{1})
+\end{verbatim}
+and insert both \texttt{p(\{1\})} and \texttt{q(\{1\})}.
+The engine will now either output \texttt{p(\{1, 2\}), q(\{1\})} or \texttt{p(\{1\}), q(\{1, 2\})}, and what it does is implementation defined, and may even differ from run to run.
+
+This nondeterminism is usually not desired, but there are currently no checks to detect it, either at compilation time or at run time.
+If you stratify~\cite{prologbook} your circumscription, this condition will be avoided, but part of the strength of circumscription is to allow exactly unstratified negation.
+When using unstratified negation, a good rule of thumb is to ask yourself whether you can imagine individual facts (not predicates) containing a circular dependency cycle with two circumscriptions present.
+Even if this is the case, it may not force this nondeterminism, depending on the action of the rules.
+The condition where one circumscription is present is dealt with via \texttt{call/cc}, presented next.
+
+Even if you do write a program which has nondeterministic circumscription, all is not lost.
+The engine will still emit a single, consistent world in which all constraints described in the program hold.
+In many cases, this may be sufficient, and the nondeterminism embedded in the internals of the computation, rather than in the output.
+
+\subsection{call/cc}
+The call/cc feature does not add any new syntax; it extends the interpretation of circumscription to deal with the case where simple fixpoint evaluation will fail to find an output set that complies with all provided rules.
+Consider the program
+\begin{verbatim}
+p(IntSet^union)
+inconsistent: p(~{2}) <- ~p(~{1})
+\end{verbatim}
+where we add \texttt{p(\{1\})} to the database initially.
+Naively, we would oscillate between the two states \texttt{p(\{1, 2\})} and \texttt{p(\{1\})}, never finding an answer.
+With call/cc, we instead interpret \texttt{p(\{1, 2\})} only to be the correct result moving forwards.
+Essentially, the engine will assert \texttt{p(\{2\})} on the basis that we cannot proceed without \texttt{p(\{2\})}.
+More speicfically, matching \texttt{~p(~\{1\})} is matching on, among other things, $\neg p(\{2\})$.
+From this, we derive $p(\{2\})$.
+This fits the form of call/cc, so we add $p(\{2\})$ to the database, with call/cc as its support rather than a specific rule.
+
+In general, this feature is intended so that a circumscription is allowed to extend itself.
+For example, if you assume you have the complete control flow graph (circumscription) in order to perform SSA, then determine that a new value is possible for an indirect call (extending the control flow graph), call/cc is the component that allows you to retain the new control flow edge despite the fact that the old SSA form needs to be retracted.
