@@ -1,0 +1,249 @@
+\chapter{Holmes}
+% We've argued why datalog, now argue why we want these extra features
+Holmes is a dialect of datalog, tailored with extensions for the specific use case of analyzing compiled code.
+Specifically, a normal dialect of datalog will fall short on several tools desired by the analysis author:
+\begin{itemize}
+		%TODO expand list
+	\item Data structures
+	\item Aggregation
+	\item Negation
+\end{itemize}
+
+\section{Feature Selection}
+To address these lacks, we add a few features to base Datalog.
+%TODO once expanded list is there, do short "X address Y and Z, Q addresses..." blurb
+\subsection{Callbacks}
+%TODO jam widening in dataflow somewhere in here as a justification?
+% Why do we need External Predicates
+%TODO rewrite condition - "computation" too vague
+Tasks which do not involve a fixpoint, but do involve computation, can frequently be both more difficult and more expensive to write in pure datalog.
+For example, parsing an ELF and splitting it up into segments, sections, generating records for its symbols, etc. could in principle be written in datalog.
+However, this would be difficult to write (operating on a string as a linked list, or similar structure), slow to compute due to high arity joins, and would require that the input first be transformed before even entering the program.
+Other similar examples include lifting (translating a sequence of bytes into a semantics IL), concrete execution, and arithmetic.
+
+Previous approaches have noted that many of these steps come towards the beginning of analysis, and perform these tasks as a precompute phase before handing the results to datalog to process.
+In our case, we are trying specifically to avoid such phasing.
+The lifter might be needed again for previously undiscovered code.
+The loader might be needed again if we discover a call to \texttt{execve} and wish to follow it.
+Doing a phased datalog prevents the easy interleaving of these functionalities into the global fixpoint.
+
+While datalog predicates can be a great data structure, they are not always the best data structure for all tasks.
+Datalog predicates can effectively be viewed as an append-only, deduplicated, index-by-anything table.
+While this is a great data structure for many tasks, some concepts are better represented in other ways.
+One example is ILs and ASTs.
+As frequently nested, branched structures, they \emph{can} be represented in datalog, but walking one would take a very large number of lookups compared to using a traditional ADT approach, not to mention the clumsiness.
+Other similar concepts include formulae (as in SMT) and any kind of variable-length buffer representation.
+All of these can be done in pure datalog, assuming appropriate preprocessing has been done.
+However, the resulting time and space costs make this something to be avoided.
+
+To address the above two, we add the ability to register a callback to a datalog rule.
+If specified, whenever a that rule fires, the corresponding callback will be used supplementarily to determine the values to substitute into the head.
+This allows use of traditional functional or imperative style code to implement data structure transformations or perform operations which would be slow to do in the base datalog.
+Additionally, it allows us to more readily incorporate existing code (such as the BAP~\cite{bap} lifter) rather than rewriting it from scratch.
+
+This is equivalently powerful to external predicates in other languages in terms of expressivity.
+Any callback specified could instead be turned into an external predicate and simply appended to the query.
+A query involving external predicates might need to be split up into phases to be expressed in callbacks.
+If an output variable of an external predicate is present in another term in the query, one would need to use intermediate tables, as the callback only occurs at the \emph{end} of a query, and there can only be one per query.
+This simplifies the design of the datalog engine (the join engine is entirely separate from the callbacks), at the cost of the ability for a sufficiently advanced engine to better optimize such queries.
+
+\subsection{Monotonic Aggregation}
+Traditionally in datalog, your match clause may only access a fixed (though arbitrary) number of facts at the same time.
+Even counting can be difficult.
+To verify that there are at least three instances of some predicate p, you would normally write:
+\begin{verbatim}
+p(x) & p(y) & p(z) & neq(x, y) & neq(y, z) & neq(x, y)
+\end{verbatim}
+The size of this query grows as $n^2$ in the number of elements you are counting.
+
+This same difficulty occurs when encoding a dataflow or abstract interpretation algorithm into datalog.
+When two branches come together, a new fact representing the state with the meet applied needs to be generated.
+If we do this naively, simply matching on the existence of two states at that program point and generating a new one by merging, we will again go rapidly superlinear.
+
+In existing systems~\cite{doop1} this is dealt with by ensuring the state in question can be extended simply by adding more facts.
+When possible, this works nicely, but it prevents the use of things like strided intervals~\cite{vsa} or widening operators in dataflow algorithms which lack finite descending chains.
+This is because all of these situations require reasoning about a variable sized subset of the data to make their conclusion, not just a fixed window.
+
+Finally, in the case of employing an external solver, they often need to receive all the inputs up front, rather than incrementally.
+Calling out to an SMT solver will not work if your formula is stored as facts in a datalog representation; you would first have to walk them with a rule and a callback (or a rule and an external predicate in another system) to build up a viable representation and hand it off.
+The same is true even of simpler concepts, like applying Steensgaard's algorithm~\cite{steensgaard-alias} to a set of constraints - it will need all of them, or you will end up storing incremental program states in your database as well, and end up back at the $n^2$ problem.
+
+Traditionally, this is dealt with by appling a postprocessing step to the datalog computation.
+After it is done, a query is run, and the aggregation is performed by an outside-of-datalog program.
+As stated earlier though, we want all portions of the analysis to be able to trigger all others to avoid explicit phasing.
+
+Some of these specific scenarios can be worked around with tricks, but they do not apply universally and are still awkward to write.
+For example, a more clever author of the counting check might instead use a greater than operator instead of not-equals, assuming that field is ordered.
+The resulting query would then only be linear in the count you wanted to check against.
+However, it would still not be possible to have a variable limit to check against without significant complexity.
+
+To address these issues, we allow for predicates with aggregation.
+If a predicate is declared with aggregation, a provided meet operator will be used to aggregate submissions to each aggregate field for which all non-aggregate fields match.
+This addition allows us to address each of these issues.
+In the case of counting, we simply use set-union as our meet operator.
+For dataflow or abstract interpretations, we can have parameters like program location be non-aggregate fields, while the state is an aggregated one.
+Programs using this feature need to be aware that they may receive the aggregation of any subset of derived facts, and are only gauranteed to ever receive the aggregation at the fixpoint.
+%TODO add forwardref here for why
+
+\subsection{Hypothetical Circumscription}
+Some questions revolve more around what isn't there than what is.
+For instance, if \texttt{ud2}\footnote{
+LLVM inserts this instruction to denote unreachable code, and is intended to cause a trap if hit
+} is found in the binary, we might wish to determine if it is in fact statically unreachable.
+This requires us to be able to state that we know \emph{all} of the edges entering that basic block, not some subset.
+
+As a more concrete application, if we have an algorithm which works on the SSA representation of a function, creating an SSA representation of that function requires the entire control flow graph.
+If we add edges later, conclusions derived from the incomplete SSA form might become incorrect.
+
+Traditional datalog either disallows negation, or allows it through explicit stratification.
+In stratified negation, each predicate belongs to a ``strata''.
+The database is computed by sequentially adding the rules that have heads in each of the new strata in sequence.
+Since all the rules which could generate a particular predicate will not be used again, we can assume (using negation-as-failure) the negation of any fact not yet in the database at that point.
+
+Not all programs are written such that stratification is possible.
+Consider a graph with vertices for each predicate, and a edges for a predicate which may be derived from another predicate.
+Mark any edges for which the body-side predicate was negated as negated.
+If this graph has no cycles which include negation, then the program can be stratified.
+Contract strongly connected components on this graph to a single vertex, and then output in topographically sorted order to generate a stratification.
+
+In the context of doing program analysis on binaries, we might wish to avoid this even when reasoning purely monotonically.
+Consider an analysis which determines whether a function will never return.
+This information is important in analysis of a calling function because it should not expect control to proceed past the called function.
+To declare that a function will never return when called, we must know \emph{all} the paths within it, not just some of them.
+As a result, we are implicitly talking about knowing the negation of additional edges in the control flow graph.
+If we employed stratified negation, we would have to close over the entire control flow graph at once, leaving us unable to employ this information in the CFG definition for a calling function.
+
+To address this need, we add hypothetical circumscription.
+The core concept is that we can at need assume that a particular chunk of information is expanded, and reason forwards.
+In the event that this turns out to be false, we can retract that assumption, and reason forwards again.
+This allows us to deal with cases of negation which are not trivialy stratified.
+In the language, this feature is implemented as the ability to match on an aggregation and know your rule has received only the aggregation which will be present in the final fixpoint.
+Contrast that with the monotonic aggregation, where your rule must have correct operation for any subset of the possible aggregations along the way.
+This can be used to implement the stratified case in a straightforwards manner, and also to support dynamic negation as describe in the never-returning example above.
+
+\subsection{Call/CC}
+\label{sec:motive-callcc}
+The astute reader may have become worried at the end of that last subsection, as it is not without reason that the standard approach to negation involves stratification.
+In the case that we have a negated inference cycle not just on predicates, as stratification prohibits, but on the actual facts, the approach as described so far would lead to alternation and indeterminacy.
+
+Interestingly, there is actually a use case for allowing negated cycles in program analysis.
+In the case of the outputs of an dataflow analysis or a control flow recovery, we will need to circumscribe over their results in order to know we have received the actual output.
+Using an incomplete run of an alias analysis, for example, would result in too-small upper bounds being used.
+However, due to the interconnectedness of these examples, the complete alias analysis information might alter the control flow graph by refining the information used to determine the target of indirect jumps.
+Changing the control flow graph would in turn invalidate the circumscribed alias analysis.
+
+Strictly looking at the system thus far, this would loop.
+Altering the control flow graph would retract the alias analysis, which would retract the alteration to the control flow graph.
+Thinking about what a human would do if they had gone down the same reasoning path points to a potential solution.
+If you had assumed you saw the totality of control flow, and from that, came to find a new control flow edge, you would assume that your initial assumption must have been wrong, and that edge really is there.
+Essentially, you would assume $(\neg P \rightarrow P) \rightarrow P$.
+
+This matches the type signature of \texttt{call/cc}, and not without reason.
+In this case, the continuation is the reasoning strategy forwards, assuming P can be determined to be true.
+If P is not determinable to be true, this continuation cannot actually be invoked, and we never go down that path.
+If P can be determined to be true, in a traditional programming language we might go down that path.
+In our case, we are constantly watching for P to be determined to be true, and if it is, we immediately take the continuation.
+
+This feature is invisible to the user other than for performance characteristics.
+The user need only specify their rules as usual, circumscribing over things which need to be complete, and if this \texttt{call/cc} condition arises, it will be automatically dealt with by reasoning forwards from the new (expanded) circumscription, after retracting relevant other derivations.
+
+\section{Informal Semantics}
+%TODO review and rewrite this whole chunk, it was written before I decided it was informal, so it mixes the formal and the informal
+Before giving a more formal treatment of what outputs are correct for a given Holmes program, we describe how each feature functions informally, as you might see in a programmer's guide.
+Afterwards, there is a simple traced execution of a toy program which employs all of these features.
+
+\subsection{Callbacks}
+External predicates are traditionally expressed as predicates in the language, equipped with modes for each field and a function which transforms from the input fields to some representation of the output fields.
+This model can add some complexity to both the inference engine and writing code in the language.
+If an external predicate is present in the match, how should it be searched?
+There are several potential strategies, and complexity only increases when there are two external predicates present.
+From the programmer's point of view, the monodirectionality of the predicate is concealed, which can lead to surprise when a predicate can't be used the same way as others.
+
+To address this, I explicitly phase the application of rules.
+First, there is an initial match phase that works as usual.
+Then, optionally, the rule may have a function which takes as input a set of assignments to variables in the match clause, and gives back a list of assignments to any variables present in the head which were not defined in the match.
+This list may be empty, and this result indicates match failure.
+
+For example, in the rule
+\begin{verbatim}
+simple_func: p(y) <- q(x) & r(x) + func
+\end{verbatim}
+\texttt{func} would be expected to take in the value of x, and return a list of values for y.
+
+\subsection{Monotonic Aggregation}
+Monotonic aggregation is defined as a property of a subset of predicate fields.
+A result is legal in a match against an aggregated predicate if there exists a specific subset of derivable facts which match via equality on all non-aggregation fields, and for whom applying the aggregation function provided to the remaining fields would produce the result.
+A result is mandatory if the selected subset is the largest possible for some indices.
+For a predicate \texttt{p(i32, i32, IntSet\^{}union, i64\^{}max)}, an attempt to match against \texttt{p(a, b, c, d)} with a database \texttt{p(1, 2, {3}, 4), p(1, 2, {4}, 3), p(1, 1, {}, 7)} would be \texttt{p(1, 2, {3, 4}, 4), p(1, 1, {}, 7)}.
+
+%TODO finish section
+%TODO: mention reason for not using a lattice initialism is that there would be a potentially infinite number of matches that produce it, so matching against a predicate with aggregation whose indices were not fully constrained by the rest of the match clause would produce an infinite number of results in the case of non-finite domains
+\subsection{Hypothetical Circumscription}
+\label{sec:inf-circ}
+Hypothetical circumscription extends monotonic aggregation by allowing the rule to receive only the largest subset.
+
+This is a form of negation.
+To illustrate, consider the program
+\begin{verbatim}
+p(unit)
+neg_p(unit)
+q(bool^and)
+
+q_init: q(true) <-
+pq: q(false) <- p(())
+neg: neg_p(()) <- ~q(true)
+\end{verbatim}
+
+The predicate \texttt{neg_p} now contains the negation of \texttt{p}.
+This formulation can be extended in a straightforwards way for predicates whose indices have finite domain:
+
+\begin{verbatim}
+p(finite_type)
+neg_p(finite_type)
+q(finite_type, bool^and)
+
+q_init_i: q(x_i, true) <- 
+pq: q(x, false) <- p(x)
+neg: neg_p(x) <- ~q(x, true)
+\end{verbatim}
+where \texttt{q_init_i} is reproduced for every $x_i$ in \texttt{finite_type}
+
+The intuitive reason for this connection is that knowing the largest possible aggregation also entails the knowledge that all of the other possible members of the aggregation cannot be derived.
+In the case of finite domain indices, this allows us to negate the predicate in the way described above, since we can subtract the aggregation returned form the universal aggregation.
+
+When the domain of an index is infinite, we could still construct the negation through use of an external function capable of enumerating the index values, e.g.
+\begin{verbatim}
+q_init: q(x_0, true) <-
+q_step: q(x', true) <- q(x, true) + succ
+\end{verbatim}
+however, the resulting database would be infinite, so this would really only have solid meaning under a minimal model interpretation.
+
+Since I am adding a construct with the power of negation, a natural question is how I will deal with inconsistency.
+The traditional approach here is to stage computation, requiring a predicate to saturate before its negation can be considered.
+For the call/cc feature next, and to deal with new facts (e.g. from a concrete program execution) added to the database after inference has begun, I can't actually use this stratification.
+
+In an intuitive form, my solution here is to consider all negation as hypothetical, and consider answers from as far along a consistent hypothetical tree as possible.
+
+More formally, I describe this relation using kripke semantics.
+Initially, I will deal only with finite-domain indices.
+When dealing with finite domain indices, we can rewrite (however inefficiently) every rule requiring circumscription to one making use of negation.
+Specifically, for each rule containing a circumscription in the match, for all aggregated variables, for all values in their domain, write the rule with the variable substituted for the value and appended with the negation of all other values.
+%TODO proof sketch of the equivalence.
+Chaining this with the rewriting of aggregation into a less efficient form without aggregation, and using the finite domain property to reduce external functions to tables, I can reason about datalog with negation here.
+Specifically, assuming a finite domain for all index variables, all extensions described so far can be reduced to basic datalog with the added ability to negate clauses in the body of a rule.
+Note that negated heads are not required here, and so are not under consideration.
+
+Define a candidate world $\omega$ to be a tuple of a context $\Gamma$ containing program rules and some set of negated facts $N$.
+Define $\omega \models P$ to mean that $P$ is in the minimal model of $\Gamma$, interpreting the matching of negated facts to only be able to match those facts explicitly in $N$.
+Define the candidate accessibility relation $\omega \cac \omega'$ to mean that $\omega'$ is $\omega$ with its $N$ augmented with a $P$ not in $N$, which is present in the right hand side of some rule in $\Gamma$.
+
+Define a world to be a candidate world in which $\omega \models P \imp \omega \not \models \neg P$, $\models$ to be as in the candidate case, and the accessibility relation $\leq$ to be the subset of $\cac$ which is only between worlds at this level, augmented with reflexivity.
+Additionally, define $w \vdash P$ to mean either $w \models P$, or in the case of $P = A \rightarrow B$, $\forall w'. w \leq w', w' \vdash A \imp w' \vdash B$.
+This forms an intuitionistic Kripke frame.
+By definition of the upgrade from candidate world to world, $w \not \models \bot$.
+By construction of $\cac$, the accessibility relation leads only to worlds where more things are in the context, and since the only non-monotonic operation in the logic is circumscription, which is excluded at the $\models$ layer, $(w \leq w') \imp (w \models P \imp w' \models P)$.
+
+\subsection{call/cc}
+\input{holmes/formal}
+\input{holmes/impl}
+\section{Benchmarks}

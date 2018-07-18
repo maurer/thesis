@@ -1,0 +1,232 @@
+\section{Implementation}
+In order to evaluate the language as a means towards program analysis, we need a running implementation.
+\subsection{Holmes (Old Implementation)}
+Initially, I produced a database backed implementation which compiled down to a combination of Rust and SQL (initially C++ and SQL) and had Postgres handle the business of joins, deduplication, and data storage.
+This had the advantage of being able to handle significantly larger working sets in theory, but in practice had significant performance issues which lead me to change approaches.
+Despite this, I feel it is worth discussing here both because the failures of the implementation point out some of the unique challenges and simplifications that can be made in evaluating datalog, but also because it seems inevitable that to analyze programs substantially larger than those examined in this thesis, either a distributed platform or a disk-backed system will need to be used.
+It is my hope that these lessons learned will help a future external-database based implementor avoid the same pitfalls.
+Most of the details here are focused on Postgres, but other systems take a generally similar approach so similar problems are likely to occur.
+
+As a result, this section is mostly focused on what went wrong, rather than on how the system was constructed.
+If you want to see how the system was constructed, source is available at \url{https://github.com/maurer/holmes}, but be aware that it does not represent a complete implementation of the language.
+In particular, it only has partial support for aggregation, and no support for circumscription.
+
+\subsubsection{Indices}
+% Which indexes to make?
+%TODO cite postgres/mysql/mssql?
+Database software usually does not know which indices would be ideal to keep, and since keeping extra indices is is expensive in both time and disk, most SQL systems require the user to specify the indices to keep manually.
+Work is ongoing~\cite{peloton} to remedy this problem, but is not yet a production tool.
+In the meantime, if we wish our translated datalog queries to run efficiently, the database must be provided with a list of indices to keep.
+
+I tried a number of heuristics, including indexing in a global attribute ordering, indexing per query based on left-to-right joins, and just indexing all fields in order, and having the programmer reorder fields to boost performance.
+None of these approaches worked in practice.
+Both the global ordering and the left-to-right joins failed in large part because the query planner would choose to reorder the joins at runtime in multiple different ways.
+The programmer manually ordering fields could find local optima, but because predicates are used in multiple ways, it too falls short.
+
+The solution in use at the time this approach was switched away from was to annotate the program with an explicit set of indexes to keep.
+I generated these indices by profiling the running program, and adding indices which would allow the query planner to avoid nested loops or full table scans where possible.
+
+\subsubsection{Append-Only, High Write}
+% Append only workload
+One interesting aspect of a datalog system that the workload is entirely append-only other than retraction events, which are intended to be rare.
+This knowledge is unused by the database in executing queries.
+If it materializes a view to execute a query, and an underlying table is updated to by an append, it will re-materialize the whole view, not perform any kind of incremental maintenance.
+
+One of the expensive parts of many queries was insisting that it only return results which contained at least one \emph{new} fact - one which hadn't been returned in this query before.
+That tables can only be appended to could enable the incremental maintenance of the join, allowing more efficient computation of the join, and retrieval of only the new data.
+
+There are also some database schemas (such as the star schema) which become more possible in the absence of mutation or deletion.
+\subsubsection{Query Planning}
+Query planning, while of benefit to users who do not know all their SQL ahead of time, or whose tables remain in steady states, was the biggest issue with this approach.
+Databases commonly use a component called a query planner to translate SQL statements into an internal representation (loops, merge joins, hash joins, index walks, etc) that they can concretely execute.
+This component depends on a variety of information, including but not limited to:
+\begin{itemize}
+	\item Whether the statement was prepared
+	\item If prepared, how many times it has been executed
+	\item What indices are available
+	\item Information from the statistics daemon
+\end{itemize}
+Other than examinining what indices are available, these conditions turn out to be highly anti-productive for a datalog workload.
+
+The statistics daemon is designed with the assumption that there is a sort of ``steady state'' for a database, in which the relative sizes of the tables will remain similar.
+This makes sense for usual customers of databases, but in our case, a large part of operation looks like heavy insert activity on a specific table.
+As a result, the statistics daemon's information is generally woefully out of date.
+
+We prepare virtually all statements, since we intend to execute them repeatedly and want to avoid time in the parser.
+However, as of the time this system was developed, postgres would ossify the query plan as of the 5th time a prepared statement was executed.
+This was done based on the assumptions that SQL connections do not live so long that the database changes a lot, so by the fifth time the query is run, the plan is unlikely to be improved, and performance will be increased by avoiding the planner entirely.
+In practice, this means that any recursive rule (like one marking nodes as reachable, or performing a dataflow) will run terribly.
+The rule executes five times, and during that time, the statistics daemon either has old out of date information, or even if it updates, information that the table it's reading out of is terribly small.
+The query planner then makes bad decisions based on this, then sets them in stone.
+As a result, indices sit there unused, and logarithmic operations are done linearly.
+
+If the statements are not prepared, we incur parsing and planning overhead on every query.
+While unfortunate, those costs were low in comparison to the troublesome queries.
+The true problem with completely non-prepared statements is that the query planner would rapidly change strategies, meaning that which indices are needed would change at different points in execution.
+
+Since in our case we have a fixed query set and a rapidly changing database, it would most likely make more sense to absorb the query planner into the compilation process somehow.
+Postgres did not at the time of implementation have a way for a client to provide it with an explicit query plan short of building and providing a plugin which ran said plan as a function.
+
+\subsubsection{Star Schema}
+%TODO: note that this is equivalent to picking a good $I$ for our model, finding it, then swapping it back to Herbrand at the end
+As alluded to earlier, one benefit of an append-only workload is that star schemas are massively more useful.
+Star schemas are normally used for ``data warehousing'', a sort of large scale database where an organization's data is all loaded into a single schema before being pulled out again into smaller databases for actual processing.
+The idea is that most values are referenced rather than included directly in tables.
+Warehousing personell are largely interested in the standardization of these values and the resulting compression.
+
+In our case, a star schema is interesting both for reasons of compression, and for ease of indexing.
+Indexing an IL instruction, whether by hash or by ordering, is much slower than sorting by a tuple of integers.
+I discovered this technique after the pivot to an in-memory database, so I have no observations of its performance, but I expect it would help.
+
+\subsubsection{Large Objects}
+With an external database, the use of large objects becomes nontrivially expensive.
+If the database is local, and the bus between the program and the database shared memory, this is not a major issue.
+However, even over a local unix socket, repeated accesses to large objects can inhibit performance.
+
+This shows up in practice when dealing with binary sections and segments during lifting.
+If the lifting rule needs the segment, the architecture, and an offset into that segment to perform the lifting, this can incur several copies of the segment per instruction.
+In my sample programs, most segments were between 300k and 600k, causing this to incur a nontrivial cost.
+
+The first solution, specific to this problem, was an all-at-once chunking of the segment.
+I requested the segment from the database, then produced a 16-byte chunk (maximum length of an x86 instruction is 15 bytes) at every offset, and sent it back.
+In the future, requests would access this chunked data rather than the original.
+This resulted in a 16-17x blowup of the space to store the base binary, but as that paled in comparison to everything else it was not especially significant.
+
+The second solution was to add another extension to datalog allowing some functions to exist as special external predicates to be run database side.
+These all needed to be builtins, and while the approach was slightly more efficient, overall I no longer think the improvement warranted the complexity.
+
+If I were to address this again today, I would use a star schema database side, and implement a cache client side for fetched star objects.
+
+\subsection{Mycroft}
+\label{sec:mycroft}
+Mycroft is a row-oriented, single-threaded, in-memory datalog engine, taking into account the experiences of the initial implementation.
+It operates as a macro which transforms datalog into Rust code, which can then be compiled into a running program.
+In its current form, it addresses most, though not all, of the pain points encountered with Postgres.
+The query planner is replaced by a single plan, generated at compile time, which parameterizes itself only on the size of the relevant tables at that moment.
+This replacement also means that we know precisely what indices will be useful, and can generate them.
+The join algorithm is aware of the incrementality of append only joins, and uses this to speed up requests for new results. 
+As mycroft is in process and in memory, large objects are not a problem.
+They are returned as read-only references to the existing strucure, and can be operated on that way.
+The implementation is available at \url{https://github.com/maurer/mycroft}, and as a crate on \texttt{crates.io} for direct inclusion in rust projects.
+
+\subsubsection{Typed Storage}
+Rather than store data values directly in rows as was done in the Postgresql-based implementation, here we keep a separate deduplication table for each type of data on which we operate.
+This allows us to efficiently map back and forth between values, which the callbacks need to consume, and integer keys, which are convenient for or indexing and join algorithms. 
+This is reminiscent of the star schemas discussed before.
+As our system is mostly-append (other than retractions due to circumscription) we design this as an insert-only structure.
+An additional benefit, more relevant here than with Postgres, is that this greatly reduces our memory footprint.
+
+At compile time, each type present in one or more predicates has a modified robin-hood hash table declared for it.
+This table has two pieces: a vector backing which stores the actual data, and a vector of hash/key pairs.
+There are two operations this table needs to support: acquiring the key for an object, whether or not it's present already, and acquiring an object from its key.
+Finding the key for an object is accomplished by using a lookup on the hashtable portion of the structure, inserting into both the table and the vector of data in the event of a lookup failure.
+Finding the object for a key (the more common case) is works by indexing into the vector.
+
+The only principal difference between this and a simpler design (a standard hash table mapping from the value to the key, and a vector mapping from a key to a value) is that it stores the data only once, and without any indirection.
+While this may not sound like much, this gave a modest 23\% time performance boost over the standard library implementation in time, and approximately halved space on an earlier version of the use-after-free detector.
+The closest approach still using the standard data structure would have been to use a smart pointer to share data between the data structures, or a hashtable of hashes.
+The smart pointer caused trouble with the interfaces, and hashing twice incurred a performance penalty, so we used this solution.
+
+\subsubsection{Aggregation}
+As aggregation is described at the predicate level, we can implement it directly on the tuple storage.
+Tuple storage is structured as a map from the tuple of non-aggregate fields (reordered to the front) to a tuple of aggregate fields.
+These aggregate fields are represented by a triple of the value-keys to be aggregated, a current aggregate value, and an index indicating how many of the value-keys are aggregated in the cached value.
+This allows for a lazily updated computation of the meet.
+
+When a tuple is inserted into the store, if a value with the same non-aggregate fields is present, in which case the value-key list is extended, but the aggregate is left alone.
+If it is not present, we initialize the aggregate value with the value of the key in that slot, fill in the key in the keys-to-be-aggregated, and set the index to 1.
+When retrieving a tuple, we check whether the index is equal to the length of the comprising keys.
+If it is not, we start the iteration at the index, and perform iterative meets until the aggregate is up to date.
+We then return the tuple, extended by the aggregate fields and reordered.
+
+\subsubsection{Join Computation}
+Datalog computation is join-heavy, and as a result attempting to compute the join naively can lead to disasterous execution times.
+There are a variety of existing join approaches.
+% Cite postgres?
+RDBMSes tend to favor straightforwards strategies, such as nested looping, hash join, and merge join.
+Merge joins require a relevant index, but generally perform substantially better unless tables are extremely small.
+Hash joins operate by creating an intermediate data structure of one of the tables which is indexed by the hash of the joined values.
+
+However, for high-arity join patterns, better algorithms exist, usually formulated as ``worst-case join'' algorithms.
+Ngo showed~\cite{nprr} that it is possible to develop join algorithms which are optimal even under these conditions.
+This algorithm is rather complex, and is intended for theoretical results rather than actual implementation.
+However, LogicBlox~\cite{logicblox} developed an algorithm known as Leapfrog Triejoin~\cite{lftj} which achieves these same bounds while remaining practically implementable over traditional indices.
+Unfortunately, this algorithm is patented, and so could not be used.
+This indicates a potential for future implementations to derive a novel approach from the AGM~\cite{agm} bound or Ngo's~\cite{nprr} approach, but developing such an algorithm is beyond the scope of this thesis.
+
+In mycroft, we used a simultaneous merge join ordered from smallest table to largest table.
+An index is selected for each table which walks it in unification argument order, with constant arguments being sorted to the front.
+The first index is advanced to the first tuple where all the constant arguments match.
+This is made easier by the use of integer-only tuples, as the non-constant arguments can be represented as 0 in a query to the index.
+Then, candidate variable bindings are made to the unification terms (if possible) and the next table is considered.
+When on the last table, if a candidate set of assignments to the unification terms can be completed, it is emitted and the index advanced by one step.
+If the index cannot advance or the index fails to unify with earlier tables, we know that no further result is possible, and go back one table, and continue.
+This approach keeps around only a small amount of additional state, linear in the number of clauses in the query, as it is returning results.
+
+However, due to our need for \emph{incremental} results, we can improve this mechanism substantially.
+Rather than computing the entire join at once, we split it into subjoins, one for each clause in the query.
+We have a separate, much smaller index for ``new'' facts in referenced predicates, requested by the query at database initialization time.
+We perform a subjoin with each predicate's large index swapped for this small index to get exactly those results which we would receive that we did not before, then chain them for a result.
+The small indexes are emptied during this operation, so they will not yield the same results again.
+
+As an example, consider evaluating the query $A(x, y) \& B(y, z) \& C(z, x)$ for incremental results.
+The first time it is evaluated, we perform a full join, ignoring the subjoin strategy - it would be equivalent to performing the full join 3 times.
+Then, we insert two facts into $A$, and one into $C$.
+Running the query again, we perform three subjoins, one on $A', B, C$, one on $A, B', C$, and one on $A, B, C'$.
+In our join algorithm above, remember that we sorted the smallest table to the left.
+As a result, the join with $B'$ immediately terminates, yielding no results.
+For the join with $C'$, it essentially acts as a join on $A$ and $B$ only, with a constant restriction.
+The join with $A'$ is similar, but the $A'$ portion of the join yields two facts, so it essentialy runs two constant constrained joins of $B$ and $C$.
+
+\subsubsection{Provenance Tracking}
+In order to later manage circumscription, or to allow a human to trace the reasoning of a program, we need to keep track of where facts come from.
+To do this, in conjunction with each tuple we store a list of possible justifications.
+A justification is composed of the ID of a rule, and the IDs of the facts used to match the body clause of that rule.
+An aggregation is represented simply as the list of fact IDs aggregated for the match.
+A map is additionally maintained from fact IDs to justifications which contain them.
+
+\subsubsection{Circumscription, Call/CC, and Retraction}
+Implementing circumscription essentially involves monitoring accessed aggregations to see if they would change, and responding with a retraction.
+The previous description of aggregates does not easily allow for this.
+A tuple insertion does not know if something has depended on this aggregation's completeness, and if so what.
+To deal with this, if a tuple is circumscriptively fetched, we replace list of merged keys in the aggregate field with a newly minted aggregate ID.
+Three maps are maintained for aggregate IDs:
+\begin{itemize}
+	\item Aggregate ID to comprising Fact IDs
+	\item Aggregate ID to dependent justifications
+	\item Fact IDs to Aggregate IDs they comprise
+\end{itemize}
+
+If a tuple insertion occurs and would need to update an aggregate represented by an aggregate ID, that aggregate ID is retracted.
+The retraction code acts as a worklist, initially populated by the broken aggregation.
+First, it removes any justifications broken by the current retracted item.
+Then, it retracts (by adding to the worklist) any facts which now lack justification.
+If the current retracted item is a fact, it also retracts any aggregate IDs which now have one fewer fact.
+
+In the special case where the tuple just inserted was also retracted, we replace its justification with one referencing the members of its now broken aggregate ID.
+This ensures that while this justification no longer cares about the expansion of the circumscription, it will still be properly retracted if one of the facts in the original aggregate becomes invalid.
+
+%TODO explain how we deal with cyclically supported facts
+% e.g. \neg B -> A; A -> A; discover B, how do we ensure we retract A?
+% Also explain how this works in the presence of circumscription.
+
+\subsubsection{Future Work}
+There is plenty of room for improvement in the concrete implementation of the language engine.
+
+Currently, we keep more indices than are strictly necessary.
+Even with our current join strategy, the count of indices kept scould be reduced through a mechanism to match attribute ordering between queries more frequently.
+With a more modern join like tetris join~\cite{tetris} it could even be possible to keep a single index per predicate.
+
+Results of some subjoins get used repeatedly, and can be known not to change through topological sorting.
+Currently, this is exploited through manual tabling - the creation of dummy predicates to keep the completed join as a realized structure.
+However, it should be generate these temporary structures automatically in some cases.
+
+Pivoting indices from a simple in-memory btree to a MVCC-style structure would allow multiple worker threads to be evaluating rules at the same time.
+As modern systems generally have additional cores, this should lead to performance improvements overall (though degradation in bottlneck phases).
+This approach also meshes well with optionally backing some data structures with disk due to either large size or low traffic.
+Many MVCC trees are already designed as on-disk data structures due to their use in traditional RDBMS systems.
+Allowing some data to reside on disk would increase the maximum size of analysis the system could perform on a single binary, or allow for easier multi-binary analysis.
+
+In an ideal world, this system could even be distributed.
+Other than circumscription and the decision to terminate, every component of this system can operate safely with a partial knowledge of the database.
+As a result, it seems plausible that with appropriate heuristics for shuffling and synchronization around circumscription, this language could be well suited for distributed execution.

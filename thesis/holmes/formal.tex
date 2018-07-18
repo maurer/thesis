@@ -1,0 +1,237 @@
+\section{Formal Semantics}
+I give the semantics of the Holmes language in two pieces.
+The first piece is a description of which fact sets a correct implementation may output as the program result (\S~\ref{sec:allowed}).
+The second piece describes the search strategy (\S~\ref{sec:search}) which is concretely implemented by Mycroft (\S~\ref{sec:mycroft}).
+I then seek to connect the search strategy to the supported outputs, showing that the search strategy will always make progress (\S~\ref{sec:progress}), only output facts which are supported by the program (\S~\ref{sec:soundness}), and if the correct output is always finite, then the search strategy will terminate (\S~\ref{sec:term}).
+%TODO better subsec name
+\subsection{Supported Outputs}
+\label{sec:allowed}
+We begin with negation-free datalog, using minimal model approach.
+A model $M$ consists of a universe $U$, an interpretation $I$ which maps ground terms in the program to elements of the universe, and an interpretation $P$ for some predicates $P$, which are each sets containing elements of the universe $U$.
+A statement $P(x)$ is true in $M$ if $I(x) \in P$.
+%TODO is \Pi the right symbol here?
+We say $M$ is a model of a program $\Pi$ if $M$ holds true all EDB facts in $\Pi$, and for all rules whose body clauses are held true by $M$, their heads are held true by $M$ as well.
+%TODO see if I can find someone to cite for this stuff?
+$M$ is a minimal model if there are no selection of $P' \subseteq P$ (with at least one proper subset) such that a $M'$ using those predicate interpretations instead is still a model of $P$.
+To restrict ourselves to a single, canonical model, we consider only those models for whom the interpretation $I$ is the identity function - the Herbrand models.
+This interpretation provides a canonical model equivalent to the fixpoint semantics.
+
+\paragraph{Callbacks.}
+To describe callbacks, we augment the model with a set of functions representing them.
+Each callback has a type signature $f_M : [U] \rightarrow [[U]]$, where the argument represents the assignment to input arguments, and the output represents the possible assignments to output arguments.
+It is now an additional requirement for a model $M$ to model a program $\Pi$ that for any callback $f$ used in $\Pi$, $I^{-1}(f_M([I(x_0), ...,I(x_n)])) = f(x_0, ... x_n)$.
+\todo{Describe how function argument naming works/interacts. This is really just a detail, but it should be there eventually}
+Finally, when checking whether a model supports a particular rule of a program which additionally uses a callback $f$, we now say that if the body clause holds in $M$ for some substitution, then for each element of the list $f_M(u_0, ... u_n)$ where $u_i$ are taken from that substitution, the head clause holds under both the substitution described by the body clause and that described by the function.
+
+%TODO argue this statement in the infinite case.
+At this point, we still have a single canonical model, though it may now be infinite.
+\paragraph{Aggregation.}
+To be a well formed program, any meet operators used in $\Pi$ must define a lattice.
+We add to the model additionally a set of meet operators with signature $\wedge_M : (U, U) \rightarrow U$.
+For $M$ to model $\Pi$, the meet operators in $\Pi$ and $M$ must hold equal under $I$ translation, as in the callbacks section.
+For every predicate $P$ with non-aggregate fields $x_0$ through $x_m$, aggregate fields from $a_0$ through $a_n$, and meet operators $\wedge_0$ thorugh $\wedge_n$, we perform a translation on $\Pi$.
+Augment $\Pi$ with the rule
+\[P(x_0, ..., x_m, \wedge_0(a_0, b_0), \wedge_n(a_n, b_n)) \leftarrow P(x_0, ..., x_m, a_0, ..., a_n) \& P(x_0, ..., x_m, b_0, ..., b_n)\]
+Now $M$ can be checked against our translated program in the same way as before.
+
+The above only forms the upper bounds of what programmers are allowed to expect however.
+As aggregation is primarily intended as a performance feature, we need to perform further translation in order to loosen the restrictions to allow use of only the biggest aggregation by the evaluation engine.
+%TODO check ordering, meet-join nomenclature, etc
+We split each aggregated predicate $P$ into two versions, $P$ and $P'$.
+Other than in the augmented rule, anywhere $P$ is used in the body position, it is translated to $P'$.
+We add an additional predicate, $P_a$.
+$P_a$ is not allowed to be subset for purposes of minimality checking, and represents the choice available to the engine in aggregation disclosure.
+We now add the rule
+\[P'(\vec{x}, \vec{a}) \leftarrow P(\vec{x}, \vec{a}) \& P_a(\vec{x}, \vec{a})\]
+This effectively allows the model to pick and choose any subset of $P$ to promote to $P'$.
+
+Finally, we must insist that the biggest $\vec{a}$ for each $\vec{x}$ in $P$ be promoted. 
+%TODO turn this into a rule rather than a restriction.
+We define $x \leq_i y$ to be $x \wedge_i y = y$ as a shorthand.
+We define $\vec{a} \leq \vec{b}$ to be $a_0 \leq_0 b_0 \& ... \& a_n \leq_n b_n$
+For this, rather than add logical rules to $\Pi$, we add the constraint for each $P$,
+\[
+	\forall \vec{x}, \vec{b} | P(\vec{x}, \vec{b}). \exists \vec{a} P'(\vec{x}, \vec{a}) \& \vec{b} \leq \vec{a}
+\]
+
+We now have multiple legal minimal models, since we added the element of choice to the engine by allowing it to selectively parts of the aggregation.
+\paragraph{Circumscription.}
+Before we define circumscription in the general case, we will first give a description of it in the case without aggregation or functions, e.g. as an addition to base datalog.
+In addition to base datalog rules, we now allow negated predicate terms to occur in the body of rules.
+We also allow negated EDB predicates (i.e. fully ground) in our programs.
+
+We extend the minimal model definition of datalog to deal with these modifications.
+Before checking a model against a program, we augment it with a rule for every predicate of the form
+\[
+	\bot \leftarrow P(\vec{x}) \& \neg P(\vec{x})
+\]
+If we see $\neg P$ in the body of the rule, it matches iff $\neg P$ is presnet in the EDB.
+Note that negated facts cannot be generated in the IDB under these rules.
+We then check the model as usual, with the additional constraint that if the predicate $\bot$ is populated, the model is rejected.
+We identify the canonical model as the Herbrand minimal model corresponding to the above.
+
+We now develop a kripke structure.
+The set of worlds is the set of programs which have a canonical model as described above.
+%TODO do I need to rule out reflexivity here? Mandate it? I forget.
+For a program $\Pi$ and $\Pi'$, we define the accessibility relation to be: $\Pi \leq Pi'$ iff both the EDB of $\Pi$ is $\subseteq$ those in $\Pi'$.
+For base (non-modal) formulae, we say $\Pi \models P$ iff the canonical model of $\Pi$ contains $P$.
+We say $\Pi \models \boks P$ iff $\forall \Pi' | \Pi \leq \Pi'. \Pi' \models P$.
+We say $\Pi \models \dia P$ iff $\exists \Pi' | \Pi \leq \Pi'. \Pi' \models P$.
+
+We say that a formula $P$ is ``final'' if $\Pi \models \dia \boks P$.
+We say that a formula $P$ is ``universal'' if $\Pi \models \boks \dia \boks P$.
+
+In an ideal world, the output of our engine on this would take the form of a classifier for which non-modal formulae are universal.
+I have not found an efficient way to compute this set.
+%TODO add section to mycroft on why we don't do universal formula, forward reference.
+As an approximation, we instead examine a locally-largest set of non-negated coherent \emph{final} facts.
+This can be thought of in general as the non-negated portion of the model at some accessible world from the input program, such that no more useful assumptions can be made.
+More specifically, we define the output the non-negated portion of a model $M$ for $\Pi'$, where $\Pi \leq \Pi'$, such that $\not \exists \Pi'' \geq \Pi'. \Pi'' \models P \& \Pi' \not \models P$, where $P$ is a non-negated fact.
+
+Our kripke structure is reflexive and transitive, placing it in S4 (preorder).
+For ``well behaved'' programs, as described in \S~\ref{sec:inf-circ}, we also follow G (convergence), placing us in S4.2, directed preorder.
+This corresponds to the situation where all final facts are universal, giving rise to our approximation of having the engine output final facts for a particular world.
+I do not have an efficient way to check for G in the general case.
+\todo{Can I say something stronger? I think it may not be possible to compute whether G holds in the general case without first computing at least one final world.}
+
+This formulation is directly related to stable model semantics~\cite{stable-model}.
+\todo{Would it be useful to make this connection more formal?}
+Specifically, the selection of negated assumptions with which to extend $\Pi$ is isomorphic to the preselection of a stable set.
+\todo{Is it really? Does stable set permit the equivalent of positive assumptions?}
+Said stable set adds to the program the negation of everything not in the set by rewriting the rules to either drop negated rules which may not match, or drop clauses from negated rules which are now known to match.
+In our case, the kripke structure both makes our search procedure easier, and will make it easier to avoid the possibility that a program with no negation in its EDB has no legal output model (via call-cc).
+\todo{Mention connection to autoepistemic expansions?}
+
+As described in our informal section\todo{ref}, Holmes implements negation by allowing the user to receive an aggregation with the assurence that it is the \emph{largest} aggregation it will ever receive.
+To pivot from our simple model to this primarily requires a shift in what modifications are made to $\Pi$, and an augmentation of the model.
+For every predicate which is circumscribed over, add to the model a new predicate $P_c$, and rewrite the rules to reference it instead when circumscribing.
+Add to the program the rules
+\todo{rename $P_d$ something more sensical}
+\[P_c(\vec{x}, \vec{a}) \leftarrow P(\vec{x}, \vec{a}) \& P_d(\vec{x}, \vec{a})\]
+\[P_c(x_0, ..., x_m, \wedge_0(a_0, b_0), \wedge_n(a_n, b_n)) \leftarrow P_c(x_0, ..., x_m, a_0, ..., a_n) \& P(x_0, ..., x_m, b_0, ..., b_n)\]
+and for i ranging from 0 to n, additional rules
+\[\bot \leftarrow P_c(x_0, ... x_m, ..., a_i, ...) \& P_c(x_0, ... x_m, ..., b_i, ...) \& a_i \neq b_i\]
+The modification to $\Pi$ which takes place is no longer adding $\neg P$, but rather adding an assumption to one of the $P_d$ predicates.
+Otherwise, the transformation is identical.
+
+Essentially what this does is add the ability to use $P_d$ to select an aggregation on $P$ and promote it to $P_c$.
+If the aggregation is not the biggest one, or becomes not the biggest one, $\bot$ will be derived.
+This rules out any impossible circumscriptions.
+The same kripke structure described above gives rise to a stable semantics system again, only this time we are negating potentially infinite sets of facts at a time.
+\paragraph{call/cc}
+The major difference between this approach to negation and the stable-set approach is our addition of call/cc.
+In the stable-set approach, $\neg A \rightarrow A$ has no stable model.
+If $A$ is not in the set, $A$ is required for it to become a Herbrand model.
+If $A$ is in the set, $A$ is not required to be present, so while it is a Herbrand model, it is not the minimal one.
+In our case, per the motivation (\S~\ref{sec:motive-callcc}), we would prefer that this scenario resolve to $A$.
+Essentially, with call/cc we attempt to provide a way to produce a meaningful set even when the system itself is unstable.
+
+As with circumscription, we will first describe this modification without the prior features, then extend it to work with them.
+We assume negation works as in the first half or the circumscription section.
+The only real change we need to make is to our accessibility relation.
+Specifically, we want an accessibility relation which allows non-negated assumptions to be added considered for assumption, but only in those cases where their negated form eventually leads to a contradiction.
+
+First, we reform the previous accessibility relation into a directed graph.
+\todo{Stop using EDB of and IDB of everywhere, and use $\Pi_I$ and $\Pi_E$ after defining}
+$\Pi \leadsto \Pi'$ here means that $\Pi'$ is a world with exactly one more allowed assumption than $\Pi$, essentially a single-step version of $\leq$.
+If $\Pi$ and $\Pi'$ have the same rules, and $\Pi'_E = \Pi_E \cup \{\neg P\}$ (and $\neg P \not \in \Pi_E$), then $\Pi \leadsto \Pi'$.
+We now define $\leq$ inductively.
+$\Pi \leq \Pi$.
+If $\Pi_0 \leq \Pi_1$, and $\Pi_1 \leadsto \Pi_2$, then $\Pi_0 \leq \Pi_2$.
+
+To add support for call-cc, and unstable sets in general, we have two basic scenarios that $\leadsto$ needs to be modified for.
+The uncovered cases here always start with, for some $P$, $\Pi$ with $\neg P$ appended is not a world, because $\Pi$ with $\neg P$ is able to derive $\bot$, and $\Pi \not \models P$.
+In the first scenario, $\Pi$ with $P$ forms a legal $\Pi'$, and we want to add $\Pi \leadsto \Pi'$ for that instead.
+In the second scenario, neither $P$ nor $\neg P$ may be legally added to $\Pi$, yet we do not have that $\Pi$ models either of them.
+Essentially, $P$ is \emph{inconsistent}.
+While there are some interesting logics involving inconsistency\todo{citations}, it is not an intended feature of Holmes.
+To deal with this, we preclude programs which have this property from being worlds.
+Note that the input program will always be safe here.
+It has no negated terms in the head, nor is a negated fact allowed in the EDB.
+As a result, without first having made a negated assumption, $\bot$ cannot be derived, and so it will always be legal to make an assumption in at least one direction from the base world for a given fact.
+
+More concretely, we now say a program $\Pi$ is a world iff:
+% Here, P is a non-negated ground fact, and it's universally quantified
+\begin{itemize}
+	\item $\Pi \not \models \bot$
+	\item If $\Pi \not \models P$ and $\Pi \not \models \neg P$, then $\Pi \leadsto \Pi'$ s.t. $P \in \Pi'_E$ or $\neg P \in \Pi'_E$
+\end{itemize}
+
+And we say $\Pi \leadsto \Pi'$ if
+\begin{itemize}
+	\item $\Pi'$ is a world
+	\item $\Pi \not \models \bot$
+	\item $\Pi \not \models P$
+	\item $\Pi \not \models \neg P$
+	\item One of:
+	\begin{itemize}
+		\item $\Pi'$ is $\Pi$ with $\neg P$ added
+		\item Adding $\neg P$ does not yield a legal world, and $\Pi'$ is $\Pi$ with $P$ added.
+	\end{itemize}
+\end{itemize}
+
+Reconstructing the $\leq$ relation inductively as above, we have acquired call/cc.
+Effectively what we have done is allowed positive assumptions, but only in the case that negative assumptions fail.
+We have also structurally ruled out those cases where we have made the truth or falsity of a fact inconsistent.
+It would be possible to write similar rules without the forced negative bias (simply removing the restriction in the $\leadsto$ relation), and would possibly even be beneficial for a logic with guaranteed finite universes.
+However, as we will see next, this enforced negative bias allows us to have this looser form of negation even in the presence of infinite universes.
+
+We actually need even less modification than last time to reach actual circumscription.
+In this case, we are still adding positive facts, but we need different restrictions since it is not as simple as $P$ versus $\neg P$.
+
+We say a program $\Pi$ is a world iff:
+\begin{itemize}
+	\item $\Pi \not \models \bot$
+	\item If for any $P_c$, $\vec{x}$, $\vec{b}$ with $\Pi \models P(\vec{x}, \vec{b})$, there does not exist a $\vec{a}$ so that $\Pi \models P_c(\vec{x}, \vec{a})$, then $\Pi \leadsto \Pi'$ s.t. for some $\vec{c}$ $P_c(\vec{x}, \vec{c}) \in \Pi'_E$ or $\exists \vec{d}. \Pi \not \models P(\vec{x}, \vec{d}) \& P(\vec{x}, \vec{d}) \in \Pi'_E$
+\end{itemize}
+
+And we say $\Pi \leadsto \Pi'$ if for some $\vec{x}$, there isn't a $\vec{a}$ so that
+\begin{itemize}
+	\item $\Pi'$ is a world
+	\item $\Pi \not \models \bot$
+	\item $\Pi \not \models P_c(\vec{x}, \vec{a})$
+	\item One of:
+	\begin{itemize}
+		\item $\Pi'$ is $\Pi$ with $P_c(\vec{x}, \vec{a})$ added
+		\item There isn't a legal world with $P_c(\vec{x}, \vec{a})$ added, but if we added it anyways, and deleted the rule for inconsistency on $P_c$ for $\vec{x}$, that world would have a final fact $Q(\vec{y})$, and $\Pi'$ is $\Pi$ extended with $Q(\vec{y})$
+	\end{itemize}
+\end{itemize}
+
+\paragraph{Summary}
+\todo{Design unified notation in summary, revised other parts to use unified notation}
+
+Model Components:
+\begin{itemize}
+	\item Universe, $U$ (model native identifiers for values placed in fields)
+	\item Interpretation, $I$, $I^{-1}$ (function mapping between original program and the universe)
+	\item Predicates, $P$ (membership of $u \in U$ for $P$ denotes $P(I(u))$ in the output)
+	\item Callbacks, $f_M$ (callbacks from the original program, translated by $I$)
+	\item Meets, $\wedge$ (meets from the original program, translated by $I$)
+	\item Aggregation Choices, $P_a$ (sets indicating which aggregations the model chose to reveal)
+	\item Assumptions, $\Pi' - \Pi$ (Aggregated facts which are assumed to have no element above them)
+\end{itemize}
+Verification procedure:
+
+\subsection{Search Procedure}
+\label{sec:search}
+Now that we've defined what the language should output, we present a search procedure for computing them which is implemented concretely as Mycroft (\S~\ref{sec:mycroft}).
+\subsection{Progress}
+\label{sec:progress}
+Here, we define progress for the search strategy to mean that we will never repeat a state.
+\subsection{Soundness}
+\label{sec:soundness}
+%TODO xref terminal worlds, make sure predefined
+Soundness here means that if the search strategy terminates, we will output a set of facts consistent with the semantics of the program at one of the terminal worlds.
+\subsection{Termination}
+\label{sec:term} 
+Our termination property refers to the notion that if the program has only finite sets in its correct outputs, we will eventually reach one of those sets.
+Initially, this might seem to come freely from progress and soundness.
+If we never repeat a state and the outputs (and so the number of sound facts) are finite, shouldn't we always terminate, since we are evolving through a finite set of states without repetition?
+Unfortunately, this is not quite enough.
+We also need to ensure that the search strategy also guards against infinite evolutions in worlds which are not present on the kripke structure (e.g. are for one reason or another not a valid world).
+First, we will show, as in the supposition above, that we spend a finite amount of time progressing through worlds which are present on the kripke structure defined by the program.
+Secondly, we will demonstrate that digressions from this tree are finite in length - that is, we will discover an invalid branch choice in finite time.
+Finally, we will show that there are a finite number of ways to leave the kripke structure in the search procedure. 
+If we spend finite time on kripke structure, make a finite number of departures for it, and each of those lasts for a finite amount of time, we will eventually terminate.
+
+%TODO actual proof, this is just an outline above
