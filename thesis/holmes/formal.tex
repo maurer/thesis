@@ -1,4 +1,5 @@
 \section{Formal Semantics}
+\label{sec:formal}
 I give the semantics of the Holmes language in two pieces.
 The first piece is a description of which fact sets a correct implementation may output as the program result (\S~\ref{sec:allowed}).
 The second piece describes the search strategy (\S~\ref{sec:search}) which is concretely implemented by Mycroft (\S~\ref{sec:mycroft}).
@@ -197,21 +198,65 @@ And we say $\Pi \leadsto \Pi'$ if for some $\vec{x}$, there isn't a $\vec{a}$ so
 	\end{itemize}
 \end{itemize}
 
-\paragraph{Summary}
-\todo{Design unified notation in summary, revised other parts to use unified notation}
+\paragraph{Summary} 
+A program $\Pi$ is a collection of rules of the form
+\[
+	P_0 \leftarrow P_1, ..., P_m
+\]
+where each $P$ is a ground atom.
 
-Model Components:
-\begin{itemize}
-	\item Universe, $U$ (model native identifiers for values placed in fields)
-	\item Interpretation, $I$, $I^{-1}$ (function mapping between original program and the universe)
-	\item Predicates, $P$ (membership of $u \in U$ for $P$ denotes $P(I(u))$ in the output)
-	\item Callbacks, $f_M$ (callbacks from the original program, translated by $I$)
-	\item Meets, $\wedge$ (meets from the original program, translated by $I$)
-	\item Aggregation Choices, $P_a$ (sets indicating which aggregations the model chose to reveal)
-	\item Assumptions, $\Pi' - \Pi$ (Aggregated facts which are assumed to have no element above them)
-\end{itemize}
-Verification procedure:
+An input Holmes program is translated to a $\Pi$ program by the following procedure:
 
+For every predicate which is aggregated, add the additional rule
+\[
+	P(\vec{x}, \vec{c}) \leftarrow P(\vec{x}, \vec{a}) \& P(\vec{x}, \vec{b}) + \textrm{meet}
+\]
+where $\vec{x}$ are the non-aggregated fields, $\vec{a}, \vec{b}, \vec{c}$ match aggregated fields, $\wedge_i$ is the meet operation defined by the predicate, and meet is callback which assigns $c_i = a_i \wedge_i b_i$ for ever aggregated field, and $\vec{x}$ are the non-aggregate fields.
+
+For every aggregated predicate $P$, introduce a new predicate, $P_c$, which lacks its aggregation, but has otherwise identical types.
+Rewrite all rules referencing the circumscription of $P$ to reference $P_c$ instead.
+Define for each predicate $b_i \leq a_i$ to be $a_i \wedge_i b_i = a_i$.
+For each such predicate, add a rule
+\[
+	\bot \leftarrow P_c(\vec{x}, \vec{a}) \& P(\vec{x}, \vec{b}) + \textrm{check}
+\]
+where check is a function which checks whether $b_i \leq a_i$ for all $i$, and if any check is false, allows the rule to proceed.
+Additionally, introduce a predicate $P_d$\todo{better name}, and add the rule
+\[
+	P_c(\vec{x}, \vec{a}) \leftarrow P(\vec{x}, \vec{a}) \& P_d(\vec{x}, \vec{a})
+\]
+
+A Herbrand universe is defined by induction.
+Let $T_0$ be the Herbrand universe induced only by those constants present in the Holmes program and any input facts.
+Let $T_{i + 1}$ be the set obtained by applying every callback to every element of $U_i$, and flattening the resulting list into the set.
+Then let $U_i = \bigcup_{j \leq i} T_i$, and the Herbrand universe is the limit, $U_\infty$.
+
+Fully instantiate the input program at this Herbrand base, resulting in the removal of all non-ground atoms and callbacks.
+We now have a program of form $\Pi$, which initially does not derive $\bot$.
+
+$\Pi$ is a datalog program in the traditional sense, and we consider $\Pi \models P$ to follow traditional datalog minimal model semantics. 
+
+We define mutually recursively a relation $\Pi \cac \Pi'$ and $W(\Pi)$ (a predicate indicating whether $\Pi$ is a legal world) and a Kripke accessibility relation $\leq$.
+Define $C(\Pi, P, \vec{x}, \vec{a})$ to be $\Pi$ with $P_d(\vec{x}, \vec{a})$ added after translation to the Herbrand universe.
+Define $A(\Pi, P, \vec{x}, \vec{\vec{a}})$ to be $\Pi$ with $P(\vec{x}, \vec{a}_i)$ added for each element of the vector after translation to the Herbrand universe.
+\[
+	W(\Pi) \leftrightarrow \Pi \not \models \bot \wedge \forall P_d. \exists \vec{x}. \forall \vec{a} | \Pi \not \models P_d(\vec{x}, \vec{a}). (\exists \vec{b}. \Pi \cac C(\Pi, P, \vec{x}, \vec{b})) \vee (\exists \vec{\vec{c}}. \Pi \cac A(\Pi, P, \vec{x}, \vec{\vec{c}}))
+\]
+
+Let $\Pi_c$ be $C(\Pi, P, \vec{x}, \vec{a})$, then
+\[
+	\Pi \cac \Pi_c \leftrightarrow W(\Pi_c) \wedge \Pi \not \models P_d(\vec{x}, \vec{a}) \wedge \Pi \models P(\vec{x}, \vec{a})
+\]
+
+Let $\Pi_a$ be $A(\Pi, P, \vec{x}, \vec{\vec{b}})$, additionally, define $\Pi_c'$ to be $\Pi_c$, but with the rules corressponding to the use of the check function on $P$ removed.
+
+\[
+	\Pi \cac \Pi_a \leftrightarrow W(\Pi_a) \wedge \neg W(\Pi_c) \wedge \Pi_c' \models \boks \dia \bigwedge P(\vec{x}, \vec{b}_i) \wedge \neg \exists \vec{c}. \Pi \models P_d(\vec{x}, \vec{c})
+\]
+
+Let $\Pi \leq \Pi'$ iff $\Pi = \Pi'$ or $(\Pi \leq \Pi_i) \wedge \Pi_i \cac \Pi'$.
+
+The $\boks \dia$ used in the definition of when $\Pi \cac \Pi_a$ is defined relative to the Kripke structure where $W$ defines worlds, $\leq$ is defined as above, and $\models$ for non-modal formula is defined as for Datalog.
 \subsection{Search Procedure}
 \label{sec:search}
 Now that we've defined what the language should output, we present a search procedure for computing them which is implemented concretely as Mycroft (\S~\ref{sec:mycroft}).
