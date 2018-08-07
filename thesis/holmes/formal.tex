@@ -3,7 +3,7 @@
 I give the semantics of the Holmes language in two pieces.
 The first piece is a description of which fact sets a correct implementation may output as the program result (\S~\ref{sec:allowed}).
 The second piece describes the search strategy (\S~\ref{sec:search}) which is concretely implemented by Mycroft (\S~\ref{sec:mycroft}).
-I then seek to connect the search strategy to the supported outputs, showing that the search strategy will always make progress (\S~\ref{sec:progress}), only output facts which are supported by the program (\S~\ref{sec:soundness}), and if the correct output is always finite, then the search strategy will terminate (\S~\ref{sec:term}).
+I then seek to connect the search strategy to the supported outputs, showing that the search strategy will always make progress (\S~\ref{sec:progress}) and only output facts which are supported by the program (\S~\ref{sec:soundness}).
 %TODO better subsec name
 \subsection{Supported Outputs}
 \label{sec:allowed}
@@ -128,8 +128,8 @@ such that there is not an other literal that can be added to the conjunction.\to
 \subsubsection{call/cc}
 The major difference between this approach to negation and the stable-set approach is our addition of call/cc.
 In the stable-set approach, $\neg A \rightarrow A$ has no stable model.
-If $A$ is not in the set, $A$ is required for it to become a Herbrand model.
-If $A$ is in the set, $A$ is not required to be present, so while it is a Herbrand model, it is not the minimal one.
+If $A$ is not in the set, $A$ is required for it to be a model.
+If $A$ is in the set, $A$ is not required to be present, so while it is a model, it is not the minimal one.
 In our case, per the motivation (\S~\ref{sec:motive-callcc}), we would prefer that this scenario resolve to $A$.
 Essentially, with call/cc we attempt to provide a way to produce a meaningful set even when the system itself is unstable.
 
@@ -241,7 +241,7 @@ Additionally, introduce a predicate $P_d$\todo{better name}, and add the rule
 	P_c(\vec{x}, \vec{a}) \leftarrow P(\vec{x}, \vec{a}) \& P_d(\vec{x}, \vec{a})
 \]
 
-A Herbrand universe is defined by induction.
+A Herbrand universe is defined inductivley.
 Let $T_0$ be the Herbrand universe induced only by those constants present in the Holmes program and any input facts.
 Let $T_{i + 1}$ be the set obtained by applying every callback to every element of $U_i$, and flattening the resulting list into the set.
 Then let $U_i = \bigcup_{j \leq i} T_i$, and the Herbrand universe is the limit, $U_\infty$.
@@ -281,23 +281,117 @@ for every $P_i$ in the output, and there does not exist an additional literal wh
 \subsection{Search Procedure}
 \label{sec:search}
 Now that we've defined what the language should output, we present a search procedure for computing them which is implemented concretely as Mycroft (\S~\ref{sec:mycroft}).
+
+% add any other restrictions to this section as needed
+% TODO is there some reasonable set of restrictions that will
+% still give termination? Finite domains will do it, but rules out
+% a lot of the real programs I write
+We restrict ourselves to those programs for which in the non-circumscribed rules, concatenating any finite set of ground facts will result in finite predicate extents, as it would in a datalog program sans sunctions.
+This restriction is reasonable because it means we are restricting ourselves to those programs which it is possible to successively return a model on all inputs in the absence of circumscription.
+
+We consider candidate worlds - those programs $\Pi$ which are connected by the transitive closure of extending an aggregate or circumscribing it to $\Pi_0$, the input program.
+These candidate worlds are notably not restricted by lack of derivation of $\bot$, or by the requirement that for each aggregate, we must either have already circumscribed it, or there must be a transition which either circumscribes or extends it.
+These candidate worlds form a superset of those described by the the kripke structure over $\Pi$, since $\leadsto$ is a subset of the relation we are taking the transitive closure over.
+
+Within an individual world, we employ the search strategy of extending predicates via the rules until fixpoint, which will yield the local minimal model.
+What remains is to locate a final world - one in which all aggregates are circumscribed - which is connected to the initial world by the transitive closure of $\leadsto$.
+
+We proceed by means of a depth first search style strategy.
+Our state consists of the current candidate world and a stack of prior candidate worlds labeled with the transition taken to get there.
+At the current world, evaluate a local model.
+
+%TODO define aggregate, maximal aggregate consistently
+If it is consistent, examine the uncircumscribed maximal aggregates of the model.
+Pick the minimum by some convenient total ordering.
+Given the Herbrand universe constructed earlier, one exists.
+Circumscribe over that aggregate to produce a new world, pushing the old one onto the stack and labeling the transition of the circumscription we just performed. 
+
+If it contains an aggregation exceeding its speculated upper bound, select those unaggregated facts which contribute to a derivation of $\bot$ and are dependent on their own circumscription.
+Examine the stack of prior candidates in order until a candidate labled with one of the assumptions violated at this world is found.
+Pop all of these candidate worlds off the stack, and move to a new candidate world adding the assumption of all the facts we selected earlier which violated the circumscription we just deleted.
+
+When we reach a point where a candidate world is locally consistent, and there is no aggregate without a circumscription, we have reached a final world.
+We read off the model and return it.
+
+\paragraph{Alternate strategy.}
+We could consider an alternate evaluation strategy, in which we focus on a breadth-first approach.
+Essentially, where in our previously declared strategy, we would check one world at a time, always moving along the circumscribed branch for any predicate first, instead we \emph{simultaneously} check all circumscribed worlds leading off the first via a round-robin style scheduling.
+
+Specifically, we have a set of worlds under examination, a pointer to the current (uninstantiated and so finite, but otherwise rewritten) rule for each world, a pointer to the parent rule for each world, a partial model in the form of predicate extensions for each world, and an ordering on matches to rules.
+For each world, attempt to run the rule on the lowest possible match which has not previously been performed, adding the head to the world's predicate extents.
+If the rule had no more matches, advance to the next rule.
+
+If running the rule which would require circumscription, and a world with the same list of assumptions is not already present, create a new world which is a clone of the current one, but with the circumscripted match added, and connect it to the prior world.
+
+If running the rule derived bottom, step backwards along the the edges until the cyclic contributors (as in the depth-first strategy) circumscription.
+Mark all of these worlds "dead", e.g. do not create them again, do not evaluate them any further.
+Create a new world with the cyclic contributors added.
+
+If all aggregates are circumscribed, no rules match, and the world is live, mark that world final.
+If the above conditions hold, but some aggregates are not circumscribed, mark the world done.
+
+If a final model is desired, run the algorithm until one world is marked final, and output its model.
+If a universal model is desired, run the algorithm until all worlds are classified into done, dead, and final (this may be nonterminating, even if there are a finite number of final models).
+Compute the model of all final worlds and take the intersection.
+This is the univeral model. 
+
+This has several potential benefits.
+It can survive local worlds with infinite extent, so long as there exists some path to a final world which contains all finite extents.
+It should even terminate in the case of at least one finite path to a finite final world.
+It will eventually enumerate all final worlds, allowing it to approach the universal output.
+
+However, this strategy is hamstrung by infeasibility.
+Even if only seeking a final model, our need to explore all paths to avoid getting stuck in an infinite depth candidate branch requires massive state.
+Even beyond the state, it requires a good deal of likely useless computation.
+It might be possible to share computation amongst similar worlds to reduce this, but without a significant refining, this strategy is not practical.
+If seeking a universal model however, this would likely be the beginning of the required approach. 
+
 \subsection{Progress}
 \label{sec:progress}
 Here, we define progress for the search strategy to mean that we will never repeat a state.
+This does not necessarily gaurantee termination, even if a finite path to a final world with a finite model exists.
+Consider:
+\begin{verbatim}
+circ-chain(int, int_set^union)
+A(bool^or)
+B(bool^or)
+circ-chain(x', y) <- ~circ-chain(x, y) + add_x_1
+circ-chain(0, {0}) <- A(true)
+A(true) <- ~B(false)
+B(true) <- ~A(false)
+A(false)
+B(false)
+\end{verbatim}
+In this program, there is one finite final model, \texttt{B(true), A(false)}.
+However, if we first try to circumscribe B rather than A, we will never reach it.
+Circumscribing B does not lead to a contradiction, but neither does it lead to a finite final model.
+
+Instead, by showing that we do not repeat a state, and thus make progress, we are demonstrating that if the Kripke structure itelf is finite, in addition to the datalog program being finite, we will eventually locate one of the final worlds.
+
+First, we show that the stack of transitions is sorted: at no point will a stack be reached which is a permutation of another stack.
+Recall that at at each circumscription, we picked out of the maximal aggregates a minimum by some ordering.
+That 
+%TODO finish 
 \subsection{Soundness}
 \label{sec:soundness}
-%TODO xref terminal worlds, make sure predefined
-Soundness here means that if the search strategy terminates, we will output a set of facts consistent with the semantics of the program at one of the terminal worlds.
-\subsection{Termination}
-\label{sec:term} 
-Our termination property refers to the notion that if the program has only finite sets in its correct outputs, we will eventually reach one of those sets.
-Initially, this might seem to come freely from progress and soundness.
-If we never repeat a state and the outputs (and so the number of sound facts) are finite, shouldn't we always terminate, since we are evolving through a finite set of states without repetition?
-Unfortunately, this is not quite enough.
-We also need to ensure that the search strategy also guards against infinite evolutions in worlds which are not present on the kripke structure (e.g. are for one reason or another not a valid world).
-First, we will show, as in the supposition above, that we spend a finite amount of time progressing through worlds which are present on the kripke structure defined by the program.
-Secondly, we will demonstrate that digressions from this tree are finite in length - that is, we will discover an invalid branch choice in finite time.
-Finally, we will show that there are a finite number of ways to leave the kripke structure in the search procedure. 
-If we spend finite time on kripke structure, make a finite number of departures for it, and each of those lasts for a finite amount of time, we will eventually terminate.
+Soundness here means that if the search strategy terminates, we will output a set of facts consistent with the semantics of the program at one of the final worlds.
+Given that in a final world, all circumscription has been taken care of, actual computation of the model is straightforwards datalog fixpoint evaluation, which will correspond directly with our definition.
+What remains is to show that the world it has picked is equivalent to a final world.
+This means we need to show both that the supposed final-equivalent world $\Pi_F$ is in the transitive closure of $\leadsto$ when applied to $\Pi_0$, and that the transitive closure of $\leadsto$ from $\Pi_F$ yields only worlds with the same model as $\Pi_F$.
 
-%TODO actual proof, this is just an outline above
+We first approach $\Pi_F$'s equivalence to a unique final world.
+Our considered model includes only those predicates present in the input program, not those which were augmented or added as implementation details.
+As a result, only an upper bound \emph{and} and aggregation matching it is consumable by a program rule, not an upper bound alone.
+Since the search procedure indicated the world as final, we know both that it is consistent, and that all aggregates are circumscribed.
+If all aggregates are circumscribed, then any potential $\Pi_F \leadsto \Pi'$ which follows the circumscription constructor cannot create new program-visible facts, since there is no matching aggregate.
+This property persists no matter how many additional upper bounds are added, since no new aggregates are produced.
+There cannot be any $\Pi'$ which follows the call/cc constructor, because that would require the new positive fact to be derived by adding an additional upper bound.
+However, adding an additional upper bound causes no new information to become visible to the program, so this cannot happen.
+As a result, $\Pi_F$ and all successor worlds are only related by adding additional upper bounds, which do not affect the resulting model.
+
+Secondly, we must show that $\Pi_0 \leadsto^* \Pi_F$.
+At each step of the search, we verified all conditions of $\leadsto$ except that the destination candidate world was in fact a world in the case of a circumscription, and in the case of positive assumptions, that the corresponding circumscriptive path would derive the set of positive assumptions.
+
+We show candidate world in the path from $\Pi_0$ to $\Pi_F$ is a world by induction backwards from $\Pi_F$.
+$\Pi_F$ is consistent, and we already showed that all successor worlds have the same model.
+As a result, $\Pi_F$
