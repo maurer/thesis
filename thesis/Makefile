@@ -10,4 +10,4 @@ cfg.pdf: cfg.dot
 FORCE:
 
 clean:
-	rm -f *.synctex.gz *.blg *.bbl *.brg *.brf *.pdf *.toc *.log *.fls *.aux *.fdb_latexmk *.out
+	rm -f *.synctex.gz *.blg *.bbl *.brg *.brf *.pdf *.toc *.log *.fls *.aux *.fdb_latexmk *.out */*.aux
