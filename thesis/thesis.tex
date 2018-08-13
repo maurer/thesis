@@ -3,6 +3,7 @@
 \usepackage{silence}
 \WarningFilter*{latex}{Marginpar on page \thepage\space moved}
 \usepackage{latexsym}
+\usepackage{multirow}
 \usepackage{todonotes}
 \usepackage{syntax}
 \usepackage{amsmath}
@@ -10,14 +11,17 @@
 \usepackage{wasysym}
 \usepackage{subfigure}
 \usepackage{proof}
-\usepackage{ucs}
-\usepackage[utf8x]{inputenc}
 \usepackage{enumitem}
 \usepackage[numbers,sort]{natbib}
 \usepackage[letterpaper,twoside]{geometry}
 \usepackage{changepage}
 \usepackage[final]{listings}
 \lstset{numbers=left}
+\lstset{language=prolog, breaklines=true, basicstyle=\small, escapeinside={(*}{*)},
+        moredelim=**[is][\color{green}]{|+}{|},
+	        moredelim=**[is][\color{red}]{|-}{|}
+}
+
 \draftstamp{\today}{DRAFT}
 
 \newcommand{\fyes}{\CIRCLE}
@@ -36,8 +40,6 @@
   final
 ]{hyperref}
 \hypersetup{linktoc=all}
-
-\usepackage{autofe}
 
 \include{ll}
 \begin{document}
@@ -82,7 +84,7 @@ Manuel Egele, Boston University
 \input{background}
 \input{holmes/holmes}
 \input{formal/formal}
-\input{alias}
+\input{alias/alias}
 \input{codependence}
 \input{staticflow}
 \input{conclusion}

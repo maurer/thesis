@@ -157,6 +157,21 @@ As a simple example, consider an external predicate which appends the character 
 \end{gather*}
 provides a simple infinite loop, extending the string with more `a's forever.
 
+\subsubsection{Backwards Chaining}
+\label{sec:bchain}
+The evaluation model discussed thus far is what is commonly known as forward chaining, or bottom-up search.
+This approach searches for a proof by taking known facts and deriving anything they can hoping to reach the goal.
+However, there are some applications for which this approach does not work well --- as an example, any system that would have a potentially infinite intensional database would never complete execution with such a semantics.
+
+The other approach is known as backwards chaining, or top-down search, and is what is used in Prolog.
+In backwards chaining, search is directed by a particular goal instead.
+The logic engine examines the goal and the available rules, and by unification breaks it down to a series of potential subgoals, and recurses.
+For the purposes of this proposal, I'll write backwards chaining rules as
+\[
+  \brule{\pred{P}{\var{X}}}{\pred{Q}{\var{X}}}
+\]
+
+\subsection{Negation}
 %   * Stratified negation
 \subsubsection{Stratified Negation}
 Another thing that can be useful to talk about is the inability of the system to prove a particular fact.
@@ -188,20 +203,6 @@ This requirement can be phrased as a graph property:
 Create a graph where the predicates are nodes, and there is an edge between two nodes iff there is a rule in the program which uses the source node predicate as a premise to derive the destination node predicate.
 Additionally, label all those edges where the premise predicate was negated.
 There must be no cycles which include one or more negated edges.
-
-\subsubsection{Backwards Chaining}
-\label{sec:bchain}
-The evaluation model discussed thus far is what is commonly known as forward chaining, or bottom-up search.
-This approach searches for a proof by taking known facts and deriving anything they can hoping to reach the goal.
-However, there are some applications for which this approach does not work well --- as an example, any system that would have a potentially infinite intensional database would never complete execution with such a semantics.
-
-The other approach is known as backwards chaining, or top-down search, and is what is used in Prolog.
-In backwards chaining, search is directed by a particular goal instead.
-The logic engine examines the goal and the available rules, and by unification breaks it down to a series of potential subgoals, and recurses.
-For the purposes of this proposal, I'll write backwards chaining rules as
-\[
-  \brule{\pred{P}{\var{X}}}{\pred{Q}{\var{X}}}
-\]
 
 % * Circumscription
 \subsection{Circumscription}
@@ -353,3 +354,5 @@ The formula is created by taking the conjunction of the path constraint with wha
 If the SMT solver returns a solution, a bad input has been found\cite{aeg,mayhem}.
 If instead of simply sufficing, the condition passed is complete (i.e.\ the operation is \emph{only} dangerous if the check passes), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
 Since loops create an infinite number of paths, it is difficult to demonstrate that any region is safe this way, but it can rule out certain kinds of exploration.
+
+\input{alias/background}

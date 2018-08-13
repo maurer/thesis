@@ -17,9 +17,7 @@ However, previous work tended to focus on one or two specific questions at a tim
 Without traditional programming abstractions designed to allow for modular reasoning, co-dependent analyses (those with cyclic dependencies on one another) become more important to understanding the program.
 Type recovery depends on dataflow information\cite{bitr,tie,sndwrite}, which in turn depends on control flow.
 Recovering non-trivial control flow requires value analysis to resolve jump targets.
-One variety of value analysis (alias analysis) is sometimes done using type information.\footnote {
-  \url{http://llvm.org/docs/doxygen/html/TypeBasedAliasAnalysis_8cpp_source.html}
-}
+One variety of value analysis (alias analysis) is sometimes done using type information.
 While co-dependency is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
 }
 
