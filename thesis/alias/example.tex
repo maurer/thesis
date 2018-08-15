@@ -1,0 +1,83 @@
+\begin{lstlisting}[language=C, float=t, caption={Example (C)}, label=lst:example-c]
+char* g() {
+	return malloc(1);
+}
+void f() {
+	char* x = malloc(1);
+	*x = 'a'; // Safe
+	char* g_a = g();
+	*g_a = 'a'; // Safe
+	char* g_b = g();
+	*g_b = 'a'; // Safe
+	free(x);
+	free(g_a);
+	*x = 'b'; // UaF
+	*g_b = 'b'; // Safe, but needs context
+}
+\end{lstlisting}
+
+\subsection{Inter-procedural Flow-Sensitive Example}
+In this section, we provide an example of the context- and flow-
+sensitive analysis on a simple example shown in
+Listing~\ref{lst:example-c}. To provide clarity on how updating alias
+sets work, this example does not show data-flow merges, which is a set
+union operation as previously described.
+
+Listing \ref{lst:example-c} contains one real use-after-free bug.  We
+also show one location that is safe, but without context-sensitivity
+an additional false positive will be raised. Without
+context-sensitivity, both the allocations for \texttt{g\_a} and
+\texttt{g\_b} get merged, making the analysis believe they are aliased
+when they are not.
+
+\lstdefinestyle{hilight-asm}{
+    language={[x86masm]Assembler},
+    moredelim=[is][\color{green}]{|+}{|},
+    moredelim=[is][\color{blue}]{|!}{|},
+    moredelim=[is][]{|~}{|},
+    basicstyle=\footnotesize 
+}
+
+\lstinputlisting[style=hilight-asm,
+caption={Annotated Flow-Insensitive Analysis},
+label=lst:example-asm]{alias/example-annotated.asm}
+
+The corresponding assembly, annotated with comments on the location of
+the UaF and alias sets, is shown in Listing~\ref{lst:example-asm}.
+Portions of the alias set hilighted in green are new bindings.
+Portions in blue are bindings which have been destructively updated.
+In the example, the variables are:
+\begin{itemize}
+	\item The stack slots of f (g has none): sp+24@f, sp+16@f, sp+8@f
+	\item All used registers (other than the stack): RDI, RAX
+	\item Allocations split on sensitivity, using the form dyn@addr\{stack\}
+          \begin{itemize}
+          \item Context-insensitive: dyn@5 and dyn@13
+          \item Context-sensitive: dyn@5\{19\}, dyn@5\{25\}, dyn@13\{\}
+          \end{itemize}
+\end{itemize}
+
+The alias sets are annotated as comments. For example, right before
+the free on line 35, the alias set is:
+
+\begin{figure}[h!]
+\texttt{\{ RAX -> dyn@0; sp+24@f -> dyn@1;
+    sp+16@f -> dyn@0; sp+8@f -> dyn@0;
+    RDI -> dyn@0 \}}
+\end{figure}
+
+This shows that \texttt{RDI} is pointing to the memory location \texttt{dyn@1}, the allocation site for \texttt{x} in the source code.
+Right after the \texttt{free} on line 35, the alias set changes to show \texttt{dyn@1} is now free.
+The UAF detector would say any pointer that resolves to \texttt{dyn@1} is therefore a use-after-free bug, which happens on
+line 53.
+
+If we had been context-sensitive, the points-to relation at 59, the false positive, would instead be
+\begin{figure}[h!]
+\texttt{\{ RAX -> dyn@5\{25\}; sp+24@f -> dyn@13\{\};
+    sp+16@f -> dyn@5\{19\}; sp+8@f -> dyn@5\{25\};
+    RDI -> dyn@5\{19\}; dyn@13\{\} -> free@35;
+    dyn@5\{19\} -> free@43 \}}
+\end{figure}
+
+The key difference here is that \texttt{RAX} points to \texttt{dyn@5\{25\}} rather than just \texttt{dyn@5}, so we can distinguish it from the freed allocation.
+This allows context sensitivity to weed out more false positives.

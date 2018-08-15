@@ -1,0 +1,43 @@
+\PassOptionsToPackage{svgnames,x11names}{xcolor}
+\documentclass[10pt,conference]{IEEEtran}
+\usepackage{todonotes}
+\usepackage{listings}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{placeins}
+\lstset{language=prolog, breaklines=true, basicstyle=\small, escapeinside={(*}{*)},
+	moredelim=**[is][\color{green}]{|+}{|},
+	moredelim=**[is][\color{red}]{|-}{|}
+	}
+
+\usepackage[draft]{djb}
+\usepackage{shortcuts}
+
+\begin{document}
+
+\newcommand{\subheading}[1]{\textbf{#1.}}
+
+\title{Detecting Use-after-Free through Alias Analysis in Compiled Code}
+\author{Matthew Maurer}
+\maketitle
+\begin{abstract}
+	\input{abstract}
+\end{abstract}
+\section{Introduction}
+\input{intro}
+\section{Background}
+\input{background}
+
+\section{Previous Approaches and Related Work}
+\input{related}
+\section{Alias Analysis Design}
+\input{system}
+\section{Evaluation}
+\input{eval}
+\FloatBarrier
+\section{Conclusions}
+\input{conc.tex}
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,marduk}
+\end{document}

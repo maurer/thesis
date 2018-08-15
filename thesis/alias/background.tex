@@ -1,0 +1,43 @@
+\subsection{Alias Analysis}
+An alias analysis endeavors to answer the question ``Do these two pointers point to the same thing?''
+There are two basic varieties: may and must alias.
+Must alias means that two values will definitely point toto the same thing, but the lack of such a relationship means nothing.
+May alias means that two values might point to the same thing, and the lack of such a relationship means they definitely will not.
+In our case, we are interested in may analysis - we want to know if it is possible that the pointer currently being used \emph{aliases} with one which was freed prior.
+
+Additionally, alias analyses have different degrees of sensitivity.
+The sensitivity of an alias analysis refers to what additional parameters are given when asking whether two pointers alias.
+A flow-sensitive analysis uses the program counter or statement location as a parameter.
+A context-sensitive analysis uses program call stack as a parameter.
+This term is also sometimes used to discuss the granularity of the memory model in use, e.g. a ``field sensitive analysis'' is one in which the model distinguishes between writes to \texttt{s->x} vs \texttt{s->y}.
+In our case, field sensitivity is made more complex by a lack of type information and the presence of pointer arithmetic, so it differs from the traditional presentation (\S~\ref{sec:field}).
+
+Analysis which is both context and flow insensitive can generally be done very efficiently, in nearly linear time~\cite{steensgaard-alias}.
+However, their lack of sensitivity makes the drawing of variable boundaries very important and removes all ability to reason about a variable being overwritten as a safety property.
+They are still very useful in compilation, since variables are well defined, and a spurious may-alias relation can only inhibit a potential optimization, but are of limited utility for finding use-after-frees.
+Common examples of this are Steensgaard~\cite{steensgaard-alias} and Andersen's~\cite{andersen-alias}.
+
+Flow-sensitive analyses are still more seldom used due to their longer run times, but modern techniques are beginning to allow them to scale to larger codebases~\cite{sfs}.
+Flow sensitivity is the most important sensitivity for our use case because it helps us to reason about overwritten variables.
+For example, if a variable is freed, then overwritten with a fresh pointer (for example, \texttt{free} followed by \texttt{strdup}), this avoids leaving the variable as potentially free.
+It is additionally specifically important to the binary domain due to the repeated re-use of registers.
+Over the course of a function, the register \texttt{RAX} probably maps to several different variables, depending on the current program counter.
+Flow sensitivity helps to keep these relationships separated by parameterizing the alias relationship accordingly.
+The implementation of a flow sensitive analysis generally follows the pattern of performing dataflow on a points-to relationship to a fixpoint.
+
+Context-sensitive analyses are frequently used in analysis of Java and other object oriented programs because it helps to reason about which class of objects may have been passed into a function, and thus which methods may be called.
+The two primary ways to accomplish this are to either take a call-site approach (tracking a stack of return addresses), or an object based approach where method calls are parameterized by which objects they may have occurred on.
+We will focus on the call-site approach here, as we do not have recovered objects.
+
+The call-site approaches are generally distinguished from one another based on what domain is used for the stack tracking.
+With an unbounded stack, it reduces to inlining every function call.
+This can result in an very large expansion of problem size, and cannot be completed in the case of recursion.
+If an analysis can handle the larger control flow graph, it can special case out recursion by either contracting strongly connected components of the function call graphs to single nodes, or by truncating stacks on recursive calls to the last time this call site occurred.
+Another option is to limit how much of the context is tracked.
+Most commonly, this is done by tracking the most recent $k$ calls for some fixed $k$.
+In this case, a strategy to deal with recursion is not required, but still may be desired to put available precision to the best use possible.
+
+One of the most focused on analyses for alias analysis over binaries is VSA~\cite{vsa}.
+VSA integrates the problem of alias and value analysis by doing abstract interpretation over a domain called a strided interval, with dynamic allocations appearing as free variables.
+This formulation has produced useful results in the past, but its relative expense~\cite{angr-sok} has limited its applications, especially with regards to whole program analysis.
+This technique has also been applied to variable recovery~\cite{divine}, however using this for variable selection in our case would result in a cyclic dependency.

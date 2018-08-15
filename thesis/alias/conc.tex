@@ -1,0 +1,7 @@
+We presented \aliasname, a novel, open source, binary-only use-after-free detector.
+In \aliasname, we demonstrated how to adapt alias analysis techniques from source-level analysis to binary code.
+This reduced the reliance of binary analysis on VSA in cases where its full power is not required.
+We evaluated several design points in the space of alias analysis for purposes of detecting use-after-free bugs, comparing both the performance cost and precision of different sensitivity combinations, including no sensitivity, flow sensitivity, context sensitivity, and field sensitivity.
+Over known-vulnerable programs, flow sensitivity removed 90\% of false positives, with context sensitivity removing an additional 93.1%.
+When testing believed safe programs, we observed 93.1\% and 43.5\% reductions respectively.
+Use of analyses lighter than VSA allows for whole program analysis of medium-sized programs for use-after free vulnerabilities, with additional computational resources allowing for increased precision.
