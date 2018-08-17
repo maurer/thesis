@@ -1,0 +1,165 @@
+%Model/Technique/Approach
+\section{Type System}
+\label{sec:typesys}
+%  Define the problem precisely
+We approach the problem of recovering types from compiled code with the goal of recovering the type of every register at every program point. The main complication here is that there are operations with multiple possible meanings, and we must discover which one is actually in use. For example, in the case of addition, the operation may mean any of array indexing, struct indexing, or arithmetic addition. There may be multiple legal translations available in some cases. We design our type system to try to restrict the number of legal translations as much as possible, while still accepting the vast bulk of programs generated under a C-like paradigm.
+
+% Explain approach more directly
+To this end, we set out to form a descriptive type system. This means we primarily focus on describing what actions are actually taken in practice; we focus on the property that if what the code is doing is reasonable, we accept and characterize how that could be the case, rather than rejecting the code outright because we cannot prove its safety. We must take an approach along these lines, because unlike in a compiler, we cannot simply reject the code if the binary fails to make clear its own safety. Before diving into the type system itself, we examine some of the decisions made when designing a type system for type reconstruction, and why we made the decisions we did. Then, we explain the type system used by \bitr\ internally to describe and infer types before \bitr\ projects the internal types out to C-like types upon completion.
+
+%    Assumptions
+%It's not exactly assumptions, but is a description of our domain, which is essentially the same thing.
+\subsection{Design Space}
+To describe the types of the registers in compiled programs, we have a wide variety of possibilities to consider. Along one axis, we can try to be strict or permissive in our typing. The benefit of greater strictness here is that we can claim more properties about the typed code. However, strict type systems have the downside that if we receive code that does something outside the small window of proof techniques we have envisioned, we will suddenly be getting little to no information about the binary. Adding the ability to perform more operations (for example, array indexing) to the type system is usually costly in terms of complexity of inference implementation and in terms of speed. Permissiveness has the upside of being willing to skip some of these complex operations (for example, trying to prove that an array index is in bounds and a multiple of the size) and of being more likely to give sensical output even if a proof strategy fails. However, permissive type systems also have the downside that there may be more typings available for a given program. Additionally, a satisfying typing in such a system will be unlikely to provide useful properties about the program.
+
+The specificity of our type system lies along another axis. Can we describe the type of suspended executions well? What about polymorphic data structures? The more features we add, the more complex the inference will become, but also the more useful the produced typings will be. If we are strict, the specificity governs what we can and cannot type. If we are permissive, this governs how well we will be able to use the information present in the code. An example of specificity would be whether we have an all encompassing \emph{code pointer} type versus one that encodes some kinds of input and output types, or in the extreme case, preconditions and post-conditions on the values. Expressiveness instead deals with those things that we would simply be unable to even talk about otherwise. For example, without some kind of recursive type, all data structures would need to have a finite depth known ahead of time.
+
+In our environment, permissiveness has an advantage over strictness. A strict typing system would provide much value as an analysis framework, but if we want to work generally on the bulk of programs, a strictly safe environment would exclude too many of programs from analysis. Along expressiveness and specificity, we make compromises in order to keep the system tractable. In the area of specificity, we look to differentiate regular pointers from arrays, and to allow for the description of polymorphic data structures. In expressiveness, we add support for recursive types. To the best of the authors' knowledge, we are the only reconstruction system to support polymorphic types, and one of two to support any form of recursive types~\cite{sw}. Using the right approach, we can infer recursive types for free. We also support polymorphic types through appropriate use of subtyping with a similar method. The differentiation of pointers from arrays is a minor point theoretically, but in practice it can be convenient to know whether you are dealing with a single cell or multiple. In order to avoid complex dependent typing, we ignore array lengths and any form of proof that a computed value has some property.
+
+%    Multiple sections explaining approach precisely
+\subsection{\bitr\ Type System}
+\label{subsec:typesys}
+The \bitr\ type system expresses the core reasoning concepts used by the tool to decide what type to assign to a register or expression, and what range of types it is considering. In Figure~\ref{fig:tform} we show the grammar for defining the types.
+
+\begin{figure}[t]
+\begin{align*}
+\tau ::=&\, \tint{w} &|&\, \mem &|&\, \bool \\
+     |&\, \utop &|&\, \ubot &|&\, \top_{w} &|&\, \bot_{w}\\
+     |&\, \lptr{rv}{o} &|&\, \aptr{rv}{o}\\
+     |&\, \trec{A}{\tau_A} &|&\, \tpoly{\tau}{A}{\tau'}{\tau_A}\\
+     |&\, \code
+\end{align*}
+\vspace{-2.0\baselineskip}
+\begin{align*}
+\rho ::=&\, (o : A)^* && \\
+\tau_A ::=&\, \tau \textrm{ which may use the type variable A}\\
+w ::=&\, \textrm{any positive natural number}\\
+    |&\, s \textrm{ size of pointer}\\
+A ::=&\, \textrm{type variables}\\
+rv ::=&\, \textrm{region variables}\\
+o ::=&\, \textrm{any integer}
+\end{align*}
+\caption{Type Grammar}
+\label{fig:tform}
+\end{figure}
+\begin{figure}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+-8 & $\code$\\
+0 & $\ptr{x}{n}$\\
+4 & $\tint{32}$\\
+\hline
+\end{tabular}
+\end{center}
+\caption{An Example Stack Region named x}
+\label{fig:region}
+\end{figure}
+
+\noindent {\bf Types.}
+%Integers
+The $\tint{w}$ type is used to represent integers of width w.
+%Memory
+Our intermediate semantics language (BIL) represents memory writes as nondestructive updates to a global array. As such, we need a type for that array: $\mem$. This type can be directly inferred from the source language, as a value of type $\mem$ can only be created by performing a write to an existing $\mem$, and that operation is unambiguous. It does not correspond to anything in C or other source language, it is just to type our memory variable.
+%Bool
+To represent flags or other single bit registers on which branching can be done, we use the $\bool$ type. While it is isomorphic to a single bit integers, we are trying to recover abstractions, and would like to distinguish between things we perform arithmetic on versus boolean operations.
+
+%Tops and bottoms
+$\utop$, $\ubot$, $\top_{w}$, and $\bot_{w}$ are synthetic types intended to be used in subtyping bounds and complete our lattice. $\utop$ and $\ubot$ are universal top and bottom for all our types. $\top_{w}$ and $\bot_{w}$ are provide a top and bottom bound for types of size $w$. This allows us to use subtyping bounds to indicate knowledge of the size of something, as can be indicated by the width of a write or similar low level clues.
+
+%regions
+While type variables are a standard construction, region variables (and the regions they represent) are specific to our particular system. Regions are represented in the grammar by $\rho$, and are defined as a collection of mappings from offsets to type variables. The regions form the basis for our inference of structs. Figure \ref{fig:region} shows the region corresponding to the stack for a function with one integer stack variable. Note that when combined with an offset, the same region can be represent the stored base pointer (if the function is a leaf function, otherwise the base pointer must be abstract), the initial stack pointer, and the stack pointer right before return. In another example, a structure representing a sized string
+\begin{verbatim}
+struct {
+  int size;
+  char* str;
+}
+\end{verbatim}
+would be encoded by \bitr\ as $\lptr{r_0}{0}$ where
+$$r_0 = (0 : t_0) (4 : t_1) \qquad t_0 = \tint{32} \qquad t_1 = \aptr{r_1}{0}$$
+$$r_1 = (0 : t_2) \qquad t_2 = \tint{8}$$
+At first, this might seem a clumsy way of dealing with structures, but it has a specific important benefit --- it can express that two pointers point at the same kind of structure, or that two structure members point at the same type, even when that structure definition or type information is incomplete. This allows information from different interactions with the same structure to naturally propagate into all uses.
+
+%lptr atpr
+$\lptr{rv}{o}$ and $\aptr{rv}{o}$ represent pointer and array types respectively. The $rv$ indicates which form of region the pointer points at. The $o$ acts as an offset into that region, allowing two pointers at a constant offset from one another to refer to the same region. Adding a constant value to either a pointer or an array can perform an indexing into the region, accessing one of the struct fields. Arrays can have variable values or constant values added to them to index into the array, keeping the offset constant. Were we to attempt to detect array bounds, we could describe $\lptr{rv}{o}$ as $\aptr{rv}{o}$ with size 1. However, as we allow arbitrary indexing into arrays, but not into pointers, it is useful to distinguish between the two.
+
+%rec
+$\trec{A}{\tau_A}$ introduces a recursive type. Within $\tau_A$, $A$ refers to $\tau_A$. Since our type system does not have additive types as a primitive, the only useful place to put $A$ is inside a region that a pointer uses. This provides an implicit option type (our pointers are nullable), allowing the recursive types to be finite size. This corresponds to the common C usage of a using a struct pointer as a member of the struct itself.
+
+%poly
+$\tpoly{\tau}{A}{\tau'}{\tau_A}$ constructs a polymorphic type. $\tau$ is the lower bound, and $\tau'$ the upper bound. While our inference system does not directly generate polymorphic types, once inference is done we bind type variables that are only partially constrained with this construct before returning them. This allows for the expression of polymorphic linked lists and other simple data structures. This allows us to deal with many of the cases where C programmers use \texttt{void*} and casts to deal with their lack of polymorphism. The upper and lower bounds are most commonly used in conjunction with $\top_{w}$ and $\bot_{w}$ to indicate a type variable for which only its size is known, but in principle could express other restrictions.
+
+%code
+$\code$ is used to represent any pointer to code that can be jumped to. In future work, we may attempt to type this more specifically, expressing type preconditions for the jump and treating it more like a continuation. Function pointers, and values created by \texttt{setjmp} use this type. However, its most common and practical use is to represent the return pointer the function jumps to in order to return control to its caller.
+
+\noindent {\bf Subtyping}
+An important feature of the system is subtyping --- this allows us to constrain the bounds of a type even when we do not know everything about it yet. This lattice is extensible to include things like nullable vs non-nullable pointers, the type of 0, etc. but was not in this work. We define subtyping via meet: if $\tau_0 \wedge \tau_1 = \tau_0$, then $\tau_0 \subt \tau_1$.
+\[
+\infer{\tau \wedge \tau = \tau}{}
+\qquad
+\infer{\utop \wedge \tau = \tau}{}
+\qquad
+\infer{\tau \wedge \tau' = \tau''}{\tau' \wedge \tau = \tau''}
+\qquad
+\infer{\top_{s} \wedge \tau = \tau}{\textrm{sizeof}(\tau) = s}
+\]
+\[
+\infer{\tau \wedge \tau' = \ubot}{\textrm{sizeof}(\tau) \neq \textrm{sizeof}(\tau')}
+\qquad
+\infer{\lptr{r}{o} \wedge \tint{w} = \lptr{r}{o}}{\textrm{sizeof}(\lptr{r}{o}), w}
+\]
+\[
+\infer{\aptr{r}{o} \wedge \tint{w} = \aptr{r}{o}}{\textrm{sizeof}(\lptr{r}{o}), w}
+\qquad
+\infer{\aptr{r}{o} \wedge \lptr{r'}{o'} = \aptr{r}{o}}{r@o = r'@o'}
+\]
+\[
+\infer{\lptr{r}{o} \wedge \lptr{r'}{o'} = \bot{s}}{r@o \neq r'@o'}
+\]
+\[
+\infer{\aptr{r}{o} \wedge \lptr{r'}{o'} = \bot{s}}{r@o \neq r'@o'}
+\qquad
+\infer{\aptr{r}{o} \wedge \aptr{r'}{o'} = \bot{s}}{r@o \neq r'@o}
+\]
+
+\[
+\infer{\tau \wedge \tau' = \bot_{w}}{\textrm{No above rules apply} & \textrm{sizeof}(\tau) = \textrm{sizeof}(\tau') = w}
+\]
+\[
+\infer{\tau \wedge \tau' = \ubot}{\textrm{No above rules apply} & \textrm{sizeof}(\tau) \neq \textrm{sizeof}(\tau')}
+\]
+We omit structural subtyping here. This is an intentional omission, with the rationale that casting from one compatible struct to another is an uncommon operation in C, and removing the possibility of such a cast allows better propagation of information about the structures by demanding that the unification of regions to proceed.
+
+\noindent {\bf Expressions.}
+We also require rules explaining expression typing. We omit some of the more obscure rules dealing with different types of casting bitvector concatenation and slicing for brevity.
+\[
+\infer{\lptr{r,o-n} \subt e + n}{n\ \textrm{const} & e \subt \lptr{r}{o}}
+\qquad
+\infer{\aptr{r,o-n} \subt e + n}{n\ \textrm{const} & e \subt \aptr{r}{o}}
+\]
+\[
+\infer{\aptr{r,o} \subt e + e'}{e' \subt \tint{s} & e \subt \aptr{r}{o}}
+\qquad
+\infer{*e : r@o(0)}{e \subt \lptr{r}{o}}
+\qquad
+\infer{*e : r@o(0)}{e \subt \aptr{r}{o}}
+\]
+$\oplus$ here is a substitute for most mathematical operations (+, -, etc), and $\phi$ is an SSA $\phi$ node.
+\[
+\infer{e \oplus e'}{e : \tint{w} & e' : \tint{w}} \qquad \infer{\phi(e, e') \subt \tau \vee \tau'}{e \subt \tau & e' \subt \tau'}
+\]
+\[
+\infer{*e = e' : \mem}{e \subt \lptr{r}{o} & e' : r@o(0)}
+\qquad
+\infer{*e = e' : \mem}{e \subt \aptr{r}{o} & e' : r@o(0)}
+\]
+
+\noindent {\bf Type and Region Variable Binding.}
+In a traditional type system, variables must be bound before use. However, as this system was primarily designed for inference rather than direct use, it assumes initially that all region variables and type variables are defined mutually recursively. A set of bindings for type variables and region variables which satisfies the constraints we will describe later forms the solution to our typing problem. However, this system of a mess of mutually recursive bindings is difficult for humans to read and understand, so when the binding for a given type variable is requested, we narrow the scopes of type variables as much as possible, introducing $\forall$ and $\mu$ where appropriate, while substituting in region variables for their bindings, making a self-contained type. The polymorphic types arise from type variables who are insufficiently restricted in the response type. Recursive types arise from type variables whose bounds refer to themselves.
+
+In summary, during inference, all region variables and type variables are defined mutually recursively and exist together. When the type is output, $\mu$ and $\forall$ bind new type variables, and region variables do not exist as they are replaced by the regions they represent.
+
+%  Discussion (summary of algorithm, brief)
+\subsection{Approach}
+In order to actually generate types according to this model, we first lift all the statements to BIL\cite{bap} (an IL for modeling CPUs used by BAP) to make them easier to analyze. Next, \bitr\ generates a set of subtyping constraints for each statement, restricting the types that each register could have. Finally, we search the constraint space for a maximally correct solution, generating a narrow range of types. Unfortunately, aspects of our typing system, namely ad-hoc polymorphism, subtyping, and equirecursion, do not coexist in any exiting unification system the authors could find, so the authors wrote a new one to solve the constraints.
+%TODO if space, describe unification

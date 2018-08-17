@@ -1,0 +1,20 @@
+\input{bitr/ctype}
+\newcommand{\lptr}[2]{#1^*@#2}
+\newcommand{\aptr}[2]{#1[\cdot]@#2}
+\newcommand{\ptr}[2]{\lptr{#1}{#2}}
+\newcommand{\sptr}[1]{\mathsf{sptr}~#1}
+\newcommand{\bool}{\mathsf{bool}}
+\newcommand{\jmp}[1]{\to #1}
+\newcommand{\mov}[2]{#1 \gets #2}
+\newcommand{\cjmp}[3]{#1 \to^? (#2, #3)}
+\newcommand{\lab}[1]{#1:}
+\newcommand{\load}[3]{#1[#2]_#3}
+\newcommand{\store}[4]{#1[#2 \to #3]_#4}
+\newcommand{\safe}[1]{#1\ \textbf{safe}}
+\newcommand{\code}{\mathsf{code}}
+\newcommand{\pent}{\vdash^P}
+\newcommand{\tint}[1]{\mathsf{int}_{#1}}
+\newcommand{\tsizeof}[1]{\mathsf{sizeof}(#1)}
+\newcommand{\utop}{\top}
+\newcommand{\ubot}{\bot}
+\newcommand{\subt}{\sqsubseteq}

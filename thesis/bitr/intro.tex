@@ -1,0 +1,64 @@
+%Introduction
+
+\section{Introduction}
+\begin{savenotes}
+\begin{figure*}
+\begin{tabular}{|c||c|c|c|c|c|c|c|}
+\hline
+& Propagation & Locals & Structures & Polymorphism & Recursive & Independent of Variable Recovery & Static/Dynamic\\
+\hline \hline
+TIE & \fyes & \fyes & \fhalf & \fno & \fno & \fno & S\\
+\hline
+Hex Rays & \fyes & \fyes & \fno & \fno & \fno & \fno & S\\
+\hline
+Rewards & \fyes & \fno & \fno & \fno & \fno & \fyes & D\\
+\hline
+Howard & \fyes & \fyes & \fyes & \fno & \fno & \fyes & D\\
+\hline
+\bitr & \fyes & \fyes & \fyes & \fyes & \fyes & \fyes & S\\
+\hline
+\end{tabular}
+\caption{Feature Matrix}
+\label{fig:feat}
+\end{figure*}
+\end{savenotes}
+% P
+%   cause of X arises because blah
+Type information is not used by the CPU, and as such, the compiler throws it away during normal compilation. This information has a wide variety of uses, including software verification, reverse engineering, and binary similarity detection. Reverse engineering relies heavily upon the reconstruction of types to make the lifted code comprehensible to a human. Similar data structure use can indicate similar code~\cite{Cozzie}. Knowledge of types can also assist in fuzzing and automated decompilation. All in all, many methods of analyzing binaries post-compilation require some degree of type construction to work properly, and better automated type reconstruction can help with this.
+
+%   Define X more precisely
+The \emph{binary type reconstruction} problem is: Given a binary program without types, reconstruct the type information that the compiler had at code generation time, but did not emit with the final binary. We specifically focus on C, but hope the techniques can eventually be extended to work on larger classes of languages. Effectively, the goal is to recover an abstraction stripped away by the compiler as it was emitting code. This is distinct from traditional type inference in two important ways: First, even if the code does not have a valid type assignment, it is important to succeed in assigning meaningful types to most variables. Second, operations with the same concrete implementation are not differentiated, e.g. adding numbers vs indexing into an array, and this differentiation must be done during inference.
+
+% Previous work does X at a high level.
+Type reconstruction has received increased attention in recent years because it is an important activity for reverse engineering COTS (Commercial Off The Shelf) software. Recent work includes TIE~\cite{tie}, the Hex Rays Decompiler~\cite{ida}, Rewards~\cite{rewards}, and Howard~\cite{Slowinska2011}.  At a high level, the goal of each tool was the same: recover high-level type information from low-level code. However, the scope and fidelity of each tool has varied considerably.
+
+% How previous work does X; setting up for contrasting with next para.
+Figure~\ref{fig:feat} shows an overview of current research and the scope of reconstruction performed. Rewards proposed type propagation from known type sources, such as system and library calls, to type sinks in a dynamic trace, and using this information to type the cells in a memory image. Howard, Hex Rays, and TIE all also do type propagation. Hex Rays and Howard add the ability to infer local variables, which they then label with propagated type information. TIE adds the ability to infer variables not used in a trace, along with a type range. TIE also infers general structural types.  Hex Rays and Rewards do not infer any structures, they simply propagate information from known sources. Howard infers structure fields and arrays accessed during a dynamic trace, but cannot handle recursive definitions such as a linked list~\cite{Slowinska2011}. In practice, however, TIE outputs structure types rarely, and in our experiments, only inferred a single field. There are also systems for type forensics, where the analyst is generally given a set of types and the goal is to match them to binary code and/or a memory image. We discuss this work in \S~\ref{sec:related}. Static approaches have the benefit of typing all the visible code in the binary, while dynamic approaches have the benefit of knowing true address information as memory accesses occur. Unfortunately, to examine a part of the code with a dynamic approach, the user must first have coverage on that area of the code. When reverse engineering, one often wants to look at an area of code first to decide whether it is worth exploring, rather than needing to find a way to reach that code before considering its nature. This makes the dynamic approach less well suited to the task at hand.
+
+% Previous work insufficient. 
+Unfortunately, current techniques left large amounts of code untyped. In particular, previous work did not infer polymorphic types. In C, these are often implemented by casting to/from \texttt{void*}. Nor did previous techniques infer recursive types, such as linked lists. Specifically, Hex Rays, Rewards, and Howard did not make type inference a central goal, but instead focused on type propagation. TIE \emph{inferred} types in addition to doing propagation. It did this by first accumulating a set of constraints for typing based on how code used and defined variables. Next, the type constraint solver attempted to unify the constraints into a typing solution. The main limitation of TIE was the constraint solver was not powerful enough to include polymorphic or recursive types, and did a poor job coming up with precise answers for structures. 
+
+
+When propagation from sources or sinks cannot determine the type of a register or memory cell, reverse engineering the type comes down to analyzing how the program uses and defines the register, and then finding a typing that is consistent with all uses. The general approach to solving this mechanically is to first formulate a system of constraints from the code, then solve them by some mechanism. There are a large number of ways to approach this: Are variables constrained, or are registers and memory locations? Should aliased operations like pointer arithmetic and addition be represented by intersection-typed functions, or multiple applicable rules? How does the solver prioritize possible branches of a typing to explore?
+
+% P
+%   Here is what we call our system
+
+In this paper we present \bitr, a new type recovery system for binary code that handles the full range of C data types excluding unions. Like TIE, we take a type inference approach where analysis first generates constraints on the types of variables, which are then solved to an upper and lower bound on its type. The main difference is that our constraint solver uses a more powerful constraint and type framework, avoiding issues plaguing previous work. We observed that three main design decisions hampered TIE in particular. First, TIE's constraint solver attempted to brute force a solution to typing constraints. \bitr{} introduces the notion of consistency of constraints, which is used to intelligently prune inconsistent solutions during type resolution.  Second, TIE's use of structure subtyping obscures the link between different pointers in a way that makes it harder for their constraint solving engine to recover structures. Third, TIE required variable recovery before type inference, thus tying overall performance to the variable recovery engine. Often a reverse engineer only wants to know the type of a memory cell, as in Rewards.  In such cases we need not discern the type of every variable. \bitr{} decouples variable recovery from inferring types.
+
+
+  To test our approach, we implemented our techniques in \bitr\ and measured the accuracy of our results. We type approximately twice as many more locations (16.8\% in TIE vs 36.78\% in \bitr), and do so more accurately. Further, we generate types about five times faster than TIE.
+%TODO: Double check this. I think we are even more than that faster, but this is a lower bound I can safely state.
+
+
+Overall, this paper provides the following contributions:
+\begin{itemize}
+\item We provide a \emph{descriptive} type system with \emph{structure}, \emph {recursive}, and \emph{polymorphic} types (\S~\ref{subsec:typesys}), designed for inferrability, expressiveness, and specificity.
+\item We develop an efficient type inference engine. Our main observation is that early branch pruning greatly speeds up the search of the typing space (\S~\ref{subsec:speed}).
+\item We develop techniques that show variable recovery is not required in order to do type reconstruction, assuming the inference system has sufficient capability to deal with structures (\S~\ref{subsec:regonly}).
+\item We implement our technique and show that we can correctly reverse engineer twise as many types as TIE (\S~\ref{subsec:evalprev}).
+\end{itemize}
+
+% P
+%   Section map
+\S~\ref{sec:typesys} describes the type system used to describe the types of registers throughout the code. \S~\ref{subsec:workedexample} shows a worked example of our inference methodology. \S~\ref{sec:infmeth} describes how the system works mechanically, building on the intuition from the worked example. \S~\ref{sec:eval} presents our experiments and results, evaluating the effectiveness of \bitr\ and explaining in detail why we got the results we did, and subtleties in the experiments. \S~\ref{sec:conclusion} gives closing statements for what we determined.

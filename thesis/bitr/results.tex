@@ -1,0 +1,11 @@
+\section{Results}
+\label{sec:results}
+Most of this needs to be written once experiments are done.
+
+* Sample program recovery - this should be 100\%
+* binutils recovery - this should be higher than TIE, compare against TIE, REWARDS, IDA where possible.
+	* Present in TIE best match scenario (e.g. if tie can't represent it, the closest type to the true type is OK)
+	* Present in match or no match (e.g. if TIE can't represent it, they lose that type).
+* Run over a bunch of binaries. If function does "typecheck" even under this weak system, describe the bug represented (this should represent some kind of bug, even if it's not exploitable, other than union datatypes).
+* Report a "type uniqueness" statistic. Compare against other systems. This is to suggest the feasibility of componenet identification.
+* If time left, hook into decompiler, re-run binutils recovery, report type match improvement.
