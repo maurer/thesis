@@ -1,0 +1,116 @@
+\section{Related Work}
+\label{tach:sec:related}
+
+
+Our approach is motivated by existing replay systems. At a high level,
+previous work in this area has focused on system call replay (e.g.,
+~\cite{\allsystemcallreplay}), virtual-machine level replay (e.g.,
+~\cite{\allvmreplay}), and instruction-level replay schemes
+(e.g.,~\cite{\allinstructionlevelreplay}). These systems address the
+related but different problem of replay against the same binary, e.g.,
+for debugging, while we want to replay to a different binary for patch
+testing.
+
+Delta Execution~\cite{Tucek2009c} uses a similar insight to us for testing,
+namely that patches tend to change very little, and the majority of
+the program should remain the same. To accomplish this, they structure
+execution so that it splits every place in which the patch modified the code,
+and attempts to merge the execution afterwards, checking that the overall
+state change during the split matched appropriately.
+Their approach has the additional
+advantage of avoiding duplicate computation.
+\tachyon differentiates itself from this work primarily in its
+generality; specifically, it works at a binary-only level, it allows matching
+global effects (e.g. heap changes and IO), can be configured to allow specific
+non-matching global effects, and allows for structure size changing.
+Fundamentally, Delta Execution attacks the problem at the level of matching internal state,
+while \tachyon attacks it from the point of view of observational equivalence
+from the outside world.
+
+Where Delta Execution places their consistency level inside the application state,
+which is more specific than us, Capo~\cite{Montesinos2009} attacks it from the
+point of what signals are coming into and going out of the computer. This wins them
+several benefits, namely the ability to deal with fewer effects and a lesser need for a rewrite or matching
+system (for example, coalescing or splitting reads or writes is free). Unfortunately,
+this system also needs specialized hardware and in-kernel code to operate. While we
+have used kernel code to accelerate \tachyon under Linux, it is not required or
+fundamental to the technique.
+
+Like \tachyon, R2~\cite{guo:2008} designed a type system to express all
+side-effects, but for the purpose of describing intercepted APIs at
+the source level.  R2~\cite{guo:2008} differs from \tachyon in
+that it targets developers, interposes at the function level (thus
+requires source), and replays recorded syscalls against the same
+binary.  Although the problem setting is different, there are numerous
+good ideas that could be borrowed for live replay if source was
+available.  For example, R2 proposed analyzing the call graph to find
+efficient cut points at which to perform interposition, while we
+always interpose at every syscall. 
+Unfortunately, we at the binary only level cannot easily prove that a
+set of interposition points form a complete cut.
+Additionally, R2's annotation
+language is actually too powerful, and allows for the expression of types
+that we cannot appropriately interact with at a binary-only level without
+compile-time assistance, as it allowed for the computation of arbitrary expressions.
+We instead limited ourself to navigating trees of pointers, which turns out to be
+sufficient for the vast majority of system calls.
+
+We record system calls and discover divergences when system call
+requests do not line up.  Another approach would be to perform replay
+at the instruction level, which would be useful for pinpointing the
+first point of divergence.  This could be done by augmenting
+instruction-level replay systems like PinPlay~\cite{patil:2010},
+and gdb\cite{gdb} 7.0 and above to take into account differences in memory
+layout.  In undodb~\cite{undodb}, memory snapshots and individually
+optimized system calls are used to accomplish reverse execution.
+
+
+Alternatively, one could utilize VM playback mechanisms~\cite{revirt,
+  retrace, vmware-replay} to simulate patches at the whole-machine
+level. However, testing then requires accurately replaying very low level events.
+We chose system calls over
+instruction level or whole-machine level because system call
+interposition is significantly cheaper, thus more amenable to end-user
+deployment scenarios. Additionally, rewriting system calls is much more reasonable
+than rewriting low level events.
+
+Another recent idea in interacting with multiple programs which should meet the
+same specification, similar to our patched and unpatched pair, is the
+idea of N-Variant systems~\cite{Cox2006}. It intends to increase reliability
+by forcing any exploit or otherwise bad input sent as input to cause the same
+bad effect in other versions of the software in order to actually occur. There
+are some similarities here, but our techniques are aimed at fundamentally differing
+process images, while theirs are aimed at the same underlying code put together
+in different ways.
+
+Our system does not find new inputs for patch testing. While we
+assume live or recorded inputs, one could replay both systems on
+automatically generated inputs as well.  For example, we could use
+test cases produced by automated systems such as
+KLEE~\cite{cadar:2008}, BitBlaze~\cite{bitblaze}, and BAP~\cite{bap}.
+
+Brumley \etal have previously proposed deviation detection at the
+binary level~\cite{brumley:2007:deviations}.  The main goal in this
+work is to automatically \emph{generate} likely deviations, which is a
+different problem than tandem execution.  Once a candidate deviation
+is generated, the deviation was manually validated (Section
+3.3~\cite{brumley:2007:deviations}). Our approach could be used to
+validate deviations automatically at the syscall level.
+
+
+% \paragraph{Effects via Types}
+% Type
+% systems which accurately measure all effects are a large area of research
+% and have a wide variety of challenges associated with it.\cite{agda} However,
+% most of the trouble with these systems comes in designing checkers for these
+% types and corresponding languages which can be checked. As we are dealing with
+% binary, kernel-side code, it would be infeasible to check the types, so we
+% sidestep this issue by simply using lightweight dependent types to describe
+% the interface and asserting that they are correct.
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "paper"
+%%% End: 

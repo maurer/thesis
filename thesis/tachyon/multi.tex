@@ -1,0 +1,22 @@
+\paragraph{Multithreading tolerance.}
+\label{tach:sec:multi}
+
+Up until now, we have considered only programs using one
+thread. However, many modern programs use multiple threads in their
+normal operation. For example, \texttt{curl} in \S~\ref{tach:sec:eval} uses them during DNS
+lookup.
+
+To deal with threads, \tachyon employs techniques inspired by the field of
+deterministic multithreading (DMT)\cite{coredet, determinator,
+  dthreads}.  A DMT mechanism is one that makes a program insensitive
+to the scheduler as an input. That is, given the same inputs other
+than kernel scheduler action, it will yield the same outputs. 
+
+In \tachyon, we enforce an ordering over system call events.
+We differentiate from a mismatched system call in need of rewriting and a thread
+being early or late by choosing to block the thread if the thread IDs on the syscalls don't match,
+and invoke the rewrite engine if they do match, but the system calls don't.
+This forms a looser notion of consistency than is used in regular DMT, but is sufficient for our purposes.
+However, applying a real DMT system in addition to our techniques
+would likely yield an even more robust treatment of threading able to deal with shared memory
+data transfers and other such intricacies.

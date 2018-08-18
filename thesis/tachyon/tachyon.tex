@@ -1,0 +1,23 @@
+\newcommand{\tachyon}{\textsc{Tachyon}}
+\chapter{\tachyon: Tandem Execution for Efficient Live Patch Testing}
+\newcommand{\allsystemcallreplay}{patil:2010,guo:2008}
+\newcommand{\allinstructionlevelreplay}{patil:2010,gdb,undodb}
+\newcommand{\allvmreplay}{retrace,simics,vmware-replay}
+\newcommand{\patched}{P}
+\newcommand{\unpatched}{P'}
+\newcommand{\tuple}[3]{\langle #1, #2, #3 \rangle}
+\newcommand{\size}[1]{|#1|}
+\newcommand{\len}[1]{\mathsf{len}(#1)}
+\newcommand{\seqlen}[1]{\mathsf{seqlen}(#1)}
+\newcommand{\impl}{\rightarrow}
+\newcommand{\etal}{et al.\ }
+
+\input{tachyon/intro}
+\input{tachyon/design}
+\input{tachyon/types}
+\input{tachyon/equiv}
+\input{tachyon/impl}
+\input{tachyon/results}
+\input{tachyon/discussion}
+\input{tachyon/related}
+\input{tachyon/conclusion}
