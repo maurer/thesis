@@ -19,7 +19,8 @@ deviation. We then tested on inputs that triggered known deviations,
 e.g., exploits in the original program or bugs in the patch.
 
 \begin{figure}
-\begin{footnotesize}
+	\begin{center}
+	\begin{footnotesize}
 \begin{tabular}{|c|c|c|}
 \hline
 Program & Issue ID & Description\\
@@ -50,6 +51,7 @@ corehttp & CVE-2009-3586 & Off-by-one Buffer\\
 \end{footnotesize}
 \caption{Successfully Detected Deviations for Security Patches}
 \label{tach:fig:bug}
+	\end{center}
 \end{figure}
 
 % In these cases, the experiment performed was to first execute on several
@@ -111,7 +113,7 @@ for EDB-ID-476 to allow for rewriting of the format of a usage
 message. Four were required to deal with the new \texttt{lstat}s in the patch for CVE-2009-3586.
 
 \subsection{False Positive Testing}
-To show that \tachyon is fairly precise, we tested it on the most recent 207 patches to coreutils. (The number 207 was chosen because that was how far backwards we could go easily with an automated building system.) From this, we found that in 18 cases out of 1656 executions, a deviation was reported, or \tachyon crashed. Looking at the output, 16 of these were \tachyon bugs, but are not systematic, so that re-running the test produced correct results. 2 of these were actual deviations. In the first, a call to \texttt{fadvise()} was introduced into \texttt{cp}. An equivalence can be reached with a one-line rewrite rule. In the second, a buffer size was changed. The read/write splitting/coalescing rules described earlier in this paper allow an equivalence to be reached. Overall, this indicates that while \tachyon is not perfectly bug free, it never reported a deviation when one had not happened, and deviations that should be acceptable could be easily expressed in the rule system.
+To show that \tachyon is fairly precise, we tested it on the most recent 207 patches to coreutils. (The number 207 was chosen because that was how far backwards we could go easily with an automated building system.) From this, we found that in 18 cases out of 1656 executions, a deviation was reported, or \tachyon crashed. Looking at the output, 16 of these were \tachyon bugs, but are not systematic, so that re-running the test produced correct results. 2 of these were actual deviations. In the first, a call to \texttt{fadvise()} was introduced into \texttt{cp}. An equivalence can be reached with a one-line rewrite rule. In the second, a buffer size was changed. The read/write splitting/coalescing rules described earlier in this chapter allow an equivalence to be reached. Overall, this indicates that while \tachyon is not perfectly bug free, it never reported a deviation when one had not happened, and deviations that should be acceptable could be easily expressed in the rule system.
 
 We also ran \tachyon on patches for two common utilities with no known
 vulnerabilities:
@@ -164,12 +166,12 @@ of reading from the remote process only have one copy.
 \begin{figure*}
 \begin{minipage}[b]{0.49\linewidth}
 \centering
-\includegraphics[scale=0.6, trim=40mm 0mm 20mm  0mm]{tachyon/dataData.pdf}
+\includegraphics[scale=0.5, trim=40mm 0mm 20mm  0mm]{tachyon/dataData.pdf}
 \caption{Data Transfer Overhead}
 \label{tach:fig:dover}
 \end{minipage}\begin{minipage}[b]{0.49\linewidth}
 \centering
-\includegraphics[scale=0.6]{tachyon/sysData.pdf}
+\includegraphics[scale=0.5]{tachyon/sysData.pdf}
 \caption{Syscall Overhead}
 \label{tach:fig:sover}
 \end{minipage}
@@ -230,6 +232,7 @@ memory data structure, making it impractical to benchmark.
 
 \begin{figure}
 \begin{small}
+	\begin{center}
 \begin{tabular}{|c|c|c|c|c|c|c|c|}
 \hline
 Program & Load & \tachyon  & \texttt{strace} \\
@@ -240,8 +243,9 @@ Program & Load & \tachyon  & \texttt{strace} \\
 \hline
 \texttt{mencoder}  & h264 & 1.07 & 1.12\\
 \hline
-\end{tabular}\\
-\end{small}\\
+\end{tabular}
+\end{center}
+\end{small}
 \caption{Tracing Performance (relative to native execution)}
 \label{tach:fig:strace}
 \end{figure}

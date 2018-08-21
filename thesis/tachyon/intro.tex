@@ -3,7 +3,7 @@
 
 Most attacks target known vulnerabilities for which there are already
 patches.
-For example, Microsoft reported that only 0.12% of all exploit
+For example, Microsoft reported that only 0.12\% of all exploit
 activity in the first half of 2011 involved a zero-day attack for
 which a patch has been available for a month or less~\cite{msir:2011}.
 For the other 99.88\%,
@@ -77,8 +77,8 @@ addresses all these requirements.
 % best, in the end they are just re-vetting the patch the same way the
 % software firm did, and are unlikely to detect all errors.
 
-In this paper we propose the first techniques for live patch testing
-via tandem execution. Our insight is that current manual testing
+In this chapter we describe a technique for live patch testing via tandem execution.
+Our insight is that current manual testing
 checks whether the executions of a pre-patch and post-patch binary
 produce different outputs on known inputs.  We call this
 \emph{observational equivalence} between pre and post-patch.
@@ -178,20 +178,12 @@ performed. We show our implementation records full syscall
 information faster than \texttt{strace}, a tracing tool targeted at
 binary programs, and is efficient in comparison to an untraced run.
 
-\paragraph{Contributions.}
-The main contribution of this paper is techniques for
-live tandem execution for patch testing. These techniques automate
-a large part of patch testing, thus reducing the vulnerability window for
-unpatched systems.  In particular:
+This chapter focuses on techniques for
+live tandem execution for patch testing.
+These techniques automate a large part of patch testing, thus reducing the vulnerability window for
+unpatched systems.
+In particular:
 \begin{itemize}
-\item We are the first to propose techniques for automated
-  patch testing that address all the above challenges;
-  we have implemented them in \tachyon. We demonstrate where we run both the
-  unpatched and
-  patched binary and use tandem execution to detect deviations. An
-  additional benefit of tandem execution is that it can utilize
-  extra cores for the security purpose of patch testing.
-
 \item We develop a type system that fully encapsulates the side
   effects of syscalls necessary for replay. Our type system is similar
   to~\cite{guo:2008}, but does not require source code access or
@@ -209,7 +201,7 @@ unpatched systems.  In particular:
   real-world patches, as well as synthetic benchmarks, to show the
   effectiveness and performance of \tachyon.
 
-
+\item We show that \tachyon detects deviations corresponding to real bugs when they occur, with a low false positive rate. 
 \end{itemize}
 
 %%% Local Variables: 

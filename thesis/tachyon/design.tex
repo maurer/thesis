@@ -6,15 +6,16 @@
 
 \begin{figure}
   \centering
-  \includegraphics[scale=0.3]{tachyon/TachyonDiagram.pdf}
+  \includegraphics[scale=0.5]{tachyon/TachyonDiagram.pdf}
   \caption{Tachyon System Overview}
   \label{tach:fig:system}
 \end{figure}
 
 The overall architecture of \tachyon is shown in
-Figure~\ref{tach:fig:system}.  In this paper we call the program running
-live $\patched$ (e.g., the patched program) and the program running
-in-tandem with simulated syscalls $\unpatched$ (e.g., the unpatched
+Figure~\ref{tach:fig:system}.
+We will refer to the program running
+live  as $\patched$ (e.g., the patched program) and the program running
+in-tandem with simulated syscalls as $\unpatched$ (e.g., the unpatched
 program).  \tachyon is a user-land program that utilizes the Linux
 ptrace facility to interpose on syscalls issued by $\patched$ and
 $\unpatched$.  Like replay schemes, \tachyon has a recorder and a
@@ -156,7 +157,7 @@ Alternatively, patch creators could write such rules and distribute
 them with their patches to aid testing.
 
 \subsection{Road Map}
-In the rest of this paper, we first describe the \tachyon type system in detail. We
+In the rest of this chapter, we first describe the \tachyon type system in detail. We
 then discuss how \tachyon rewrites system calls, as well as some
 common rules we have found in patches we have tested. We next describe
 our implementation and evaluation. We finally discuss several

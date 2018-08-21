@@ -3,21 +3,25 @@
 \section{Introduction}
 \begin{savenotes}
 \begin{figure*}
+{\footnotesize
+\begin{center}
 \begin{tabular}{|c||c|c|c|c|c|c|c|}
 \hline
-& Propagation & Locals & Structures & Polymorphism & Recursive & Independent of Variable Recovery & Static/Dynamic\\
+ & Locals & Structures & Polymorphism & Recursion & Variable Recovery Ind. & Kind\\
 \hline \hline
-TIE & \fyes & \fyes & \fhalf & \fno & \fno & \fno & S\\
+TIE & \fyes & \fhalf & \fno & \fno & \fno & Static\\
 \hline
-Hex Rays & \fyes & \fyes & \fno & \fno & \fno & \fno & S\\
+Hex Rays & \fyes & \fno & \fno & \fno & \fno & Static\\
 \hline
-Rewards & \fyes & \fno & \fno & \fno & \fno & \fyes & D\\
+Rewards & \fno & \fno & \fno & \fno & \fyes & Dynamic\\
 \hline
-Howard & \fyes & \fyes & \fyes & \fno & \fno & \fyes & D\\
+Howard & \fyes & \fyes & \fno & \fno & \fyes & Dynamic\\
 \hline
-\bitr & \fyes & \fyes & \fyes & \fyes & \fyes & \fyes & S\\
+\bitr & \fyes & \fyes & \fyes & \fyes & \fyes & Static\\
 \hline
 \end{tabular}
+\end{center}
+}
 \caption{Feature Matrix}
 \label{fig:feat}
 \end{figure*}
@@ -44,14 +48,14 @@ When propagation from sources or sinks cannot determine the type of a register o
 % P
 %   Here is what we call our system
 
-In this paper we present \bitr, a new type recovery system for binary code that handles the full range of C data types excluding unions. Like TIE, we take a type inference approach where analysis first generates constraints on the types of variables, which are then solved to an upper and lower bound on its type. The main difference is that our constraint solver uses a more powerful constraint and type framework, avoiding issues plaguing previous work. We observed that three main design decisions hampered TIE in particular. First, TIE's constraint solver attempted to brute force a solution to typing constraints. \bitr{} introduces the notion of consistency of constraints, which is used to intelligently prune inconsistent solutions during type resolution.  Second, TIE's use of structure subtyping obscures the link between different pointers in a way that makes it harder for their constraint solving engine to recover structures. Third, TIE required variable recovery before type inference, thus tying overall performance to the variable recovery engine. Often a reverse engineer only wants to know the type of a memory cell, as in Rewards.  In such cases we need not discern the type of every variable. \bitr{} decouples variable recovery from inferring types.
+In this chapter we present \bitr, a type recovery system for binary code that handles the full range of C data types excluding unions. Like TIE, we take a type inference approach where analysis first generates constraints on the types of variables, which are then solved to an upper and lower bound on its type. The main difference is that our constraint solver uses a more powerful constraint and type framework, avoiding issues plaguing previous work. We observed that three main design decisions hampered TIE in particular. First, TIE's constraint solver attempted to brute force a solution to typing constraints. \bitr{} introduces the notion of consistency of constraints, which is used to intelligently prune inconsistent solutions during type resolution.  Second, TIE's use of structure subtyping obscures the link between different pointers in a way that makes it harder for their constraint solving engine to recover structures. Third, TIE required variable recovery before type inference, thus tying overall performance to the variable recovery engine. Often a reverse engineer only wants to know the type of a memory cell, as in Rewards.  In such cases we need not discern the type of every variable. \bitr{} decouples variable recovery from inferring types.
 
 
   To test our approach, we implemented our techniques in \bitr\ and measured the accuracy of our results. We type approximately twice as many more locations (16.8\% in TIE vs 36.78\% in \bitr), and do so more accurately. Further, we generate types about five times faster than TIE.
 %TODO: Double check this. I think we are even more than that faster, but this is a lower bound I can safely state.
 
 
-Overall, this paper provides the following contributions:
+In this chapter we show the following specific results:
 \begin{itemize}
 \item We provide a \emph{descriptive} type system with \emph{structure}, \emph {recursive}, and \emph{polymorphic} types (\S~\ref{subsec:typesys}), designed for inferrability, expressiveness, and specificity.
 \item We develop an efficient type inference engine. Our main observation is that early branch pruning greatly speeds up the search of the typing space (\S~\ref{subsec:speed}).
@@ -61,4 +65,4 @@ Overall, this paper provides the following contributions:
 
 % P
 %   Section map
-\S~\ref{sec:typesys} describes the type system used to describe the types of registers throughout the code. \S~\ref{subsec:workedexample} shows a worked example of our inference methodology. \S~\ref{sec:infmeth} describes how the system works mechanically, building on the intuition from the worked example. \S~\ref{sec:eval} presents our experiments and results, evaluating the effectiveness of \bitr\ and explaining in detail why we got the results we did, and subtleties in the experiments. \S~\ref{sec:conclusion} gives closing statements for what we determined.
+\S~\ref{sec:typesys} describes the type system used to describe the types of registers throughout the code. \S~\ref{subsec:workedexample} shows a worked example of our inference methodology. \S~\ref{sec:infmeth} describes how the system works mechanically, building on the intuition from the worked example. \S~\ref{sec:eval} presents our experiments and results, evaluating the effectiveness of \bitr\ and explaining in detail why we got the results we did, and subtleties in the experiments.
