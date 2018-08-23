@@ -1,6 +1,3 @@
-{\fontsize{10}{12}\selectfont
-%Scope Statement
-%tl;dr I want to deal with the interaction of binary analyses
 This thesis is focused on the interleaving, interaction, and scheduling of analyses over binary code.
 %Compiled code, sans source, is everywhere
 Most commercial software tends to come in the form of a compiled binary sans source.
@@ -19,16 +16,7 @@ Type recovery depends on dataflow information\cite{bitr,tie,sndwrite}, which in 
 Recovering non-trivial control flow requires value analysis to resolve jump targets.
 One variety of value analysis (alias analysis) is sometimes done using type information.
 While co-dependency is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
-}
 
-{\fontsize{10}{12}\selectfont
-I intend to investigate the effects of integrating co-dependent binary analyses on result quality, and how using a logic language to integrate analyses affects progammer burden.
-%This is Holmes
-To do perform this investigation, I intend to build \sysname, a system implementing a logic language inspired by Datalog with features geared towards coordinating independent analyses.
-I will to use this system to investigate how the use of logic languages can make writing interdependent analyses easier.
-I will explore the formal properties of the \sysname\ language, specifically with respect to monotonicity and soundness of reasoning off of incomplete, incrementally improved information.
-I will also evaluate the power of combining analyses via \sysname\ which have traditionally been examined separately.
-%Work Plan
-I will design \sysname\ with the goal of providing a way to mesh existing analyses together, taking into account the potential for nontermination and high cost analyses.
-This thesis will provide semantics for the \sysname\ language, an implementation of the language, and example applications coordinating multiple analyses.
-}
+In this thesis I have implemented \sysname, a datalog dialect suited to this task of knitting together analyses, and formally defined its operation.
+I demonstrate the system's effectiveness concretely by implmenting a use-after-free detector over binaries.
+If further present a binary type recovery system which despite not being written with \sysname\ in mind, is still structured such that it would be amenable to integration.

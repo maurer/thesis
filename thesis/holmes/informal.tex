@@ -44,7 +44,10 @@ Secondly, referencing a field with no binding implicitly binds it to a variable 
 Head clauses are written exactly as match clauses, except that unbound fields and fields bound to variables not defined by the right side of the rule are disallowed.
 Putting it all together, a rule looks like
 \begin{verbatim}
-reaching_propagate: reaching {loc, var} <- reaching {loc: prev, var} & succ (prev, loc) & unchanged {loc: prev, var}
+reaching_propagate: reaching {loc, var} <-
+    reaching {loc: prev, var}
+  & succ (prev, loc)
+  & unchanged {loc: prev, var}
 \end{verbatim}
 Rules written like this act as normal datalog rules, interpreted with a fixpoint semantics.
 If facts are present in the database so that an assignment to variables exists for which the right side is all present, then the left hand side will be added to the database.
