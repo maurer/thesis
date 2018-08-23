@@ -1,3 +1,4 @@
+\label{alias:sec:system}
 First, our system transforms the input binary into structured
 semantics we can work with throughout the rest of the process.
 Second, we perform alias analysis over the structured representation.
@@ -459,6 +460,29 @@ In the first stanza, we mark the variable freed by the free call and everything 
 In the next, we find those parts of the program reachable from the free site.
 We then finalize the results by saying that if a path exists from a freed variable to a dereference of that same variable, then there is a use after free candidate.
 While this is certainly imperfect, going much further would begin to graft flow sensitive information into the otherwise insensitive analysis.
+
+\section{Implementation}
+\label{alias:sec:impl}
+Our implementation consists of 3k lines of Rust and 234 lines of datalog.
+Each additional sensitivity (field, context, flow, recency) is implemented by adding an additional datlaog file.
+The switches to determine which sensitivities actually run operate by adding initial facts to the database to suppress unwanted rule triggers.
+As a result of this design, other than field sensitivity (which requires significant logic in both the constraint generator and points-to set structures), these additional sensitivites can be compiled out safely by simply removing the rules in question (and their associated bound functions).
+
+\subsection{Limitations}
+Our system is conservative in almost all cases, but there are a few notable exceptions.
+If the provided file is linked against files which are not provided, their functions will be assumed to effectively be no-ops.
+If in reality, these functions free memory or write to the heap, this may cause missed vulnerabilities.
+The system uses the BAP control flow graph and any indirect jump
+resolution and the analysis assumes they go nowhere; we do no additional resolution beyond \texttt{ret} calls.  % does not currently resolve indirect jumps or calls (those whose target is determined by the value of data) other than returns, instead assuming them to go nowhere and terminate the program.
+%This may result in an incomplete control flow graph, which in turn can lead to %missed bugs.
+This is a general problem in binary analysis (control flow recovery) and not specific to our approach.
+Essentially, if a prerequisite step gives our algorithm incomplete information, it will produce an incomplete result.
+This was sufficient for the programs analyzed, which are written largely in C, but some resolution would be required to achieve good quality result on C++ programs which use vtables or programs which use a callback architecture (and so rely heavily on function pointers).
+
+We assume the transfer of a pointer from one place to another will take place in a single assembly instruction - we do not model ``the first 3 bytes of a pointer to x'' for example.
+Finally, we assume that a traditional stack discipline is being followed for purposes of points-to minimization in the sensitive cases.
+If it is not, aliases from stack calculations pointing above or below your own stack frame may be missed.
+
 
 \subsection{Limitations}
 Our system is conservative in almost all cases, but there are a few notable exceptions.

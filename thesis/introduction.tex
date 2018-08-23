@@ -54,15 +54,9 @@ Co-dependence in binary program analysis can be represented in a logic language 
 I investigated this approach by designing implementing \sysname, a logic language engine designed for the integration of binary analyses.
 I implemented codependent alias analysis, use-after-free detection, and control flow recovery using \sysname.
 This implementation provides evidence for the feasibility of using a logic language as an integration layer for cyclically dependent analyses.
-For this purpose I invented a novel form of negation, based on circumscription~\cite{circumscription}, which is suited to this particular application (\S~\ref{sec:inf-circ}).
-I define the semantics of the resulting logic language in terms of a Kripke structure (\S~\ref{sec:formal}).
-I demonstrate that this approach, as realized in \sysname, can be reasoned about by connecting to the semantics to a search strategy.
-I show the search strategy will
-\begin{itemize}
-	\item Make progress (\S~\ref{sec:progress})
-	\item Only output results sound with respect to the semantics (\S~\ref{sec:soundness})
-	\item In a restricted set of situations, terminate (\S~\ref{sec:term})
-\end{itemize}
-I show that \sysname can implement different sensitivities of alias analysis, and show how this affects practical use-after-free classification (\S~\ref{sec:alias}).
-I conclude that \sysname does solve the problem of co-dependence in program analysis and allow analyses to be specified in a modular fashion(\S~\ref{sec:conc}).
-Finally, I discuss ways this approach could be extended to make it a more powerful and complete solution to the problem of analysis integration (\S~\ref{sec:future}).
+For this purpose I invented a novel form of negation, based on circumscription~\cite{circumscription}, which is suited to this particular application (\S~\ref{holmes:sec:circ}).
+I define the semantics of the resulting logic language in terms of a Kripke structure (\S~\ref{chap:formal}).
+I show that \sysname can implement different sensitivities of alias analysis, and show how this affects practical use-after-free classification (\S~\ref{chap:alias}).
+I present a type recovery mechanism for compiled code which would be well suited to a Holmes-based implementation (\S~\ref{chap:bitr}).
+I give a methodology for testing patches live, once a Holmes-based system locates a bug (\S~\ref{chap:tachyon}).
+I conclude that \sysname does address the problem of co-dependence in program analysis and allow analyses to be specified in a modular fashion(\S~\ref{sec:conc}).

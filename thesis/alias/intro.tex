@@ -1,3 +1,7 @@
+In order to show that Holmes can be used in practice, we implement a concrete system with it.
+We chose to focus on the problem of use-after-free, as it is a little-explored area for static binary analysis.
+We used Holmes here to link together control flow analysis, alias analysis, string recovery, and general function loading in order to build a working use-after-free engine.
+
 % Use after free bugs are common
 There were 238 use-after-free (UaF) vulnerability disclosures (CWE-416) issued in 2017 alone, with 36.2\% given a critical security
 rating.

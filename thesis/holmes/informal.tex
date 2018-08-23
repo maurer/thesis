@@ -109,7 +109,7 @@ Imagine \texttt{p} in our example as having a first field representing a variabl
 In this case, the aggregation allows us to query for the set of values we know are possible to find in that variable.
 Our inferences will not become wrong in the future, because the predicate describes a lower bound, which is allowed to move up (via union).
 \subsection{Hypothetical Circumscription}
-\label{sec:inf-circ}
+\label{holmes:sec:circ}
 Hypothetical circumscription extends monotonic aggregation by allowing us to only examine the largest aggregation we find.
 Circumscription is written on a match clause by prepending a tilde to the the query.
 If we extend the example from monotonic aggregation with a circumscriptive match on p, e.g.
@@ -150,6 +150,7 @@ The engine will still emit a single, consistent world in which all constraints d
 In many cases, this may be sufficient, and the nondeterminism embedded in the internals of the computation, rather than in the output.
 
 \subsection{call/cc}
+\label{holmes:sec:callcc}
 The call/cc feature does not add any new syntax; it extends the interpretation of circumscription to deal with the case where simple fixpoint evaluation will fail to find an output set that complies with all provided rules.
 Consider the program
 \begin{verbatim}

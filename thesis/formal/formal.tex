@@ -1,6 +1,6 @@
 \input{formal/syms}
 \chapter{Formal Holmes}
-\label{sec:formal}
+\label{chap:formal}
 Holmes differs from base datalog in callbacks (analogous to external predicates), aggregates, circumscription, and call/cc.
 External predicates already have a well understood semantics, and we will model callbacks here by extension of our Herbrand universe during instantiation.
 Aggregates in the presence of callbacks can be replaced by a syntactic tranformation, other than for purposes of circumscription.
@@ -8,12 +8,12 @@ Circumscription by itself yields stable set semantics when the program is consis
 Adding call/cc forces a solution to exist when it otherwise would not, adding a restricted set of solutions which violate the minimality constraint of stable set semantics when no stable set exists.
 %TODO add stable-set (and well-founded?) to background section
 
-I will first go over the negation model embedded at base datalog to demonstrate how it works more clearly (\S~\ref{sec:formal-negation}).
-Then, I will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{sec:herbrand}).
-Finally, I will give semantics for ther Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{sec:semantics}).
+I will first go over the negation model embedded at base datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
+Then, I will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
+Finally, I will give semantics for ther Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
 %TODO add any proofs to intro
 \section{Negation}
-\label{sec:formal-negation}
+\label{formal:sec:negation}
 Traditional datalog consists only of a head clause, implied by a series of body clauses.
 To this, we allow body clauses to be optionally negated (head clauses must still be positive).
 
@@ -82,7 +82,7 @@ We complete the Kripke frame by defining the accessibility as transitive closure
 \]
 
 Our Kripke is reflexive and transitive, placing it in S4 (preorder).
-For ``well behaved'' programs, as described in \S~\ref{sec:inf-circ}, we also follow G (convergence) for the subset of worlds accessible from the program, placing us in S4.2, directed preorder.
+For ``well behaved'' programs, as described in \S~\ref{holmes:sec:circ}, we also follow G (convergence) for the subset of worlds accessible from the program, placing us in S4.2, directed preorder.
 
 We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia \boks \dia F$ under this frame.
 
@@ -103,7 +103,7 @@ In Holmes, circumscription corresponds to a potentially-infinite variety of assu
 call/cc corresponds to assume-true, but is a bit more complex, since it needs to discern at least one specific assumption from the infinite negation arm which is untenable.
 
 \section{Herbrandization}
-\label{sec:herbrand}
+\label{formal:sec:herbrand}
 First, we define the Herbrand universe and base.
 Then, we describe how to instantiate a Holmes program at this universe.
 
@@ -152,7 +152,7 @@ This will result in a rules of the form
 where $p, q_i \in \hb$.
 
 \section{Semantics}
-\label{sec:semantics}
+\label{formal:sec:semantics}
 \todo{Maybe some (all?) of these sets should be in instantiation - probably $\viol{\Pi}{c}$}
 We begin by defining a few extra sets relative to the initial program which will be needed for interpretation.
 Let $\circset(\Pi) \subseteq \hb(\Pi)$ be the set of circumscripted facts added, e.g. they were of the form $P_c(\cdot)$.

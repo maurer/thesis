@@ -1,4 +1,50 @@
 \chapter{Conclusion}
 \label{sec:conc}
-\chapter{Future Work}
-\label{sec:future}
+We have presented Holmes, a new dialect of datalog for orchestrating binary analyses.
+We described the language informally (\S~\ref{chap:holmes}) and formally (\S~\ref{chap:formal}).
+We demonstrated the concrete use of Holmes to detect real-world bugs as a use-after-free detector (\S~\ref{chap:alias}).
+We showed that some analyses, such as type recovery, written without Holmes in mind match its execution paradigm regardless (\S~\ref{chap:bitr}).
+%Big here
+We conclude that the Holmes approach improves upon the current ad-hoc model by representing the interplay between analyses.
+
+% Chap by chap resummarize
+% Holmes
+We described a new EDSL based on a dialect of datalog (\S~\ref{chap:holmes}).
+Holmes was designed here to be an orchestrator of procedural analyses, rather than an individual analysis itself.
+We show a novel form of negation via exact aggregation, a useful tool in the domain of binary analysis (\S~\ref{holmes:sec:circ}).
+We extend that negation to make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}) as is the case when a control flow graph is incrementally recovered through use of analyses which assume a complete graph.
+We describe and evaluate implementation approaches for this language (\S~\ref{holmes:sec:impl}).
+
+% Formal
+To enable reasoning about programs written in Holmes, we give a formal semantics (\S~\ref{chap:formal}).
+We present the Holmes' unique extended negation notion in the context of a finite datalog world (\S~\ref{formal:sec:negation}), showing how it connects with stratified, stable set, and well-founded semantics. 
+We show how to rewrite a Holmes program into a datalog program in an infinite Herbrand universe (\S~\ref{formal:sec:herbrand}).
+Finally, we show how to augment the negation concept from finite datalog to one which may perform an infinite number of negations in a single step to enable circumscription (\S~\ref{formal:sec:semantics}).
+
+% Alias
+We show that Holmes can be used to author real world analyses by creating a use-after-free detector built on it which leverages Holmes to explore different sensitivities of alias analysis (\S~\ref{chap:alias}).
+We translate alias analysies from the traditional programming language world for use in the binary analysis world (\S~\ref{alias:sec:system}).
+We quantify the cost/benefit tradeoff for precision in alias analysis for bugfinding (\S~\ref{alias:sec:eval}).
+We show that Holmes assists in the ability to write such a system concisely and to allow modularity between analyses (\S~\ref{alias:sec:impl}).
+
+% BiTR
+We show an approach to binary type recovery, \bitr, which performs better than previous work and would be well suited to Holmes integration (\S~\ref{chap:bitr}).
+We define a descriptive type system for recovering compiled C code, allowing a more flexible type recovery than is possible either using only C types or a prescriptive system (\S~\ref{sec:typesys}).
+We show how to generate constraints in this system and solve them in a way that tolerates partially typed programs (\S~\ref{sec:infmeth}).
+We provide a novel measurement system for type recovery evaluation based on its probability of correctness, showing how the previously used distance mechanism falls short (\S~\ref{subsec:metrics}).
+
+% Tachyon
+Once a bug has been found and a candidate patch created, it must be tested.
+We show how to test patches in a live environment (\S~\ref{chap:tachyon}).
+We propose stream rewriting (\S~\ref{tach:sec:equiv}) as a way to deal with benign differences in system call patterns.
+We show that tracing a program this way introduces minimal overhead, and that replaying a trace onto another program can be faster due to noninteraction with the real world (\S~\ref{tach:sec:eval}).
+
+% Pointer to working prototypes
+\section{Availability}
+Much of the work described in this thesis is available for download and use under a BSD license.
+\begin{itemize}
+\item A legacy implementation of Holmes (feature incomplete) based on PostgreSQL is available at \url{https://github.com/maurer/holmes}
+\item An in-memory implementation of Holmes, as used for \aliasname, is available at \url{https://github.com/maurer/mycroft}
+\item \aliasname, a static binary use-after-free detector is available at\\ \url{https://github.com/maurer/marduk}
+\item \tachyon, a patch testing framework built via live system call record and replay is available at \url{https://github.com/maurer/tachyon}
+\end{itemize}
