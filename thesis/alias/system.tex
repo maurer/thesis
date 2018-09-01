@@ -18,7 +18,7 @@ Our machine-level alias analysis involves three main design choices that must be
 \item Selecting sensitivity.
   We can return points-to information parameterized on different pieces of context.
   Common examples of parameters are flow sensitivity (program location), context sensitivity (call stack), field sensitivity (offsets within memory regions), and object sensitivity (possible construction sites for a ``this'' pointer).
-  In this work, we examine, flow, context, field, and recency~\cite{vsa}, how to implement them on binary code, and their effects on precision and performance.
+  In this work, we examine, flow, context, field, and recency~\cite{vsa}, how to implement them on compiled code, and their effects on precision and performance.
 \item Solving for points-to relationships.
   The generation of the aliasing information is undertaken differently for flow-insensitive vs flow-sensitive varieties.
   The flow-insensitive variety uses a constraint satisfaction technique and simultaneous solving via Steensgaard~\cite{steensgaard-alias}.

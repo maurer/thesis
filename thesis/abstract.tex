@@ -1,4 +1,4 @@
-This thesis is focused on the interleaving, interaction, and scheduling of analyses over binary code.
+This thesis is focused on the interleaving, interaction, and scheduling of analyses over compiled code.
 %Compiled code, sans source, is everywhere
 Most commercial software tends to come in the form of a compiled binary sans source.
 %Compiled code needs to be analyzable
@@ -9,7 +9,7 @@ Software analyzing compiled code faces a number of unique challenges as a direct
 %General statement about how we can help?
 Researchers have developed a wide variety of techniques for attacking this problem from different angles, but these approaches are typically not integrated with one another.
 %Previous Work
-Previous work in analyzing binary code has performed type recovery~\cite{bitr}, variable identification~\cite{divine}, control flow recovery~\cite{jakstab,phoenix}, and value analysis~\cite{vsa}.
+Previous work in analyzing compiled code has performed type recovery~\cite{bitr}, variable identification~\cite{divine}, control flow recovery~\cite{jakstab,phoenix}, and value analysis~\cite{vsa}.
 However, previous work tended to focus on one or two specific questions at a time rather than holistic analysis.
 Without traditional programming abstractions designed to allow for modular reasoning, co-dependent analyses (those with cyclic dependencies on one another) become more important to understanding the program.
 Type recovery depends on dataflow information\cite{bitr,tie,sndwrite}, which in turn depends on control flow.

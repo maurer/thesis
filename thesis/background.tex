@@ -309,7 +309,7 @@ Each of these can be fairly accurately determined by the compiler when the sourc
 The type of a C++ object determines a small subset of legal function targets for a given method.
 Switch statements have explicit targets and can be resolved exactly.
 Function pointers are the most difficult to resolve, but the compiler at least has the ability to restrict the possible targets to functions of the right type, or in a conservative approximation to any function.
-All of these methods are not directly usable on raw binary code, since the abstractions used have been stripped away.
+All of these methods are not directly usable on raw compiled code, since the abstractions used have been stripped away.
 
 \subsubsection{Value Analysis}
 \label{sec:valanal}
