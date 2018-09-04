@@ -1,22 +1,20 @@
-This thesis is focused on the interleaving, interaction, and scheduling of analyses over compiled code.
-%Compiled code, sans source, is everywhere
-Most commercial software tends to come in the form of a compiled binary sans source.
+Vulnerability detection in compiled code can be more effectively performed using a logic-language based framework which supports non-stratified negation and co-dependent analyses.
 %Compiled code needs to be analyzable
 In order to perform security audits of libraries and executables, continue the use of legacy code, and develop attacks, we need the ability to analyze this software.
 %This is difficult because binaries are turing complete, and even "well behaved" code does crazy shit
-When code is compiled, it strips away information the original programmer had access to, such as intended control flow, types, and variable locations.
+When code is compiled, the compiler strips away information the original programmer had access to, such as intended control flow, types, and variable locations.
 Software analyzing compiled code faces a number of unique challenges as a direct consequence of dropping information during the compilation process.
 %General statement about how we can help?
 Researchers have developed a wide variety of techniques for attacking this problem from different angles, but these approaches are typically not integrated with one another.
 %Previous Work
 Previous work in analyzing compiled code has performed type recovery~\cite{bitr}, variable identification~\cite{divine}, control flow recovery~\cite{jakstab,phoenix}, and value analysis~\cite{vsa}.
 However, previous work tended to focus on one or two specific questions at a time rather than holistic analysis.
-Without traditional programming abstractions designed to allow for modular reasoning, co-dependent analyses (those with cyclic dependencies on one another) become more important to understanding the program.
+Co-dependent analyses are more important when traditional abstractions designed to allow for modular reasoning have been removed.
 Type recovery depends on dataflow information\cite{bitr,tie,sndwrite}, which in turn depends on control flow.
 Recovering non-trivial control flow requires value analysis to resolve jump targets.
 One variety of value analysis (alias analysis) is sometimes done using type information.
 While co-dependency is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
 
-In this thesis I have implemented \sysname, a datalog dialect suited to this task of knitting together analyses, and formally defined its operation.
+In this thesis I have implemented \sysname, a datalog dialect suited to this task of knitting together co-dependent analyses, and formally defined its operation.
 I demonstrate the system's effectiveness concretely by implmenting a use-after-free detector over binaries.
-If further present a binary type recovery system which despite not being written with \sysname\ in mind, is still structured such that it would be amenable to integration.
+I further present a binary type recovery system which despite not being written with \sysname\ in mind, is still structured such that it would be amenable to integration.

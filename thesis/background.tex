@@ -233,7 +233,7 @@ Specifically, the circumscription of a predicate $P$ to a predicate $Q$ in a for
 \[
 (A [Q/P] \wedge \forall x. Q(x) \rightarrow P(x)) \rightarrow (\forall x. P(x) \rightarrow Q(x))
 \]
-McCarthy calls this a ``sentence schema'', and is essentially a statement in second order logic (since $Q$ is implicitly existentially quantified here).
+McCarthy calls this a ``sentence schema''.
 Essentially, this says that for a given formula $A$ we know to be true, and some predicate $P$ we have incomplete information about, if some other (usually artificially defined) predicate $Q$ could be used in $A$ everywhere $P$ was without changing its truth value, and $P$ is true whenever we know $Q$ to be true, then we can have the other half of the implication, making $Q$ a legitimate proxy for $P$.
 Practically applying this usually involves declaring a $Q$ which is true in exactly those situations we know $P$ to be.
 As a simple example, consider the formula

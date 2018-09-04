@@ -1,15 +1,15 @@
 \chapter{Introduction}
-Poorly or maliciously coded software can cause significant damage.
+Bugs in software can cause significant damage.
 The bulk of modern software is distributed in binary-only form, for reasons ranging from a desire to keep proprietary information secret to wanting to avoid compilation or interpretation overhead on the client.
 Unfortunately, inspecting the behavior of machine code is difficult:
 It is undecidable for pathological cases and difficult to approximate in common ones.
 
 Existing tools~\cite{ida, bap, bitblaze, bindead} tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next.
-In this model, the analysis authors manually acquire the inputs for their analysis, determine where in the sequence to run it, and where to put the outputs.
-If we consider a graph with nodes representing analyses, and edges representing dependency ordering, this model forms a line.
-The line model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
+In this model, an analysis author must ensure any information they wish to consume has been calculated before their analysis, but after any analyses that could benefit their dependency's accuracy.
+Representing individual analyses as nodes, with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must be run before $n_2$, this graph forms a sequence.
+The sequence model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
 In LLVM's pass model, each pass declares what analyses it depends upon, allowing the LLVM pass manager to ensure the necessary steps are performed and allow a configurable pipeline.
-Considering the graph representation again, LLVM's model looks more like a DAG.
+Considering the graph representation again, LLVM's model is a DAG.
 Jakstab~\cite{jakstab} takes the approach of running their analyses to a fixed point.
 As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
 A natural extension then is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
@@ -44,7 +44,7 @@ There are still some restrictions on how such code can operate (for example, no 
 
 \begin{inset}
 {\bf Thesis statement.}
-Co-dependence in binary program analysis can be represented in a logic language that allows for formal reasoning about the derivation of its conclusions and increased modularity of analyses.
+Co-dependence in compiled program analysis can be represented in a logic language that allows for formal reasoning about the derivation of its conclusions and increased modularity of analyses.
 \end{inset}
 
 % Roadmap to defending the thesis statement
@@ -52,11 +52,33 @@ Co-dependence in binary program analysis can be represented in a logic language 
 %   * Implementing the integration of several real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
 I investigated this approach by designing implementing \sysname, a logic language engine designed for the integration of binary analyses.
+For this purpose I invented a novel form of negation, based on circumscription~\cite{circumscription}, which is suited to this particular application (\S~\ref{holmes:sec:circ}).
+This negation can further be allowed to make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}).
+This adaptation allows Holmes to resolve an output even in the case of a negation cycle, as would be the case with a co-dependent control flow recovery and a value analysis assuming completeness of the control flow graph.
+This is concretely the case in the use of VSA to resolve function pointers.
+I also investigated different implementation approaches for \sysname (\S~\ref{holmes:sec:impl}).
+
+I define the semantics of the resulting logic language in terms of a Kripke structure (\S~\ref{chap:formal}).
+These semantics enhance the ability to reason about the results of an analysis by formally constraining what derivations the analysis engine is allowed to make.
+They also make it possible to determine compliance for alternative implementations of the engine, potentially allowing programs to run on backends other than the initial one written for this thesis.
+
+I show that \sysname can implement different sensitivities of alias analysis, and show how this affects practical use-after-free classification (\S~\ref{chap:alias}).
 I implemented codependent alias analysis, use-after-free detection, and control flow recovery using \sysname.
 This implementation provides evidence for the feasibility of using a logic language as an integration layer for cyclically dependent analyses.
-For this purpose I invented a novel form of negation, based on circumscription~\cite{circumscription}, which is suited to this particular application (\S~\ref{holmes:sec:circ}).
-I define the semantics of the resulting logic language in terms of a Kripke structure (\S~\ref{chap:formal}).
-I show that \sysname can implement different sensitivities of alias analysis, and show how this affects practical use-after-free classification (\S~\ref{chap:alias}).
+This concrete bug finding tool demonstrates the applicability of the \sysname language to the domain of compiled-code program analysis.
+I translate analysis techniques from the compiler and program analysis communities into analysis of compiled code (\S~\ref{alias:sec:system}).
+I measure the performance cost and precision benefits of different sensitivities of alias analysis by leveraging the modularity of the \sysname-based implementation (\S~\ref{alias:sec:eval}).
+
 I present a type recovery mechanism for compiled code which would be well suited to a Holmes-based implementation (\S~\ref{chap:bitr}).
-I give a methodology for testing patches live, once a Holmes-based system locates a bug (\S~\ref{chap:tachyon}).
+This demonstrates that even work written without \sysname in mind may be naturally translatable into a Holmes implementation.
+I define a \emph{descriptive} type system, more powerful than direct C types for performing inference, wile being more flexible than a traditional prescriptive type system (\S~\ref{sec:typesys}).
+I address the problem of inconsistent type constraints by suggesting a resolution system which seeks a solution in which it drops the fewest constraints (\S~\ref{sec:infmeth}).
+Finally, previous work in type recovery used a metric which minimized the importance of correct recovery of structure types.
+In \S~\ref{subsec:metrics}, I provide a novel metric for type recovery based on the probability of correctness of any individual query by a reverse engineer or downstream analysis.
+
+I give a methodology, implemented in Tachyon, for testing patches live, once a Holmes-based system locates a bug (\S~\ref{chap:tachyon}).
+Tachyon demonstrates the ability to perform live testing of minor patches via \emph{stream rewriting} of the system calls for compatibility, with no effect on real infrastructure (\S~\ref{tach:sec:equiv}).
+While both the patched and unpatched versions run, a policy-chosen leader program actually touches the production environment, while the follower program has the events of the leader program replayed to it and checked for loose compatibility.
+Benchmarking reveals that this trace-and-rewrite link has minimal overhead compared to running both patched and unpatched programs: (\S~\ref{tach:sec:eval}).
+
 I conclude that \sysname does address the problem of co-dependence in program analysis and allow analyses to be specified in a modular fashion(\S~\ref{sec:conc}).
