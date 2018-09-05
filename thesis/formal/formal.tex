@@ -8,7 +8,7 @@ Circumscription by itself yields stable set semantics when the program is consis
 Adding call/cc forces a solution to exist when it otherwise would not, adding a restricted set of solutions which violate the minimality constraint of stable set semantics when no stable set exists.
 %TODO add stable-set (and well-founded?) to background section
 
-I will first go over the negation model embedded at base datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
+We will first go over the negation model embedded at base datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
 Then, I will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
 Finally, I will give semantics for ther Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
 %TODO add any proofs to intro
@@ -31,7 +31,7 @@ While there will be no rules of this form in the initial translation of the prog
 	\neg p \leftarrow
 \]
 which simply asserts $\neg p$.
-I will use $N$ to describe a possibly negated term, e.g. it has form $p$ or $\neg p$ where $p \in \hb$.
+We will use $N$ to describe a possibly negated term, e.g. it has form $p$ or $\neg p$ where $p \in \hb$.
 
 For a program $\Pi$ which consists of a set of such rules,
 \[

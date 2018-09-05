@@ -4,7 +4,7 @@
 \section{Logic Language}
 Logic languages are a family of mostly declarative programming languages which express computation as a series of rules to be applied to derive a conclusion.
 This makes them well suited to the task at hand because it allows us to describe the provenance of information and to separate the execution strategy for a suite of analyses from the expression of said analyses.
-I will review Datalog and Prolog as a way of giving a general overview of logic programming, but these are not the only logic languages.
+We will review Datalog and Prolog as a way of giving a general overview of logic programming, but these are not the only logic languages.
 %%Sentence omitted because it forward references too many concepts
 %Datalog and Prolog are selected to give an example of both a forwards-chaining and backwards-chaining search, and to motivate the notion of a database of facts as our incremental store.
 % * Datalog
@@ -20,7 +20,7 @@ For example,
 could be used to represent a relation in which the left argument is the parent of the right argument.
 %   * Facts
 The concept of a ``fact'' is used to represent a particular member of a relation.
-Here, I use the notation $\id{foo}$ to denote a constant named foo.
+Here, we use the notation $\id{foo}$ to denote a constant named foo.
 As an example,
 \[
         \pred{parent}{\id{alice}, \id{bob}}
@@ -39,7 +39,7 @@ expresses that if for some assignment to $\var{P}$, $\var{X}$, and $\var{Y}$, we
 The left hand side is referred to as the \emph{head clause} and represents the template from which new facts will be built by this rule.
 The right hand side is called the \emph{body clause} and describes the search or match to be performed on the database.
 Rules are applied ``to saturation'', meaning that they are applied repeatedly until the body clause no longer has any new matches in the database.\footnote {
-Without external code, this is equivalent to ``the head clause is in the database, or the body clause does not match``. However, with external code, the head clause is not necessarily predictable, so I instead describe each rule being run at most once per assignment of variables which matches the database.
+Without external code, this is equivalent to ``the head clause is in the database, or the body clause does not match``. However, with external code, the head clause is not necessarily predictable, so we instead describe each rule being run at most once per assignment of variables which matches the database.
 }
 The order in which rules are declared is irrelevant: all rules are examined for matching body clauses repeatedly until none match.
 %   * Simple examples
@@ -208,7 +208,7 @@ There must be no cycles which include one or more negated edges.
 \subsection{Circumscription}
 \label{sec:circumscription}
 Circumscription is a concept in logic related to including Occam's Razor into deriving a model from logic statements.
-I discuss it here because it will be relevant to the \sysname\ treatment of reasoning from incomplete information.
+We discuss it here because it will be relevant to the \sysname\ treatment of reasoning from incomplete information.
 
 \newcommand{\true}{\textrm{true}}
 \newcommand{\false}{\textrm{false}}

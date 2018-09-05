@@ -19,13 +19,13 @@ Database software usually does not know which indices would be ideal to keep, an
 Work is ongoing~\cite{peloton} to remedy this problem, but is not yet a production tool.
 In the meantime, if we wish our translated datalog queries to run efficiently, the database must be provided with a list of indices to keep.
 
-I tried a number of heuristics, including indexing in a global attribute ordering, indexing per query based on left-to-right joins, and just indexing all fields in order, and having the programmer reorder fields to boost performance.
+We tried a number of heuristics, including indexing in a global attribute ordering, indexing per query based on left-to-right joins, and just indexing all fields in order, and having the programmer reorder fields to boost performance.
 None of these approaches worked in practice.
 Both the global ordering and the left-to-right joins failed in large part because the query planner would choose to reorder the joins at runtime in multiple different ways.
 The programmer manually ordering fields could find local optima, but because predicates are used in multiple ways, it too falls short.
 
 The solution in use at the time this approach was switched away from was to annotate the program with an explicit set of indexes to keep.
-I generated these indices by profiling the running program, and adding indices which would allow the query planner to avoid nested loops or full table scans where possible.
+We generated these indices by profiling the running program, and adding indices which would allow the query planner to avoid nested loops or full table scans where possible.
 
 \subsubsection{Append-Only, High Write}
 % Append only workload
@@ -77,7 +77,7 @@ Warehousing personell are largely interested in the standardization of these val
 
 In our case, a star schema is interesting both for reasons of compression, and for ease of indexing.
 Indexing an IL instruction, whether by hash or by ordering, is much slower than sorting by a tuple of integers.
-I discovered this technique after the pivot to an in-memory database, so I have no observations of its performance, but I expect it would help.
+We discovered this technique after the pivot to an in-memory database, so I have no observations of its performance, but I expect it would help.
 
 \subsubsection{Large Objects}
 With an external database, the use of large objects becomes nontrivially expensive.
@@ -89,7 +89,7 @@ If the lifting rule needs the segment, the architecture, and an offset into that
 In my sample programs, most segments were between 300k and 600k, causing this to incur a nontrivial cost.
 
 The first solution, specific to this problem, was an all-at-once chunking of the segment.
-I requested the segment from the database, then produced a 16-byte chunk (maximum length of an x86 instruction is 15 bytes) at every offset, and sent it back.
+We requested the segment from the database, then produced a 16-byte chunk (maximum length of an x86 instruction is 15 bytes) at every offset, and sent it back.
 In the future, requests would access this chunked data rather than the original.
 This resulted in a 16-17x blowup of the space to store the base binary, but as that paled in comparison to everything else it was not especially significant.
 
