@@ -166,10 +166,6 @@ However, there are some applications for which this approach does not work well 
 The other approach is known as backwards chaining, or top-down search, and is what is used in Prolog.
 In backwards chaining, search is directed by a particular goal instead.
 The logic engine examines the goal and the available rules, and by unification breaks it down to a series of potential subgoals, and recurses.
-For the purposes of this proposal, I'll write backwards chaining rules as
-\[
-  \brule{\pred{P}{\var{X}}}{\pred{Q}{\var{X}}}
-\]
 
 \subsection{Negation}
 %   * Stratified negation

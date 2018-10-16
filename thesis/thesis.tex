@@ -1,21 +1,20 @@
+\documentclass[12pt,draft,oldfontcommands,oneside,letterpaper]{memoir}
 \RequirePackage[final]{graphicx}
-\documentclass[12pt,draft]{cmuthesis}
+\usepackage{citthesis}
 \usepackage{silence}
 \WarningFilter*{latex}{Marginpar on page \thepage\space moved}
 \usepackage{footnote}
 \usepackage{latexsym}
 \usepackage{multirow}
-\usepackage{todonotes}
+\usepackage[disable]{todonotes}
 \usepackage{syntax}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{wasysym}
-\usepackage{subfigure}
 \usepackage{proof}
 \usepackage{enumitem}
 \usepackage{xspace}
 \usepackage[numbers,sort]{natbib}
-\usepackage[letterpaper,twoside]{geometry}
 \usepackage{changepage}
 \usepackage[final]{listings}
 \lstset{numbers=left}
@@ -24,19 +23,12 @@
 	        moredelim=**[is][\color{red}]{|-}{|}
 }
 
-\draftstamp{\today}{DRAFT}
-
 \newcommand{\fyes}{\CIRCLE}
 \newcommand{\fhalf}{\LEFTcircle}
 \newcommand{\fno}{\Circle}
 
 \newenvironment{inset}{\begin{adjustwidth}{1cm}{1cm}}{\end{adjustwidth}}
 
-%I'll need to double space it for submission, but double
-%spacing is a terrible relic of a time gone by, and hurts
-%my eyes, so we'll turn it on later.
-\usepackage{setspace}
-\doublespacing
 \usepackage[
   backref,pageanchor=true,plainpages=false, pdfpagelabels, bookmarks,bookmarksnumbered,
   final
@@ -44,34 +36,46 @@
 \hypersetup{linktoc=all}
 
 \include{ll}
-\begin{document}
-\frontmatter
+\newsubfloat{figure}
 \pagestyle{empty}
 \newcommand{\sysname}{Holmes\xspace}
-\title{\bf \sysname}
-\author{Matthew Maurer}
-\Year{2018}
-\trnumber{}
 
-\committee{\
-David Brumley, Chair \\
-Frank Pfenning \\
-Lujo Bauer \\
-Manuel Egele, Boston University 
-}
+\settitle{\sysname}
+\doctors
+\setauthor{Matthew Maurer}
+\setchair{Dr. David Brumley}
+\setdept{Electrical and Computer Engineering}
+\setdefdate{Oct 2018}
+\setgraddate{Oct 2018}
+\setcopyyear{2018}
+\setmembers{Dr. Frank Pfenning \\ Dr. Lujo Bauer \\ Dr. Manuel Egele, Boston University}
+\setdegrees{B.S. in Computer Science, California Institute of Technology\\M.S. in Electrical and Computer Engineering, Carnegie Mellon University}
 
-%\support{}
-%\disclaimer{}
+\begin{document}
+\frontmatter
 
-\keywords{binary analysis, logic programming}
-\maketitle
+\thetitlepage
+\copyrightpage
+%\approvalpage
 
-%\begin{dedication}
-%\end{dedication}
+\section*{Acknowledgements}
+% Must contain:
+% Advisor
+% Members of committee
+% Funding sources
+This thesis work was advised by David Brumley.
+Other members of the committee include Frank Pfenning (CMU CS), Maunel Egele (BU ECE), and Lujo Bauer (CMU ECE).
+
+
+
+% Also want to thank Maverick, Kyle, who else? This stuff can go in during the final revisions period though.
+
+\newpage
 
 \pagestyle{plain}
 \clearpage
 
+\setcmuspacing
 \begin{abstract}
         {\small \input{abstract.tex}}
 \end{abstract}
@@ -92,7 +96,7 @@ Manuel Egele, Boston University
 \input{conclusion}
 
 \backmatter
-\singlespacing
+%\singlespacing
 \renewcommand{\bibsection}{\chapter{\bibname}}
 \bibliographystyle{plain}
 \bibliography{thesis,bitr/BiTR-0,tachyon/tachyon}

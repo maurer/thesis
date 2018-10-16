@@ -338,7 +338,7 @@ complete (assuming a complete control flow graph, provided functions,
 etc.) so we want to avoid fixed unrollings.
 
 To this end, we extend our allocation domain with a ``recent'' bit,
-similar to the MRAB/NMRAB abstraction~\cite{vsa}, though for different
+similar to the MRAB vs NMRAB abstraction~\cite{vsa}, though for different
 purposes.  In terms of a concrete trace, the address most recently
 given by an allocation at a given site belongs to the set where
 ``recent'' is true.  All other addresses issued by that site belong to

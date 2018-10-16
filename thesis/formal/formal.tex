@@ -131,7 +131,11 @@ The Herbrand base $\hb$ is constructed in the usual way, instantiating each pred
 
 \subsection{Program Instantiation}
 For predicates which have aggregation, rewrite them as callback rules.
-If we have $P(\tau_0 \cdots \tau_m, \sigma_0\wedge j_0 \cdots \sigma_n \wedge j_n)$ then we create a new callback
+If we have
+\[
+	P(\tau_0 \cdots \tau_m, \sigma_0\wedge j_0 \cdots \sigma_n \wedge j_n)
+\]
+then we create a new callback
 \[
 	j(a_0 \cdots a_n, b_0 \cdots b_n) = \{c_0 = j_0(a_0, b_0) \cdots c_n = j_n(a_n, b_n)\}
 \]
@@ -202,7 +206,7 @@ If $a$ isn't decided yet, and circumscribing it closed would not cause any incon
 
 For call/cc, let $\Pi_c$ be $\Pi$, but modified so that $\viol{\Pi}{c} = \emptyset$ and $c$ is unioned in.
 \todo{Perhaps split up into separate judgements/predicates to make this rule not so huge}
-\[
+\[\small
 	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi_c} & \not \exists c'. \Pi \stepass_a \Pi' \cup c' & \not \exists p' \in \viol{\Pi}{c}. \Pi \models p' & p \in \viol{\Pi}{c} & \Pi_c \models \dia \boks \dia p}
 \]
 This rule says that if we cannot circumscribe on the aggregate, but if we did, the inconsistency we would arrive at would deal with this circumscription, then we can instead extend the aggregate to avoid the inconsistency.
