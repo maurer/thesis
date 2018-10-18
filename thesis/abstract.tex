@@ -7,10 +7,10 @@ Software analyzing compiled code faces a number of unique challenges as a direct
 %General statement about how we can help?
 Researchers have developed a wide variety of techniques for attacking this problem from different angles, but these approaches are typically not integrated with one another.
 %Previous Work
-Previous work in analyzing compiled code has performed type recovery~\cite{bitr}, variable identification~\cite{divine}, control flow recovery~\cite{jakstab,phoenix}, and value analysis~\cite{vsa}.
+Previous work in analyzing compiled code has performed type recovery, variable identification, control flow recovery, and value analysis.
 However, previous work tended to focus on one or two specific questions at a time rather than holistic analysis.
 Co-dependent analyses are more important when traditional abstractions designed to allow for modular reasoning have been removed.
-Type recovery depends on dataflow information\cite{bitr,tie,sndwrite}, which in turn depends on control flow.
+Type recovery depends on dataflow information, which in turn depends on control flow.
 Recovering non-trivial control flow requires value analysis to resolve jump targets.
 One variety of value analysis (alias analysis) is sometimes done using type information.
 While co-dependency is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
