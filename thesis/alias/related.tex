@@ -33,7 +33,7 @@ It even works for simple use-after-free bugs where no alias analysis is required
 In the type-state analysis, when they encounter what could be a use-after-free or a double-free, rather than immediately transitioning to the error state, they query their learned model.
 If the bug is not likely a real bug by their model, they continue executing past it as though it had no effect.
 The support vector machine step, while it does eliminate a good chunk of false positives, does fundamentally move Tac from one-sided error to two-sided.
-If a bug candidate is removed by the SVM, it will not report it.
+If a bug candidate is removed by the SVM, Tac will not report it.
 At the same time, in the type-state phase of the algorithm, they proceed along a slice from the allocation site, meaning they fundamentally cannot know that a condition is feasible if it depends on prior code, they can only detect infeasibility.
 Regardless of the two-sided error, it has good true and false positive rates, so the tool is practically applicable.
 It is possible that if our approach was used to generate the bug candidates, the SVM phase might not be quite as necessary due to the increased precision of both which pairs were highlighted, and the points-to sets provided.
@@ -60,7 +60,7 @@ This allows us to do things like lifting newly found instructions from within th
 However, this also means that we lose datalog's termination guarantees and cannot use most common datalog engines.
 
 \texttt{bddbddb}~\cite{bddbddb} used BDDs (binary decision diagrams) to exploit symmetry in context-sensitive points-to analysis for Java programs.
-In order to encode this problem as a BDD, they first encode the points-to problem as a datalog program.
+In order to encode this problem as a BDD, \texttt{bddbddb} first encodes the points-to problem as a datalog program.
 Then, they converted each operation needed to run a datalog program (join, substitution, extension) into operations on BDDs, one per predicate.
 Finally, by running these operations unto fixpoint, the resultant BDD could be queried efficiently for points-to information which if represented concretely would be far too large to manipulate.
 
@@ -71,6 +71,6 @@ They showed~\cite{doop1} that information needs to flow bidirectionally between 
 Finally, they found that careful modification of the algorithm can recover most of the compactness wins normally acquired from a BDD representation~\cite{doop3}.
 
 \textsc{Doop} uses LogicBlox~\cite{logicblox} as their datalog backing engine.
-LogicBlox uses Leapfrog Trie-Join~\cite{lftj} a novel (but unfortunately patented) join algorithm whose primary property is its ability to handle multi-way joins of the sort found in datalog queries efficiently.
+LogicBlox uses Leapfrog Trie-Join~\cite{lftj} a novel join algorithm whose primary property is its ability to handle multi-way joins of the sort found in datalog queries efficiently.
 They combine this with incremental maintenance~\cite{lftj-incr} to provide a framework to compute their datalog dialect, LogiQL.
 LogicBlox is disk-backed, meaning they might be able to avoid some of the memory issues our implementation hit for high sensitivity outputs.

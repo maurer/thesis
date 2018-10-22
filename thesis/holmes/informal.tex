@@ -39,7 +39,7 @@ This implements the same match as above.
 Matching on field predicates introduces two shorthands.
 First, unused fields need not be named (y in this case).
 We could write \texttt{y: \_}, but it is unnecessary, making it easier to work with higher arity predicates.
-Secondly, referencing a field with no binding implicitly binds it to a variable of the same name (we expand to \texttt{w: w} in the example).
+Secondly, referencing a field with no binding implicitly binds it to a variable of the same name (\texttt{w} expands to \texttt{w: w} in the example).
 
 Head clauses are written exactly as match clauses, except that unbound fields and fields bound to variables not defined by the right side of the rule are disallowed.
 Putting it all together, a rule looks like
@@ -78,7 +78,7 @@ If we wrote
 \begin{verbatim}
 check_even: special_even(x) <- special(x) + is_even
 \end{verbatim}
-A \texttt{is_even} function which checked the last bit of x, then either returned \texttt{[\{\}]} for true or \texttt{[]} for false could implement this rule.
+A \texttt{is_even} function which checked the last bit of x, then either returned \texttt{[\{\}]} (a list containing the empty binding) for true or \texttt{[]} (an empty list) for false could implement this rule.
 
 \subsection{Monotonic Aggregation}
 Monotonic aggregation defines a new way to declare predicate fields.
@@ -86,7 +86,7 @@ When declaring a field, a caret (\texttt{\^{}}) followed by a function name in t
 Such a function should be a lattice meet operator - it should be associative, commutative, and idempotent.
 This function acts as an ``aggregator'' for that field.
 Whenever a new fact is added which matches the non-aggregated fields of a another fact, they will be combined according to this aggregator.
-Because the order of rule execution is up to the engine, this means that you may receive multiple, incomplete aggregations along the way, or you may not - your only gaurantee is that if run to a fixpoint, you will have received the final (largest) aggregation.
+Because the order of rule execution is up to the engine, this means the rule may receive multiple, incomplete aggregations along the way, or it may only receive the final aggregation - the only gaurantee is that if run to a fixpoint, the rule will have received the final (largest) aggregation.
 
 For example, say that we wrote the program:
 \begin{verbatim}
@@ -144,11 +144,11 @@ The engine will now either output \texttt{p(\{1, 2\}), q(\{1\})} or \texttt{p(\{
 
 This nondeterminism is usually not desired, but there are currently no checks to detect it, either at compilation time or at run time.
 If you stratify~\cite{prologbook} your circumscription, this condition will be avoided, but part of the strength of circumscription is to allow exactly unstratified negation.
-When using unstratified negation, a good rule of thumb is to ask yourself whether you can imagine individual facts (not predicates) containing a circular dependency cycle with two circumscriptions present.
+This can occur when there are two facts (not predicates) which have in their derivation a dependency cycle containing two circumscriptions.
 Even if this is the case, it may not force this nondeterminism, depending on the action of the rules.
 The condition where one circumscription is present is dealt with via \texttt{call/cc}, presented next.
 
-Even if you do write a program which has nondeterministic circumscription, all is not lost.
+Even if a program has has nondeterministic circumscription, all is not lost.
 The engine will still emit a single, consistent world in which all constraints described in the program hold.
 In many cases, this may be sufficient, and the nondeterminism embedded in the internals of the computation, rather than in the output.
 
@@ -166,7 +166,7 @@ With call/cc, we instead interpret \texttt{p(\{1, 2\})} only to be the correct r
 Essentially, the engine will assert \texttt{p(\{2\})} on the basis that we cannot proceed without \texttt{p(\{2\})}.
 More speicfically, matching \texttt{~p(~\{1\})} is matching on, among other things, $\neg p(\{2\})$.
 From this, we derive $p(\{2\})$.
-This fits the form of call/cc, so we add $p(\{2\})$ to the database, with call/cc as its support rather than a specific rule.
+This fits the form of call/cc, so we add $p(\{2\})$ to the database, with call/cc as the provenance rather than a rule.
 
 In general, this feature is intended so that a circumscription is allowed to extend itself.
-For example, if you assume you have the complete control flow graph (circumscription) in order to perform SSA, then determine that a new value is possible for an indirect call (extending the control flow graph), call/cc is the component that allows you to retain the new control flow edge despite the fact that the old SSA form needs to be retracted.
+For example, if an analysis assumes it will be provided the complete control flow graph (circumscription) in order to perform SSA, then determine that a new value is possible for an indirect call (extending the control flow graph), call/cc is the component that allows the engine to retain the new control flow edge despite the fact that the old SSA form needs to be retracted.

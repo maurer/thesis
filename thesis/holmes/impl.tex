@@ -2,7 +2,7 @@
 \label{holmes:sec:impl}
 In order to evaluate the language as a means towards program analysis, we need a running implementation.
 \subsection{Holmes (Old Implementation)}
-Initially, I produced a database backed implementation which compiled down to a combination of Rust and SQL (initially C++ and SQL) and had Postgres handle the business of joins, deduplication, and data storage.
+Initially, I produced a database backed implementation which compiled down to a combination of Rust and SQL (initially C++ and SQL) and had Postgres handle joins, deduplication, and data storage.
 This had the advantage of being able to handle significantly larger working sets in theory, but in practice had significant performance issues which lead me to change approaches.
 Despite this, I feel it is worth discussing here both because the failures of the implementation point out some of the unique challenges and simplifications that can be made in evaluating datalog, but also because it seems inevitable that to analyze programs substantially larger than those examined in this thesis, either a distributed platform or a disk-backed system will need to be used.
 It is my hope that these lessons learned will help a future external-database based implementor avoid the same pitfalls.
@@ -31,7 +31,7 @@ We generated these indices by profiling the running program, and adding indices 
 % Append only workload
 One interesting aspect of a datalog system that the workload is entirely append-only other than retraction events, which are intended to be rare.
 This knowledge is unused by the database in executing queries.
-If it materializes a view to execute a query, and an underlying table is updated to by an append, it will re-materialize the whole view, not perform any kind of incremental maintenance.
+If it materializes a view to execute a query, and an underlying table is updated by an append, it will re-materialize the whole view, not perform any kind of incremental maintenance.
 
 One of the expensive parts of many queries was insisting that it only return results which contained at least one \emph{new} fact - one which hadn't been returned in this query before.
 That tables can only be appended to could enable the incremental maintenance of the join, allowing more efficient computation of the join, and retrieval of only the new data.
@@ -56,7 +56,7 @@ As a result, the statistics daemon's information is generally woefully out of da
 We prepare virtually all statements, since we intend to execute them repeatedly and want to avoid time in the parser.
 However, as of the time this system was developed, postgres would ossify the query plan as of the 5th time a prepared statement was executed.
 This was done based on the assumptions that SQL connections do not live so long that the database changes a lot, so by the fifth time the query is run, the plan is unlikely to be improved, and performance will be increased by avoiding the planner entirely.
-In practice, this means that any recursive rule (like one marking nodes as reachable, or performing a dataflow) will run terribly.
+In practice, this means that any recursive rule (like one marking nodes as reachable, or performing a dataflow) will have suboptimal performance.
 The rule executes five times, and during that time, the statistics daemon either has old out of date information, or even if it updates, information that the table it's reading out of is terribly small.
 The query planner then makes bad decisions based on this, then sets them in stone.
 As a result, indices sit there unused, and logarithmic operations are done linearly.
@@ -70,23 +70,25 @@ Postgres did not at the time of implementation have a way for a client to provid
 
 \subsubsection{Star Schema}
 %TODO: note that this is equivalent to picking a good $I$ for our model, finding it, then swapping it back to Herbrand at the end
-As alluded to earlier, one benefit of an append-only workload is that star schemas are massively more useful.
+As alluded to earlier, one benefit of an append-only workload is that star schemas have lower overhead, as garbage collecting the child tables is not necessary.
 Star schemas are normally used for ``data warehousing'', a sort of large scale database where an organization's data is all loaded into a single schema before being pulled out again into smaller databases for actual processing.
 The idea is that most values are referenced rather than included directly in tables.
 Warehousing personell are largely interested in the standardization of these values and the resulting compression.
 
 In our case, a star schema is interesting both for reasons of compression, and for ease of indexing.
-Indexing an IL instruction, whether by hash or by ordering, is much slower than sorting by a tuple of integers.
+Indexing an IL instruction sequence\footnote{
+IL instruction sequence refers to a lifted representation of an assembly instruction or sequence of assembly instructions into an "intermediate language" which as fewer, more orthogonal operations.
+}, whether by hash or by ordering, is much slower than sorting by a tuple of integers.
 We discovered this technique after the pivot to an in-memory database, so I have no observations of its performance, but I expect it would help.
 
 \subsubsection{Large Objects}
 With an external database, the use of large objects becomes nontrivially expensive.
-If the database is local, and the bus between the program and the database shared memory, this is not a major issue.
+If the database is local, and the bus between the program and the database is shared memory, this is not a major issue.
 However, even over a local unix socket, repeated accesses to large objects can inhibit performance.
 
 This shows up in practice when dealing with binary sections and segments during lifting.
 If the lifting rule needs the segment, the architecture, and an offset into that segment to perform the lifting, this can incur several copies of the segment per instruction.
-In my sample programs, most segments were between 300k and 600k, causing this to incur a nontrivial cost.
+In my sample programs, most segments were between 300k and 600k bytes, causing this to incur a nontrivial cost.
 
 The first solution, specific to this problem, was an all-at-once chunking of the segment.
 We requested the segment from the database, then produced a 16-byte chunk (maximum length of an x86 instruction is 15 bytes) at every offset, and sent it back.
@@ -106,13 +108,13 @@ In its current form, it addresses most, though not all, of the pain points encou
 The query planner is replaced by a single plan, generated at compile time, which parameterizes itself only on the size of the relevant tables at that moment.
 This replacement also means that we know precisely what indices will be useful, and can generate them.
 The join algorithm is aware of the incrementality of append only joins, and uses this to speed up requests for new results. 
-As mycroft is in process and in memory, large objects are not a problem.
+As Mycroft is in process and in memory, large objects are not a problem.
 They are returned as read-only references to the existing strucure, and can be operated on that way.
 The implementation is available at \url{https://github.com/maurer/mycroft}, and as a crate on \texttt{crates.io} for direct inclusion in rust projects.
 
 \subsubsection{Typed Storage}
 Rather than store data values directly in rows as was done in the Postgresql-based implementation, here we keep a separate deduplication table for each type of data on which we operate.
-This allows us to efficiently map back and forth between values, which the callbacks need to consume, and integer keys, which are convenient for or indexing and join algorithms. 
+This allows us to efficiently map back and forth between values, which the callbacks need to consume, and integer keys, which are convenient for indexing and join algorithms. 
 This is reminiscent of the star schemas discussed before.
 As our system is mostly-append (other than retractions due to circumscription) we design this as an insert-only structure.
 An additional benefit, more relevant here than with Postgres, is that this greatly reduces our memory footprint.
@@ -121,12 +123,12 @@ At compile time, each type present in one or more predicates has a modified robi
 This table has two pieces: a vector backing which stores the actual data, and a vector of hash/key pairs.
 There are two operations this table needs to support: acquiring the key for an object, whether or not it's present already, and acquiring an object from its key.
 Finding the key for an object is accomplished by using a lookup on the hashtable portion of the structure, inserting into both the table and the vector of data in the event of a lookup failure.
-Finding the object for a key (the more common case) is works by indexing into the vector.
+Finding the object for a key (the more common case) works by indexing into the vector.
 
 The only principal difference between this and a simpler design (a standard hash table mapping from the value to the key, and a vector mapping from a key to a value) is that it stores the data only once, and without any indirection.
 While this may not sound like much, this gave a modest 23\% time performance boost over the standard library implementation in time, and approximately halved space on an earlier version of the use-after-free detector.
 The closest approach still using the standard data structure would have been to use a smart pointer to share data between the data structures, or a hashtable of hashes.
-The smart pointer caused trouble with the interfaces, and hashing twice incurred a performance penalty, so we used this solution.
+The smart pointer caused trouble with the interfaces, and hashing twice incurred a performance penalty, so we used this custom hastable design for deduplication and unique key assignment.
 
 \subsubsection{Aggregation}
 As aggregation is described at the predicate level, we can implement it directly on the tuple storage.
@@ -134,7 +136,7 @@ Tuple storage is structured as a map from the tuple of non-aggregate fields (reo
 These aggregate fields are represented by a triple of the value-keys to be aggregated, a current aggregate value, and an index indicating how many of the value-keys are aggregated in the cached value.
 This allows for a lazily updated computation of the meet.
 
-When a tuple is inserted into the store, if a value with the same non-aggregate fields is present, in which case the value-key list is extended, but the aggregate is left alone.
+When a tuple is inserted into the store, if a value with the same non-aggregate fields is present, the value-key list is extended, but the aggregate is left alone.
 If it is not present, we initialize the aggregate value with the value of the key in that slot, fill in the key in the keys-to-be-aggregated, and set the index to 1.
 When retrieving a tuple, we check whether the index is equal to the length of the comprising keys.
 If it is not, we start the iteration at the index, and perform iterative meets until the aggregate is up to date.
@@ -144,7 +146,7 @@ We then return the tuple, extended by the aggregate fields and reordered.
 Datalog computation is join-heavy, and as a result attempting to compute the join naively can lead to disasterous execution times.
 There are a variety of existing join approaches.
 % Cite postgres?
-RDBMSes tend to favor straightforwards strategies, such as nested looping, hash join, and merge join.
+RDBMSes tend to favor straightforward strategies, such as nested looping, hash join, and merge join.
 Merge joins require a relevant index, but generally perform substantially better unless tables are extremely small.
 Hash joins operate by creating an intermediate data structure of one of the tables which is indexed by the hash of the joined values.
 
@@ -155,7 +157,7 @@ However, LogicBlox~\cite{logicblox} developed an algorithm known as Leapfrog Tri
 Unfortunately, this algorithm is patented, and so could not be used.
 This indicates a potential for future implementations to derive a novel approach from the AGM~\cite{agm} bound or Ngo's~\cite{nprr} approach, but developing such an algorithm is beyond the scope of this thesis.
 
-In mycroft, we used a simultaneous merge join ordered from smallest table to largest table.
+In Mycroft, we used a simultaneous merge join ordered from smallest table to largest table.
 An index is selected for each table which walks it in unification argument order, with constant arguments being sorted to the front.
 The first index is advanced to the first tuple where all the constant arguments match.
 This is made easier by the use of integer-only tuples, as the non-constant arguments can be represented as 0 in a query to the index.
@@ -190,7 +192,7 @@ A map is additionally maintained from fact IDs to justifications which contain t
 Implementing circumscription essentially involves monitoring accessed aggregations to see if they would change, and responding with a retraction.
 The previous description of aggregates does not easily allow for this.
 A tuple insertion does not know if something has depended on this aggregation's completeness, and if so what.
-To deal with this, if a tuple is circumscriptively fetched, we replace list of merged keys in the aggregate field with a newly minted aggregate ID.
+To deal with this, if a tuple is circumscriptively fetched, we replace the list of merged keys in the aggregate field with a newly minted aggregate ID.
 Three maps are maintained for aggregate IDs:
 \begin{itemize}
 	\item Aggregate ID to comprising Fact IDs
@@ -220,9 +222,14 @@ With a more modern join like tetris join~\cite{tetris} it could even be possible
 
 Results of some subjoins get used repeatedly, and can be known not to change through topological sorting.
 Currently, this is exploited through manual tabling - the creation of dummy predicates to keep the completed join as a realized structure.
-However, it should be generate these temporary structures automatically in some cases.
+However, it should be possible to generate these temporary structures automatically in some cases.
 
-Pivoting indices from a simple in-memory btree to a MVCC-style structure would allow multiple worker threads to be evaluating rules at the same time.
+Pivoting indices from a simple in-memory btree to a MVCC\footnote{
+	MVCC stands for Multiple Version Concurrency Control.
+	MVCC trees are common in database design because they map well to the block-at-a-time disk update structure and because they allow for multiple transactions to act on the same index in a way that makes it clear if the index was invalidated while using it.
+	They accomplish this by retaining any portion of the tree which is being accessed by some transaction, and garbage collecting as threads leave.
+	This results in "multiple versions" of the tree being accessible simultaneously in order to deal with concurrency contention, thus the name.
+}-style structure would allow multiple worker threads to be evaluating rules at the same time.
 As modern systems generally have additional cores, this should lead to performance improvements overall (though degradation in bottlneck phases).
 This approach also meshes well with optionally backing some data structures with disk due to either large size or low traffic.
 Many MVCC trees are already designed as on-disk data structures due to their use in traditional RDBMS systems.

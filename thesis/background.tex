@@ -20,7 +20,7 @@ For example,
 could be used to represent a relation in which the left argument is the parent of the right argument.
 %   * Facts
 The concept of a ``fact'' is used to represent a particular member of a relation.
-Here, we use the notation $\id{foo}$ to denote a constant named foo.
+Here, we use italics to denote a constant.
 As an example,
 \[
         \pred{parent}{\id{alice}, \id{bob}}
@@ -112,7 +112,7 @@ If the variable was bound in the body clause, its value must have been in the da
 As a result, the only possible values are those which were in the extensional database and those mentioned concretely in the rules.
 With a finite domain of values, and a finite list of predicates, there is a finite list of facts which could be instantiated.
 
-Structure evaluation as a series of steps, each of which fires the first rule it can find which matches, or if none match, terminate.
+Evaluation is structured as a series of steps, each of which fires the first rule it can find which matches, or if none match, terminate.
 Since this evaluation strategy is always productive or terminating, and we have established a finite upper bound on the database, we have a bound on the length of such an evaluation.
 Since this evaluation strategy only produces facts according to the rules, and only stops when no rules apply, it matches the saturation/fixpoint semantics of Datalog.
 
@@ -121,7 +121,8 @@ While termination is a convenient property for a language to have, there are sev
 Termination directly implies a limit to the language's power.
 While a number of different kind of closure or search procedures are specifiable as Datalog programs, its inability to create new symbols is fairly limiting.
 %
-The proof is quite fragile, since many language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
+Many language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
+When this happens, the resulting language loses its termination gaurantees.
 \subsubsection{External Predicates}
 \label{sec:extpred}
 %   * Motivation for external predicates (e.g. +2)
@@ -130,7 +131,7 @@ It is possible to encode arithmetic over some finite domain (e.g.,\ $0-(2^{64} -
 However, having such a table is massively impractical.
 
 %   * External predicates
-One way to deal with this issue is to introduce external predicates: predicates whose extents are not stored in the database, but are rather computed or queried from some external system when needed.
+One way to deal with this issue is to introduce external predicates: predicates whose truth is not defined by presence in the database, but is rather computed or queried from some external system when needed.
 This leads to the need for a mode system.
 Consider an external predicate $\pred{sum}{\cdot, \cdot, \cdot}$, where the first entry is the sum of the other two.
 When trying to match the body clause of a rule, it becomes important that at least two entries be provided; if only one argument is provided, the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
@@ -170,8 +171,8 @@ The logic engine examines the goal and the available rules, and by unification b
 \subsection{Negation}
 %   * Stratified negation
 \subsubsection{Stratified Negation}
-Another thing that can be useful to talk about is the inability of the system to prove a particular fact.
-For example, negation could be useful to describe routing.
+One interpretation of negation is as the inability of the system to prove a particular fact.
+For example, this sort of negation could be useful to describe routing.
 Network reachability can be described similar to $\pred{related}{\cdot, \cdot}$
 \begin{gather*}
         \frule{\pred{reachable}{\var{X}, \var{Y}}}{\pred{link}{\var{X}, \var{Y}}}\\
@@ -187,7 +188,7 @@ Traffic serviceable by the local network should be sent direct, while the remain
 In the case of this set of rules, negation has a clear interpretation.
 First, generate all reachability predicates.
 Then, if reachable was not derivable thus far, matches against not reachable should succeed.
-However, when recursive rules and negation are mixed, it can cause termination and stability rules. Consider the set of rules:
+However, when recursive rules and negation are mixed, it can cause termination and stability issues. Consider the set of rules:
 \begin{gather*}
         \frule{\pred{p}{\var{X}}}{\neg \pred{q}{\var{X}}}\\
         \frule{\pred{q}{\var{X}}}{\neg \pred{p}{\var{X}}}
@@ -221,7 +222,7 @@ Circumscription is a mode of reasoning that in this situation allows us to exami
 It is about picking the minimal situation that could correspond to what we know.
 
 More examples are given in McCarthy's paper introducing the idea~\cite{circumscription}.
-An slightly simpler (if imprecise) way of thinking about circumscription is to consider it as taking a specification of truth which is irrefutable, while interpreting as few things as true as possible --- you're not saying something grounded in fact, you're saying something nobody can prove wrong.
+A slightly simpler (if imprecise) way of thinking about circumscription is to consider it as taking a specification of truth which is irrefutable, while interpreting as few things as true as possible --- conclusions are not necessarily grounded in fact, but rather are statements without refutation.
 %   * Original definition by McCarthy
 \subsubsection{Original Definition}
 Originally, circumscription was defined with respect to first order logic.
@@ -292,7 +293,7 @@ Due to the lack of scope or lifetime abstractions, once a new piece of state ent
 \subsection{Static Analyses}
 %   * What is static?
 Static analyses are those which focus on deriving information from the structure of the complete program.
-While not a hard and fast rule, these analyses usually operate on many or all paths.
+While not a hard and fast rule, these analyses usually operate on many or all execution paths through the program.
 
 \subsubsection{Control Flow Recovery}
 \label{sec:cfg}
@@ -301,7 +302,7 @@ While information from a concrete execution can be useful to the final product (
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point and watching for a transition to a distinguished exit node (usually via a function return).
 However, indirect jumps due to function pointers, C++ virtual method calls, and even creative compilation of case statements can wreak havoc on this method, since the value being jumped to is not known ahead of time.
 
-Each of these can be fairly accurately determined by the compiler when the source is provided.
+In each of the above cases, the range of possible jumpe targets can be fairly accurately determined by the compiler when the source is provided.
 The type of a C++ object determines a small subset of legal function targets for a given method.
 Switch statements have explicit targets and can be resolved exactly.
 Function pointers are the most difficult to resolve, but the compiler at least has the ability to restrict the possible targets to functions of the right type, or in a conservative approximation to any function.
@@ -313,8 +314,8 @@ It follows that recovering overapproximations of the range of potential values f
 One common way to do this is to perform abstract interpretation of the program over a domain which is expected to model the range of values well~\cite{vsa,wrappedintervals,wrappedintervals2}.
 
 Unfortunately, this abstract interpretation assumes that the control flow graph has already been determined in order to sequence its transformations.
-Additionally, it can be tripped up by loops which do not converge nicely in its particular domain.
-The state of the art approach to this is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis~\cite{jakstab}.
+Additionally, it can be made to lose nearly all its precision by loops whose transformations are not well represented by its particular domain.
+The state of the art approach to the codependence of the control flow recovery and value analysis problems is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis~\cite{jakstab}.
 
 \subsubsection{Type Recovery}
 Another important static analysis is type recovery.
@@ -330,25 +331,25 @@ Usage based analysis~\cite{tie,bitr} tends to perform better at recovering inter
 \subsection{Dynamic Analyses}
 Dynamic analyses are those which focus on properties of individual executions, or statements of the form ``there exists a trace with the property\ldots''.
 These analyses are frequently good at pinpointing problems or increasing the accuracy of approximations.
-However, they tend to do a poor job at making definitive statements about whole-program properties.
+However, as path oriented techniques, they are limited to describing what could happen, rather than what must always be the case.
 
 %   * Fuzzing
 \subsubsection{Fuzzing}
-One common modern way to find issues in code, especially non-introspectable code like binaries, is to simply perform a very large number of executions with varied inputs.
+One common modern way to find issues in code, especially code not in a form intended for human consumption (such as compiled code), is to simply perform a very large number of executions with varied inputs.
 This technique is known as ``fuzzing'', and is widely used in the search for security flaws.
 There are a number of axes along which this technique can differ, but the primary two are blackbox~\cite{peach,zzuf,rebert2014} vs whitebox~\cite{klee,godefroid2008,avgerinos2014} and generational~\cite{peach} vs mutational~\cite{zzuf}.
 
 %   * Symbolic Execution + SMT
 \subsubsection{Symbolic Execution}
-A slightly more sophisticated (though more expensive) approach is to keep as many inputs as possible ``symbolic'' while executing.
-Essentially, if an exact value is not needed in order to take a step, expressions based on inputs are used in place of concrete values as long as possible.
+A slightly more sophisticated (though more expensive) approach is to keep inputs ``symbolic'' while executing.
+Essentially, if an exact value is not needed in order to take a step, expressions based on inputs are used in place of concrete values.
 When a conditional branch is taken, the condition is added to a path constraint, restricting the range of inputs for which this execution is considered feasible.
 When a potentially dangerous operation is about to be performed (such as jumping to or dereferencing a symbolic value), a check for the plausibility of the ``bad'' scenario can be fed to an SMT solver\footnote{\
-SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solver whose variables have a extra domains and additional operations. In this work, we primarily consider the theory of bitvectors.
+SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solver whose variables have extra domains and additional operations. In this work, we primarily consider the theory of bitvectors.
 }.
 The formula is created by taking the conjunction of the path constraint with whatever condition suffices to cause the badly behaved event.
 If the SMT solver returns a solution, a bad input has been found\cite{aeg,mayhem}.
-If instead of simply sufficing, the condition passed is complete (i.e.\ the operation is \emph{only} dangerous if the check passes), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
-Since loops create an infinite number of paths, it is difficult to demonstrate that any region is safe this way, but it can rule out certain kinds of exploration.
+If instead of simply sufficing, the condition passed is complete (i.e.\ the operation is \emph{only} dangerous if the formula is satisfiable), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
+Since loops may create an infinite number of paths, it is difficult to demonstrate that any region is safe this way, but receiving a concrete trace which exercises a bug condition is a major benefit.
 
 \input{alias/background}

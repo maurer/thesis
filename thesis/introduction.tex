@@ -13,14 +13,12 @@ Considering the graph representation again, LLVM's model is a DAG.
 Jakstab~\cite{jakstab} takes the approach of running their analyses to a fixed point.
 As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
 A natural extension then is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
-This full graph model of analysis management is what we intend to investigate in my thesis.
+This full graph model of analysis management is investigated in this thesis.
 
 % Past work sets the stage for / encourages this
 Previous work in program analysis suggests that logic languages can help to structure this problem.
 % * Datalog/prolog as a program analysis tool
 Datalog has previously been successfully used to analyze programs~\cite{lam2005,brumley2006,alpuente2011,doop1,bddbddb}.
-%   * Shows fact-like representation of program properties is feasible
-While the ability to write analyses directly in logic language is interesting, of more potential importance to the feasability of this project is that they were able to model both their input and output knowledge as logic language predicates successfully.
 A wide variety of properties from aliasing in compiled code~\cite{brumley2006} to security properties such as SQL injectability and cross site scriptability (XSS)~\cite{lam2005} have been modeled as facts in a deductive database, suggesting this as a potential common representation.
 Dataflow analyses are also representable~\cite{mcallester2002} in this way.
 
@@ -33,7 +31,7 @@ If both analyses had been specified as logical rules within the same environment
 %   * Compositional May Must
 Similarly, \textsc{Smash}~\cite{smash} combined \textsc{Dash}'s~\cite{dash} may and must analyses.
 \textsc{Dash}-may-analysis derives facts about procedures stating that if a given property holds on an input, a separate property holds at the output.
-\textsc{Dash}-must-analysis derives facts stating that within a given set of inputs, there exists at least one that goes to each of a given set of outputs.
+\textsc{Dash}-must-analysis derives facts stating that within a given set of inputs, there exists at least one input that goes to each of a given set of outputs.
 The authors were able to prune a number of search paths via this combination, leading to property checks terminating which previously took too long to be feasible to run.
 With a (backwards-chaining\footnote{Goal driven execution, more explanation in \S\ref{sec:bchain}}) representation of may and must analyses separately, their analysis could be derived by adding a relatively small number of rules to describe the yes/no property check fact they introduce.
 
@@ -51,7 +49,7 @@ Co-dependence in compiled program analysis can be represented in a logic languag
 % * Show the power by
 %   * Implementing the integration of several real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
-We investigated this approach by designing implementing \sysname, a logic language engine designed for the integration of binary analyses.
+We investigated this approach by designing and implementing \sysname, a logic language engine designed for the integration of binary analyses.
 For this purpose we invented a novel form of negation, based on circumscription~\cite{circumscription}, which is suited to this particular application (\S~\ref{holmes:sec:circ}).
 This negation can further be allowed to make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}).
 This adaptation allows Holmes to resolve an output even in the case of a negation cycle, as would be the case with a co-dependent control flow recovery and a value analysis assuming completeness of the control flow graph.
@@ -75,10 +73,5 @@ We define a \emph{descriptive} type system, more powerful than direct C types fo
 We address the problem of inconsistent type constraints by suggesting a resolution system which seeks a solution in which it drops the fewest constraints (\S~\ref{sec:infmeth}).
 Finally, previous work in type recovery used a metric which minimized the importance of correct recovery of structure types.
 In \S~\ref{subsec:metrics}, we provide a novel metric for type recovery based on the probability of correctness of any individual query by a reverse engineer or downstream analysis.
-
-We give a methodology, implemented in Tachyon, for testing patches live, once a Holmes-based system locates a bug (\S~\ref{chap:tachyon}).
-Tachyon demonstrates the ability to perform live testing of minor patches via \emph{stream rewriting} of the system calls for compatibility, with no effect on real infrastructure (\S~\ref{tach:sec:equiv}).
-While both the patched and unpatched versions run, a policy-chosen leader program actually touches the production environment, while the follower program has the events of the leader program replayed to it and checked for loose compatibility.
-Benchmarking reveals that this trace-and-rewrite link has minimal overhead compared to running both patched and unpatched programs: (\S~\ref{tach:sec:eval}).
 
 We conclude that \sysname does address the problem of co-dependence in program analysis and allow analyses to be specified in a modular fashion(\S~\ref{sec:conc}).

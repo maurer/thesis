@@ -33,12 +33,6 @@ We define a descriptive type system for recovering compiled C code, allowing a m
 We show how to generate constraints in this system and solve them in a way that tolerates partially typed programs (\S~\ref{sec:infmeth}).
 We provide a novel measurement system for type recovery evaluation based on its probability of correctness, showing how the previously used distance mechanism falls short (\S~\ref{subsec:metrics}).
 
-% Tachyon
-Once a bug has been found and a candidate patch created, it must be tested.
-We show how to test patches in a live environment (\S~\ref{chap:tachyon}).
-We propose stream rewriting (\S~\ref{tach:sec:equiv}) as a way to deal with benign differences in system call patterns.
-We show that tracing a program this way introduces minimal overhead, and that replaying a trace onto another program can be faster due to noninteraction with the real world (\S~\ref{tach:sec:eval}).
-
 % Pointer to working prototypes
 \section{Availability}
 Much of the work described in this thesis is available for download and use under a BSD license.

@@ -10,7 +10,7 @@ Evaluation over the Juliet test set is included both for comparability with othe
 It helps answer the question ``In the absences of confounding factors from the real world, how well does this work?''.
 We also evaluate over real use-after-free bugs pulled from MITRE's CVE database.
 Evaluating on these verifies that real world code, while potentially confounding, does not stop our technique from functioning altogether.
-It also provides a false positive rate in the presence of true positives.
+It also provides a measurement of the false positive rate in the presence of true positives.
 Finally, we evaluate over a variety of believed-good binaries.
 The intent behind this evaluation is to get a better idea of false positive rates and analysis costs for average programs believed to be non-buggy.
 
@@ -29,8 +29,10 @@ While there are negative tests present, there is little in the way of things tha
 For this reason, it is important to evaluate ourselves on real world code as well.
 
 \subsection{Live CVEs}
+\label{alias:sec:eval:real}
 Our system successfully detects 7 real CVEs across 6 programs.
 These CVEs were detected by all sensitivities of the checker.
+We assume that all potential use after frees which do not match the known bugs in each of these programs are false positives.
 
 \begin{figure*}
 \begin{center}
@@ -70,15 +72,15 @@ Program & Sensitivity & Run time & Memory & False Positives & Binary Size\\
 
 \begin{figure*}
 	\begin{center}
-	\begin{tabular}{|c||c|c|c||c|c|c||c|}
+	\begin{tabular}{|c||c|c|c||c|c|c||c|c|}
 		\hline
-		Sensitivity & \multicolumn{3}{c||}{Run time} & \multicolumn{3}{c||}{Memory} & Alarms \\
+		Sensitivity & \multicolumn{3}{c||}{Run time} & \multicolumn{3}{c||}{Memory} & \multicolumn{2}{c|}{Alarms} \\
 		\hline
-		& Avg & Median & Stdev & Avg & Median & Stdev  &Avg\\
+		& Avg & Median & Stdev & Avg & Median & Stdev  &Avg & Imp\\
 		\hline\hline
-		Insensitive  & 2m26.1s & 58.4s & 3m38.1s & 241.7M & 34.1M & 1.9G & 73.1\\ \hline
-		Flow & 2m14.2s & 54.7s & 3m19.6s & 236.8M & 34.1M & 1.9G & 0.5 \\ \hline
-		Flow and Context  & 2m22.1s & 55.6s & 3m54.9s & 349.2M & 34.0M & 2.3G & 0.2 \\ \hline
+		Insensitive  & 2m26.1s & 58.4s & 3m38.1s & 241.7M & 34.1M & 1.9G & 73.1 &\\ \hline
+		Flow & 2m14.2s & 54.7s & 3m19.6s & 236.8M & 34.1M & 1.9G & 0.5 & 93.1\% \\ \hline
+		Flow and Ctx  & 2m22.1s & 55.6s & 3m54.9s & 349.2M & 34.0M & 2.3G & 0.2 & 43.5\% \\ \hline
 	\end{tabular}
 	\end{center}
 	\caption{Ubuntu \texttt{/usr/bin} Performance}
@@ -94,13 +96,15 @@ While performance for insensitive and flow-sensitive analyses appears similar, t
 If the analysis is instead timed in phases, the alias-analysis-only portion for the insensitive system takes seconds, while it takes the bulk of the non-CFG-recovery time in a flow-sensitive analysis.
 
 For the known-vulnerable set, the false positives were reduced by an average of 90\% with the addition of flow sensitivity, and an additional 84.1\% by adding context sensitivity on top of that.
-The false positive reduction for the addition of flow sensitivity is immense, and the increase in time and space needed for the alias analysis is manageable on medium scale programs.
+The false positive reduction for the addition of flow sensitivity is immense, and the increase in time and space needed for the alias analysis was manageable for programs in our known-vulnerable set, the largest of which was 768kb.
 Adding context sensitivity had a substantially higher cost, but still yielded a major increase in precision.
 
 \subsubsection{GUEB}
-The author of the GUEB tool made his tool open source, allowing us to compare against it.
+The author of the GUEB~\cite{gueb} tool made his tool open source\footnote{
+	\url{https://github.com/montyly/gueb}
+}, allowing us to compare against it.
 We connected IDA, BinNavi, and GUEB and ran the system over the same bugs we evaluated against.
-As a caveat, we could not feed them the same binaries our tool consumed - their tool's stack only accepts 32-bit, so we recompiled the same bugs in 32-bit mode.
+As a caveat, we could not feed them the same binaries our tool consumed - their tool's stack only accepts 32-bit, so we recompiled the same vulnerable programs in 32-bit mode.
 
 Figure~\ref{fig:guebperf} shows the performance.
 The crashes appear to be unhandled cases in the input, and not fundamental to their methods.
@@ -134,7 +138,7 @@ Program & False Positives & Bug Found? \\
 \end{figure}
 
 \begin{lstlisting}[language=C, float=t, caption={\texttt{isisd} Vulnerability}, label=lst:isisd-gueb]
-// ...
+// ... (adj is allocated and constructed here)
 for (level = IS_LEVEL_1; level <= IS_LEVEL_2; level++) {
 	// ...
 	else if (new_state == ISIS_ADJ_DOWN) {

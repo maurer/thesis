@@ -34,6 +34,6 @@ We have built a tool called \aliasname\ that uses \sysname\ to drive the differe
 Taking this approach allows us to have an end-to-end reasoning chain from input binary to why this particular candidate use-after-free could not be disproven with a given sensitivity.
 
 We evaluated \aliasname\ over 7 real CVEs and the Juliet test suite released by IARPA for purposes of verifying our detection capabilities and measuring false positives in the face of bugs.
-Additionally, we measured false positive rates against a background of expected-good binaries: a random sampling from the \texttt{\$PATH} of a default Ubuntu installation.
+Additionally, we measured false positive rates against a background of expected-good binaries (we assume no true positives): a random sampling from the \texttt{\$PATH} of a default Ubuntu installation.
 
 \aliasname\ is available at \url{https://github.com/maurer/marduk}.

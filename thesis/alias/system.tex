@@ -20,7 +20,7 @@ Our machine-level alias analysis involves three main design choices that must be
   Common examples of parameters are flow sensitivity (program location), context sensitivity (call stack), field sensitivity (offsets within memory regions), and object sensitivity (possible construction sites for a ``this'' pointer).
   In this work, we examine, flow, context, field, and recency~\cite{vsa}, how to implement them on compiled code, and their effects on precision and performance.
 \item Solving for points-to relationships.
-  The generation of the aliasing information is undertaken differently for flow-insensitive vs flow-sensitive varieties.
+  The generation of the aliasing information is undertaken differently for flow-insensitive vs flow-sensitive varieties of alias analysis.
   The flow-insensitive variety uses a constraint satisfaction technique and simultaneous solving via Steensgaard~\cite{steensgaard-alias}.
   Flow-sensitive varieties use the inter-procedural dataflow described in \S \ref{sec:interproc}.
 \end{enumerate}
@@ -33,7 +33,7 @@ Our machine-level alias analysis involves three main design choices that must be
 
 \subsection{Front-End}
 Before we can apply our analysis, we first need to transform the raw
-bytes of the input file into a form similar to the AST received after
+bytes of the input file into a form similar to the AST\footnote{Abstract Syntax Tree} received after
 parsing.  Techniques in this section are not novel, and are described
 for completeness to understand our overall system.
 
@@ -57,10 +57,10 @@ In our approach, we use 3 kinds of variables:
 	\item Dynamic Allocations, parameterized by the location at which they are allocated. Written \texttt{dyn@loc}
 \end{itemize}
 We use an abstract location in these parameterizations.
-In the context-insensitive case is simply the address of the instruction, and in the context-sensitive case is the pair of the address with the return stack.
+In the context-insensitive case it is simply the address of the instruction, and in the context-sensitive case it is the pair of the address with the return stack.
 
 Our choice of dynamic allocation variables defines our heap model.
-We assume that at two memory regions may only alias if they were allocated at the same program point.
+We assume that two memory regions may only alias if they were allocated at the same program point.
 This assumption matches reality unless a pointer has been released back to the allocator via free, but then used afterwards (a use-after-free bug).
 This may violate the assumption because a write to or read from the now freed pointer may alias with newly returned memory.
 As a result, this heap model is correct at least until the first use-after-free in an execution.
@@ -126,16 +126,15 @@ and a meet function with specifies how to merge information sets at control flow
 We describe these below.
 
 By default, alias analysis calculates alias sets even when a variable is dead.
-We run a path before alias analysis to determine which variables are live.
+We run a pass before alias analysis to determine which variables are live.
 While calculating alias analysis, we use this information to remove dead points-to information to improve performance and precision.
 Performance is increased because we do not waste time and space updating and tracking points-to
 sets we know will never be used.
 Precision is increased because if no pointers to a given allocation exist any longer, we know any new pointer to that allocation points to copy of that region which does not need the information from the old copy.
 
 \subheading{Transfer Function}
-The actual processing of the update summaries based on summaries is
-calculated via the transfer function.  We follow Andersen as shown
-shown in Listing \ref{lst:process}:
+The actual processing of the update summaries based on summaries is calculated via the transfer function.
+We follow Andersen as shown in Listing \ref{lst:process}:
 \begin{itemize}
 \item Definitions of variables are performed destructively.
 \item Writes through variables are applied to each value they may point to.
@@ -157,7 +156,7 @@ Each other region is labeled by a statement, and shows what would change about t
 Each time an ``i'' is used on the left, assume that portion is present 3 times, with i ranging from 0 to 2.
 
 For updates to stack slots or registers, we can perform a ``destructive'' update.
-You can see this in the \texttt{a =} examples in Figure \ref{fig:pts-update}.
+This is demonstrated in the \texttt{a =} examples in Figure \ref{fig:pts-update}.
 This means that since we know the new value
 is the only value the variable could have, we can \emph{replace} the
 points-to set.  In the case of pointer write though, we cannot do
@@ -232,7 +231,7 @@ Following this edge elides stack slots which are not currently pointed to.
 This is a departure from Reps in that their restricted domain, all local variables were not passed through.
 An intra-procedural edge is added which skips over the call, applying effects (see \S \ref{sec:effects}) and clobbering variables not preserved by the function.
 Finally, at each return site, an inter-procedural edge which forgets the stack slots local to that function if not pointed to is added.
-\footnote{You might wonder why we don't report an error if a local stack slot is pointed to, or why this needs to be checked for. This is a legal possibility in the case of a recursive call which passes one of its stack variables to itself by reference.}
+We do not report an error even if a local stack slot is pointed to, as this is a legal possibility in the case of a recursive call which passes one of its stack variables by reference.
 Again, we depart from Reps here by keeping around what would normally be local variables if they are pointed to.
 
 \texttt{flow\_call} and \texttt{flow\_ret} apply when functions are entered and exited to cut down on unnecessary information being propagated around, applying the restrictions for our inter-procedural edges, as described earlier.
@@ -265,7 +264,7 @@ Called functions must copy their control flow graphs to separate versions for ev
 When generating the target of a call function, we now add the current instruction's fallthrough to the stack as a return address.
 If the return address is already on the stack, we truncate the stack so that it is the topmost.
 
-Unfortunately, with an unbounded stack, of our real-world samples, this approach exhausts available resources (128G RAM) for all but \texttt{gnome-nettool}.
+Unfortunately, with an unbounded stack, of our real-world samples (\S \ref{alias:sec:eval:real}), this approach exhausts available resources (128G RAM) for all but \texttt{gnome-nettool}.
 To remedy this, we use a $k$-stack approach combined with the stack truncation above.
 If a call is made from a location parameterized by a stack, it is first checked to see if the call site is present.
 If so, it is truncated as before.
@@ -312,7 +311,9 @@ This practice is extremely uncommon (outside bulk copy functions like \texttt{me
 Unfortunately, this formulation gives the alias analyzer slightly too much power.
 Specifically, it can now count.
 Despite the fact that we did not model actually performing arithmetic, a pointer being incremented in a loop will look like repeatedly examining relative offsets of a struct.
-To deal with this, we add a widening operator which, if the same variable points to a fixed limit or more offsets in a region, will replace it with pointing to an unknown offset to that region.
+To deal with this, we add a widening operator\footnote{
+	A widening operator is an addition to a dataflow analysis which provides termination by moving further on the lattice than is strictly necessary under certain conditions.
+}which, if the same variable points to a fixed limit or more offsets in a region, will replace it with pointing to an unknown offset to that region.
 This reclaims termination.
 
 \subsection{Recent Allocation Domain}
@@ -337,32 +338,26 @@ loops a fixed number of times.  However, our tool is intended to be
 complete (assuming a complete control flow graph, provided functions,
 etc.) so we want to avoid fixed unrollings.
 
-To this end, we extend our allocation domain with a ``recent'' bit,
-similar to the MRAB vs NMRAB abstraction~\cite{vsa}, though for different
-purposes.  In terms of a concrete trace, the address most recently
-given by an allocation at a given site belongs to the set where
-``recent'' is true.  All other addresses issued by that site belong to
-the set where ``recent'' is false.  In our static form, an address
-belongs to the recent if there exists some trace for which it was the
-last allocated from that site.  It belongs to the non-recent set if
-there exists some trace for which it was not most recently allocated.
-Note that once in static form, the recent set may have more than one
-member, and may even intersect with the non-recent set.
+To this end, we extend our allocation domain with a ``recent'' bit, similar to the MRAB vs NMRAB abstraction~\cite{vsa}, though for different purposes.
+Relative to a concrete trace, the address most recently given by an allocation at a given site belongs to the set where ``recent'' is true.
+All other addresses issued by that site belong to the set where ``recent'' is false.
+In our static form, a value belongs to the recent set for an allocation site if there exists some trace for which it was the last allocated from that site.
+It belongs to the non-recent set if there exists some trace for which it was not most recently allocated.
+Note that once in static form, the recent set may have more than one member, and may even intersect with the non-recent set.
 
 This extension is a departure from the normal Andersen alias analysis.
 It is only for precision, not correctness.
-It can essentially be viewed as 1 bit path-sensitivity, where path-sensitivity would be parameterizing on the entire sequence of instructions taken to reach the current point.
+It can essentially be viewed as 1 bit path-sensitivity, where path-sensitivity would be parameterizing on entire sequences of instructions which could be taken to reach the current point.
 
-Implementing this in our static approach means we need to make a few changes.
-When an allocation summary is processed by the points-to relation, all other references to that allocation have their recent bit set to false.
-We also need to modify the behavior of \texttt{flow\_call\_over} to update the caller to represent what may have happened in the callee.
+To implement this in our static alias analysis, we construct summaries for each function of allocations and possible allocations.
+When processing the edge which skips the function which is meant to propagate variables not accessible to it, we update the points-to relation using information from this summary to keep recency information accurate.
+We do this by modifying the behavior of \texttt{flow\_call\_over} to update the caller points-to to represent what may have happened in the callee.
 
 We define an ``effect'' to be a set of definite allocation sites and a set of possible allocation sites that occur when a call is made.
 To apply an effect to a points-to set:
 For every definite allocation site, make the recent bit false.
-For every possible allocation site, duplicate any recent references to
-have both recent and non-recent values. Listing~\ref{lst:recent} shows
-this change.
+For every possible allocation site, duplicate any recent references to have both recent and non-recent values.
+Listing~\ref{lst:recent} shows this change.
 
 %To this end, we amend the rules as in Listing \ref{lst:recent}
 \begin{lstlisting}[float=*t, caption={Rules for Recent Domain}, label=lst:recent]
@@ -472,25 +467,10 @@ As a result of this design, other than field sensitivity (which requires signifi
 Our system is conservative in almost all cases, but there are a few notable exceptions.
 If the provided file is linked against files which are not provided, their functions will be assumed to effectively be no-ops.
 If in reality, these functions free memory or write to the heap, this may cause missed vulnerabilities.
-The system uses the BAP control flow graph and any indirect jump
-resolution and the analysis assumes they go nowhere; we do no additional resolution beyond \texttt{ret} calls.  % does not currently resolve indirect jumps or calls (those whose target is determined by the value of data) other than returns, instead assuming them to go nowhere and terminate the program.
+The system uses the BAP control flow graph and any indirect jump resolution and the analysis assumes they go nowhere; we do no additional resolution beyond \texttt{ret} calls.
 %This may result in an incomplete control flow graph, which in turn can lead to %missed bugs.
-This is a general problem in binary analysis (control flow recovery) and not specific to our approach.
+Control flow recovery is a general problem in binary analysis and not specific to our approach.
 Essentially, if a prerequisite step gives our algorithm incomplete information, it will produce an incomplete result.
-This was sufficient for the programs analyzed, which are written largely in C, but some resolution would be required to achieve good quality result on C++ programs which use vtables or programs which use a callback architecture (and so rely heavily on function pointers).
-
-We assume the transfer of a pointer from one place to another will take place in a single assembly instruction - we do not model ``the first 3 bytes of a pointer to x'' for example.
-Finally, we assume that a traditional stack discipline is being followed for purposes of points-to minimization in the sensitive cases.
-If it is not, aliases from stack calculations pointing above or below your own stack frame may be missed.
-
-
-\subsection{Limitations}
-Our system is conservative in almost all cases, but there are a few notable exceptions.
-If the provided file is linked against files which are not provided, their functions will be assumed to effectively be no-ops.
-If in reality, these functions free memory or write to the heap, this may cause missed vulnerabilities.
-Currently, we do not resolve indirect jumps other than returns, assuming they go nowhere.
-This may result in an incomplete control flow graph, which in turn can lead to missed bugs.
-ssentially, if a prerequisite step gives our algorithm incomplete information, it will produce an incomplete result.
 This was sufficient for the programs analyzed, which are written largely in C, but some resolution would be required to achieve good quality result on C++ programs which use vtables or programs which use a callback architecture (and so rely heavily on function pointers).
 
 We assume the transfer of a pointer from one place to another will take place in a single assembly instruction - we do not model ``the first 3 bytes of a pointer to x'' for example.

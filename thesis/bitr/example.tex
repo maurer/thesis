@@ -20,8 +20,8 @@ int loop_sum(struct list* l) {
   return v;
 }
 \end{lstlisting}
-\label{fig:loop-sum-c}
 \caption{Loop Sum C}
+\label{fig:loop-sum-c}
 \end{figure}
 \end{small}
 \begin{small}
@@ -50,7 +50,7 @@ loop_sum:
 \end{figure}
 \end{small}
 
-The first thing a reverse engineer would do is to identify that the program uses \texttt{rsp} as the stack, see the standard function prologue in instructions 00 to 01, and skip past the prologue. At this point instruction 02 loads \texttt{rdi} into stack slot $-0x18$, and remember that this stack slot has a type corresponding to the first argument of the function, assuming that normal x64 calling conventions are in use. Instruction 03 then initializes stack slot $-0x4$ to $0$. However, since the write is 32 bits wide and not a 64-bit wide write, we immediately know the stack slot $-0x4$ is not a pointer. So, we assume stack slot $-0x4$ is an integer. Next, following the jump from 04 to 11, 11 compares $0$ against stack slot $-0x18$, the one that contains the first function argument.
+The first thing a reverse engineer would do is to identify that the program uses \texttt{rsp} as the stack, see the standard function prologue in instructions 00 to 01, and skip past the prologue. At this point instruction 02 loads \texttt{rdi} into stack slot $-0x18$, and remember that this stack slot has a type corresponding to the first argument of the function, assuming that normal AMD64 calling conventions are in use. Instruction 03 then initializes stack slot $-0x4$ to $0$. However, since the write is 32 bits wide and not a 64-bit wide write, we immediately know the stack slot $-0x4$ is not a pointer. So, we assume stack slot $-0x4$ is an integer. Next, following the jump from 04 to 11, 11 compares $0$ against stack slot $-0x18$, the one that contains the first function argument.
 
 Along the inequality case in 12, the next instruction is 05. This branch dereferences slot $-0x18$, adds 8, and dereferences it again. Now we know that the input must be a pointer, with \emph{something} at offset 8. Finally, we note that the width of the read is 32 bits, so we again have the situation from earlier --- this is an integer. At 07, the code adds the value read out back into stack slot $-0x4$. 08-09 dereference slot $-0x18$, so we know that in addition to pointing at something at offset 8, stack slot $-0x18$ also points to something at offset 0. Instruction 10 moves that value into stack slot $-0x18$! We now know that in addition to having a 32-bit integer at offset 8, at offset 0 stack slot $-0x18$ will have a value the same type as itself. If we assume the branch where our new pointer is null as we traverse 11 and 12 this time, we see that the value at stack slot $-0x4$ is the one returned. As a result, we now know that this function takes a linked list of integers as an argument, and returns an integer.
 
@@ -67,13 +67,13 @@ $$(\tau(\textrm{R\_RSP\_328}) = \ptr{0}{0}) \wedge (\tau(\textrm{R\_RSP\_211}) =
 \end{align*}
 The region variable 1, and type variable 2, are both fresh here. The rest of the constraints can be derived in similar fashion.
 
-Now that we have this list of constraints, how are we going to solve them? The difficulty lies in these optional clauses, so we handle these those last. We can start maintaining sets of type variables which form equivalence classes to make sure the information gained constrains to all of them. We can bound these equivalence classes above and below. We can do the same for region variables, but keeping track of offsets.
+Now that we have this list of constraints, how are we going to solve them? The difficulty lies in these optional clauses, so we handle those last. We can start maintaining sets of type variables which form equivalence classes to make sure the information gained constrains to all of them. We can bound these equivalence classes above and below. We can do the same for region variables, but keeping track of offsets.
 
 Actually trudging through this would take a while, but we can focus on seeing that \texttt{rdi} in this example must contain a recursive reference. \texttt{rdi} corresponds to type variable 16 in the constraint list provided. Selecting non-optional constraints first, and resolving the type variable unification and region variable unification constraints arrives at this in relatively few steps. The computer, when doing this, does not follow a pattern with a goal in mind like this. The inference engine just goes through the constraints which it can consistently absorb one by one, generating a \emph{context} which contains a reduced form of the constraints.
 
 Though much less practical for the manual reverse engineer, this method is vastly more mechanizable and less brittle. Effectively, to finish the example, the reverser would keep adding to their understanding, consuming constraints, until a disjunction makes a choice necessary. At that point, the reverser would bookmark their current understanding, and try one of the choices. If a given path did not work out, the reverser would backtrack to another choice. The key here is that incorrect choices will fail quickly; if the reverser tries to pick the integer math option on an addition, and the operation was really pointer arithmetic, by absorbing the non-choice constraints first, it will instantly see a contradiction in the accumulated knowledge of the situation.
 
-Figure~\ref{fig:solvedlist}(Appendix) shows the complete result of running this algorithm in full on the \texttt{loop\_sum} example. That representation, while more complete, is quite complicated, so here we instead display the recovered types of a few registers at function entry. The stack ($\texttt{esp}$) at function entry:
+Figure~\ref{fig:solvedlist} shows the complete result of running this algorithm in full on the \texttt{loop\_sum} example. That representation, while more complete, is quite complicated, so here we instead display the recovered types of a few registers at function entry. The stack ($\texttt{esp}$) at function entry:
 \begin{align*}
 *&(-32 : \trec{\textrm{A}}{*(0:\textrm{A})(8:\tint{32})})\\
 &(-12 : \tint{32})(-8:\tpoly{B}{\bot_{64}}{\top_{64}}{B})
