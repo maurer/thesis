@@ -4,9 +4,7 @@
 Holmes differs from base datalog in callbacks (analogous to external predicates), aggregates, circumscription, and call/cc.
 External predicates already have a well understood semantics, and we will model callbacks here by extension of our Herbrand universe during instantiation.
 Aggregates in the presence of callbacks can be replaced by a syntactic tranformation, other than for purposes of circumscription.
-Circumscription by itself yields stable set semantics when the program is consistent under it.\todo{prove or argue?}
 Adding call/cc forces a solution to exist when it otherwise would not, adding a restricted set of solutions which violate the minimality constraint of stable set semantics when no stable set exists.
-%TODO add stable-set (and well-founded?) to background section
 
 We will first go over the negation model embedded at base datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
 Then, I will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
@@ -87,17 +85,10 @@ For ``well behaved'' programs, as described in \S~\ref{holmes:sec:circ}, we also
 We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia \boks \dia F$ under this frame.
 
 assume-false represents normal circumscription.
-This rule alone will result in a frame which represents stable set negation.\todo{Prove and reference proof?}
 Adding the assume-true is what differentiates our negation model.
 This rule only allows the assumption of truth if assuming false would either make the world inconsistent immediately, or force an inconsistent choice for some fact down the line.
-By doing adding assume-true, we gaurantee the existence of a solution to negation.\todo{prove and reference}
 By restricting it to those cases where assuming falsehood would result in a forced inconsistency in any complete model, we still rule out trivial solutions like setting everything true, but in a loser way than is present in the stable-set semantics minimality over a reduced program.
 This can be viewed as a locally-minimal stable set, rather than a fully minimal one.
-
-Well-founded negation corresponds to those formulae which are modeled under the convergent subset of the Kripke frame (e.g. if $\leq$ were artificially modified to remove all nonconvergence by iteratively shrinking the relation).\todo{prove? reference}
-In the case where the program is ``well-behaved'' and we have G directly, the well-founded negation result, the stable-set result, and our result are all the same. 
-
-\todo{example?}
 
 In Holmes, circumscription corresponds to a potentially-infinite variety of assume-false in which every version of a specific aggregate greater than the proposed circumscription is negated.
 call/cc corresponds to assume-true, but is a bit more complex, since it needs to discern at least one specific assumption from the infinite negation arm which is untenable.
@@ -117,7 +108,6 @@ Consider joins as equivalent to callbacks which just happen to return only one a
 Let $F$ be the set of functions, modified to take tuples for multiple arguments, and to return their results ``flattened'', e.g. if a callback would return $a = 1, b = 2$ and $a = 3, b = 4$, its representative in $F$ returns $\{1, 2, 3, 4\}$.
 Since both meets and callbacks are typed, if an input would be outside their domain, they return $\emptyset$.
 
-\todo{I think there is something wrong with the infinities in this construction, but I want a draft.}
 Given $U_i$, construct $U_{i + 1}$ by
 \[
 	U_{i + 1} = \bigcup_{x \in U_i, f \in F} f(x)
@@ -157,7 +147,6 @@ where $p, q_i \in \hb$.
 
 \section{Semantics}
 \label{formal:sec:semantics}
-\todo{Maybe some (all?) of these sets should be in instantiation - probably $\viol{\Pi}{c}$}
 We begin by defining a few extra sets relative to the initial program which will be needed for interpretation.
 Let $\circset(\Pi) \subseteq \hb(\Pi)$ be the set of circumscripted facts added, e.g. they were of the form $P_c(\cdot)$.
 
@@ -168,7 +157,6 @@ This is a partitioning of $\aggset(\Pi)$.
 
 Let $\decirc{\Pi}{c}$ where $c \in \circset(\Pi)$ be the non-circumscribed version of the fact, e.g. if $c$ corresponds to $P_c(x_0 \cdots x_n)$, then $\decirc{\Pi}{c} \in \hb$ corresponds to $P(x_0 \cdots x_n)$.
 
-\todo{Should I show how to construct this?}
 Let $\viol{\Pi}{c} \subseteq \hb$ be those predicates which are \emph{directly} negated by the circumscription.
 This contains all of those values belonging to the same aggregate which are not less than or equal to the circumscription.
 
@@ -205,7 +193,6 @@ A program is a world if for every aggregate, it either decides it, or we can mak
 If $a$ isn't decided yet, and circumscribing it closed would not cause any inconsistency, we may do it.
 
 For call/cc, let $\Pi_c$ be $\Pi$, but modified so that $\viol{\Pi}{c} = \emptyset$ and $c$ is unioned in.
-\todo{Perhaps split up into separate judgements/predicates to make this rule not so huge}
 \[\small
 	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi_c} & \not \exists c'. \Pi \stepass_a \Pi' \cup c' & \not \exists p' \in \viol{\Pi}{c}. \Pi \models p' & p \in \viol{\Pi}{c} & \Pi_c \models \dia \boks \dia p}
 \]
@@ -213,22 +200,3 @@ This rule says that if we cannot circumscribe on the aggregate, but if we did, t
 We define $\leq$ based on $\stepass$ exactly as before.
 
 Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into
-
-\section{Potential proofs?}
-\subsection{Finite form}
-\begin{itemize}
-	\item Equivalent to stable set without assume-true
-	\item Equals stable set if stable set present
-	\item Translated program is always a world
-\end{itemize}
-\subsection{Infinite form}
-\begin{itemize}
-	\item Translated program is always a world
-	\item Connect more thoroughly to finite mode, by describing $c$ as infinite negations in a row, and commuting them, then using finite semantics
-	\item Connect to depth-first search strategy implemented by real engine for
-		\begin{itemize}
-			\item Soundness
-			\item Progress (don't repeat worlds)
-			\item Termination when $G$ is present and extent of the unique answer is finite? This might still not be true.
-		\end{itemize}
-\end{itemize}
