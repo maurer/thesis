@@ -2,20 +2,40 @@
 \chapter{Formal Holmes}
 \label{chap:formal}
 Holmes differs from base datalog in callbacks (analogous to external predicates), aggregates, circumscription, and call/cc.
-External predicates already have a well understood semantics, and we will model callbacks here by extension of our Herbrand universe during instantiation.
-Aggregates in the presence of callbacks can be replaced by a syntactic tranformation, other than for purposes of circumscription.
+External predicates already have a well understood semantics, and we will model callbacks as interpreted functions by extension of our Herbrand universe during instantiation (\S \ref{formal:sec:callbacks}).
+Aggregates in the presence of interpreted functions can be replaced by a syntactic tranformation, other than for purposes of circumscription.
 Adding call/cc forces a solution to exist when it otherwise would not, adding a restricted set of solutions which violate the minimality constraint of stable set semantics when no stable set exists.
 
 We will first go over the negation model embedded at base datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
-Then, I will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
-Finally, I will give semantics for ther Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
+Then, we will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
+Finally, I will give semantics for the Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
 %TODO add any proofs to intro
 \section{Negation}
 \label{formal:sec:negation}
-Traditional datalog consists only of a head clause, implied by a series of body clauses.
-To this, we allow body clauses to be optionally negated (head clauses must still be positive).
+\subsection{Other forms of Negation}
+The first primary distinction to draw in negation is ``strong negation'' vs ``negation-as-failure'', or NaF.
+Strong negation describes having knowledge that something is not the case, whereas NaF describes knowing that we will never have proof that something is the case.
+This difference is more formally defined by Gelfond and Lifshitz~\cite{strongneg}, where strong negation is referred to as classical negation.
+In this work we will focus on negation-as-failure.
 
-As we have no function symbols or callbacks, we define a Herbrand universe $\hu$ which is simply the set of constants in the program.
+One way of interpreting negation is ``stable-set'' semantics~\cite{stablemodel}.
+In stable-set semantics, to check a whether a proposed model is a stable set, we first take the reduct of the logic program under the proposed model.
+To do this, we remove all negated body clauses which are not present in the proposed model (and so are satisfied), and then remove all rules which still have negated clauses in them (which were not satisfied).
+If the model is the minimal model of this reduct (this new reduced program), then it is a stable set, or stable model of the program.
+This interpretation admits an arbitrary number of potential stable models, including none.
+
+Another approach is known as ``well-founded negation''~\cite{wellfounded}.
+This approach constructs what it calls ``unfounded sets'', which are sets of values which, relative to a given partial interpretation, can never be proven.
+It then augments the partial interpretation with the negation of the unfounded set, and constructs a new minimal model, treating negated clauses as only true if explicitly present in the new partial interpretation.
+This procedure is run unto fixpoint, and produces exactly one well-founded partial model, which will be a subset of all stable models~\cite{wellfounded}.
+
+In our case, stable-set semantics leaves something to be desired due to the potential for no model, and the well-founded approach may return partial solutions.
+\subsection{Negation in Holmes}
+Traditional datalog consists only of a head clause, implied by a series of body clauses.
+To this, we allow clauses to be optionally negated.
+In the original input program, the head clause may not be negated.
+
+As we have no function symbols or interpreted functions, we define a Herbrand universe $\hu$ which is simply the set of constants in the program.
 $\hb$ is the set of every predicate instantiated at every combination of values in $\hu$.
 
 We instantiate the program into the Herbrand universe, making a version of each rule with every variable instantiated at every member of $\hu$.
@@ -37,10 +57,6 @@ For a program $\Pi$ which consists of a set of such rules,
 \]
 
 We will define an interpretation of negation in such programs via a Kripke frame.
-\footnote{Our use of $\neg$ is considered to be beneath the formula level.
-The traditional $w \not \models P$ giving $w \models \neg P$ is talking about a different operator and kind of negation than what we are examining.
-We do not use formula negation here, so we do not define a new symbol for it.}
-
 We say a program $\Pi$ is consistent if it does not model both truth and falsehood for a single fact.
 \[
 	\infer[\textrm{consistent}]{\cons{\Pi}}{\forall p \in \hb(\Pi). \Pi \models p \imp \Pi \not \models \neg p}
@@ -50,6 +66,10 @@ We say a program $\Pi$ decides a fact if it models it as either true or false.
 	\infer[\textrm{decide-true}]{\Pi \decides p}{\Pi \models p}
 	\quad
 	\infer[\textrm{decide-false}]{\Pi \decides p}{\Pi \models \neg p}
+\]
+We give a base case for a program $\Pi$ being a world if it is consistent and it decides all facts.
+\[
+	\infer[\textrm{world-base}]{W(\Pi)}{C(\Pi) & \forall p \in \hb(\Pi). \Pi \decides p}
 \]
 We say a program $\Pi$ does not force the inconsistency of a fact if either it decides that fact, or adding one of its truth or negation results in a world.
 \[
@@ -63,6 +83,9 @@ Finally, a program is a world in our Kripke frame if it does not force the incon
 \[
 	\infer[\textrm{world}]{\world{\Pi}}{\cons{\Pi} & \forall p \in \hb(\Pi). \nfi{\Pi}{p}}
 \]
+
+The world-base rule is equivalent to the world rule with only the nfi-decided rule available for not forcing inconsistency.
+It is included to show more clearly the inductive construction of whether a program is a world.
 
 We define a relation between worlds $\stepass$ describing assumptions that may be made from a given program.
 \[
@@ -79,16 +102,19 @@ We complete the Kripke frame by defining the accessibility as transitive closure
 	\infer[\textrm{assume}]{\Pi_0 \leq \Pi_2}{\Pi_0 \leq \Pi_1 & \Pi_1 \stepass \Pi_2}
 \]
 
-Our Kripke is reflexive and transitive, placing it in S4 (preorder).
-For ``well behaved'' programs, as described in \S~\ref{holmes:sec:circ}, we also follow G (convergence) for the subset of worlds accessible from the program, placing us in S4.2, directed preorder.
-
 We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia \boks \dia F$ under this frame.
+Here, $\dia$ means ``possibly'', and $\boks$ means ``necessarily'', so this condition says that it is possibly necessarily the case that this formula is possible.
+We can visualize this on a directed graph with worlds as nodes and and the single-step form of our accessibility relation ($\stepass$) as an edge.
+This condition means that if we start from $\Pi$, our input program, we can find a connected program $\Pi'$, so that no matter what path we take forwards from there, there will always be a path to a world where the formula $F$ holds.
+Conceptually, this means that there exists an allowed choice of assumptions so that $F$ becomes a conclusion we will always eventually reach.
 
 assume-false represents normal circumscription.
 Adding the assume-true is what differentiates our negation model.
-This rule only allows the assumption of truth if assuming false would either make the world inconsistent immediately, or force an inconsistent choice for some fact down the line.
-By restricting it to those cases where assuming falsehood would result in a forced inconsistency in any complete model, we still rule out trivial solutions like setting everything true, but in a loser way than is present in the stable-set semantics minimality over a reduced program.
-This can be viewed as a locally-minimal stable set, rather than a fully minimal one.
+This rule only allows the assumption of truth if assuming false would either make the world inconsistent immediately, or make it impossible to provide a consistent assignment to the remainder of the facts given that assumption.
+By adding assume-true, we allow a consistent solution in the presence of negation in some cases it would not otherwise be possible.
+By restricting it to those cases where assuming falsehood would result in a forced inconsistency in any complete model, we still rule out trivial solutions like setting everything true, but in a looser way than the minimal model over the reduct.
+It is looser because it allows for models which are not minimal over the reduct, as when assume-true is used, it adds a true proposition which has no derivation from the rules, and so would not be present in any minimal model.
+As assume-true is only allowed in cases where assume-false would lead to no solution, it still prohibits the trivial solution (all predicates are in the model).
 
 In Holmes, circumscription corresponds to a potentially-infinite variety of assume-false in which every version of a specific aggregate greater than the proposed circumscription is negated.
 call/cc corresponds to assume-true, but is a bit more complex, since it needs to discern at least one specific assumption from the infinite negation arm which is untenable.
@@ -99,8 +125,9 @@ First, we define the Herbrand universe and base.
 Then, we describe how to instantiate a Holmes program at this universe.
 
 \subsection{Herbrand universe}
-Instead of function symbols which produce new values, as in a traditional construction, we have callbacks and and lattice joins.
-This is different from the normal construction because callbacks can produce an infinite set of new values, and both callbacks and lattice meets may produce values which are equal to existing values.
+\label{formal:sec:callbacks}
+Instead of function symbols which produce new values, as in a traditional construction, we have interpreted functions and and lattice joins.
+This is different from the normal construction because interpreted functions both interpreted functions and lattice meets may produce values which are equal to existing values.
 To address the equality issue, we assume that our construction is supplied with implementations of the callbacks and join operations as the real program would, and actually execute them on input values rather than creating symbolic expansions.
 
 Define $U_0$ to be those constants present in the program, combined with varieties tupled up to the maximum arity of the provided functions.
@@ -120,12 +147,12 @@ We then combine these stages:
 The Herbrand base $\hb$ is constructed in the usual way, instantiating each predicate at every value of $\hu$.
 
 \subsection{Program Instantiation}
-For predicates which have aggregation, rewrite them as callback rules.
+For predicates which have aggregation, rewrite them as rules with interpreted functions.
 If we have
 \[
 	P(\tau_0 \cdots \tau_m, \sigma_0\wedge j_0 \cdots \sigma_n \wedge j_n)
 \]
-then we create a new callback
+then we create a new function
 \[
 	j(a_0 \cdots a_n, b_0 \cdots b_n) = \{c_0 = j_0(a_0, b_0) \cdots c_n = j_n(a_n, b_n)\}
 \]
@@ -133,12 +160,12 @@ and add the rule
 \[
 	P(x_0 \cdots x_m, c_0 \cdots c_n) \leftarrow P(x_0 \cdots x_m, a_0 \cdots a_n), P(x_0 \cdots x_m, b_0 \cdots b_n) + j
 \]
-
+where $+ j$ as in the informal Holmes description means to attach the function $j$ to run after the match to generate a set of assignments to variables in the head clause not bound by the body.
 For each aggregated predicate, introduce a circumscripted version of the predicate, $P_c$.
 Perform simple replacement of all circumscripted matches to $P$ with matches against $P_c$.
 
-Now, the program looks like normal datalog but with callbacks.
-For every element of the Herbrand universe, instantiate the rule, run the function concretely on the bound variables, and instantiate the head term.
+Now, the program looks like normal datalog but with functions attached to some rules.
+For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body clause, and instantiate the head term.
 This will result in a rules of the form
 \[
 	p \leftarrow \bigwedge q_i
@@ -150,10 +177,12 @@ where $p, q_i \in \hb$.
 We begin by defining a few extra sets relative to the initial program which will be needed for interpretation.
 Let $\circset(\Pi) \subseteq \hb(\Pi)$ be the set of circumscripted facts added, e.g. they were of the form $P_c(\cdot)$.
 
-Let $\aggset(\Pi)$ be a set identifying the tuple of an aggregated predicate and all of its non-aggregated inputs.
+Let $\aggset(\Pi)$ be a set of tuples of an aggregated predicate and all of its non-aggregated inputs.
+For example, for $P(x_0, \cdots x_n, y_0, \cdots y_m)$ and all $y$ are aggregated, $(P, x_0, \cdots x_n)$ for each possible value of $x_0$ through $x_n$ would be present in $\aggset(\Pi)$.
+We will refer to members of $\aggset(\Pi)$ as ``aggregates''.
 
 Let $\circset_a(\Pi)$ where $a \in \aggset(\Pi)$ be the set of circumscriptions which correspond to that aggregation specifically.
-This is a partitioning of $\aggset(\Pi)$.
+This is a partitioning of $\circset(\Pi)$.
 
 Let $\decirc{\Pi}{c}$ where $c \in \circset(\Pi)$ be the non-circumscribed version of the fact, e.g. if $c$ corresponds to $P_c(x_0 \cdots x_n)$, then $\decirc{\Pi}{c} \in \hb$ corresponds to $P(x_0 \cdots x_n)$.
 
@@ -164,9 +193,10 @@ This contains all of those values belonging to the same aggregate which are not 
 Much of this is similar to the simple negation semantics, but I restate it here for clarity.
 
 \[
-	\infer[\textrm{consistent}]{\cons{\Pi}}{\forall c \in \circset(\Pi) | \Pi \models c. (\forall p \in \viol{\Pi}{c}. \Pi \not \models p) \wedge \Pi \models \decirc{\Pi}{c}}
+	\infer[\textrm{consistent}]{\cons{\Pi}}{\forall c \in \circset(\Pi). \Pi \models c \imp ((\forall p \in \viol{\Pi}{c}. \Pi \not \models p) \wedge \Pi \models \decirc{\Pi}{c})}
 \]
-Like previously, consistency here requires that a circumscription not have any of the negations it represents violated.
+Like previously, consistency here requires that a none of the negations assumed by a circumscription also be present in the model in a non-negated form.
+Specifically, the rule says that for all circumscripted facts in the universe, if they are in the model of the program, then none of the conditions which would violate the circumscription hold, and the aggregated fact corresponding to the circumscripted fact holds.
 Additionally, the circumscription must be supported: the aggregate must have reached the point on the lattice that the circumscription asserts will be the exact value.
 
 Rather than deciding individual facts as we did previously, we now decide aggregates.
@@ -177,15 +207,17 @@ Rather than deciding individual facts as we did previously, we now decide aggreg
 \]
 The bounded case indicates that we have circumscribed this aggregate, and so have decided it.
 The no-base case indicates that this aggregate is totally unpopulated by the program.
-Since our lattices are not gauranteed bounded, no circumscription can be made, and we are considered to decide the aggregate.
+Since our lattices are not gauranteed to be bounded, no circumscription can be made.
+As we cannot circumscribe over it, we are considered to decide the aggregate.
+Specifically, the program has decided on the negation of all values which could make up the aggregate.
 
 This time, since our $\stepass$ is more complex, our world predicate and $\stepass$ are defined mutually recursively.
-We also index $\stepass$ with the aggregate it is making assumptions in.
+We also index $\stepass$ with the aggregate that it either circumscribes or extends.
 
 \[
 	\infer[\textrm{world}]{\forall a \in \aggset(\Pi). \Pi \decides a \vee \exists \Pi'. \Pi \stepass_a \Pi'}{\world{\Pi}}
 \]
-A program is a world if for every aggregate, it either decides it, or we can make an assumption to progress that aggregate.
+A program is a world if for every aggregate, it either decides it, or there is a one-step accessibility to one where it is circumscribed or extended ($\stepass_a$).
 
 \[
 	\infer[\textrm{circ}]{\Pi \stepass_a \Pi \cup c}{\Pi \not \decides a & c \in \circset_a(\Pi) & W(\Pi \cup c)}
@@ -193,10 +225,11 @@ A program is a world if for every aggregate, it either decides it, or we can mak
 If $a$ isn't decided yet, and circumscribing it closed would not cause any inconsistency, we may do it.
 
 For call/cc, let $\Pi_c$ be $\Pi$, but modified so that $\viol{\Pi}{c} = \emptyset$ and $c$ is unioned in.
+In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which are based on the addition of $c$.
 \[\small
 	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi_c} & \not \exists c'. \Pi \stepass_a \Pi' \cup c' & \not \exists p' \in \viol{\Pi}{c}. \Pi \models p' & p \in \viol{\Pi}{c} & \Pi_c \models \dia \boks \dia p}
 \]
-This rule says that if we cannot circumscribe on the aggregate, but if we did, the inconsistency we would arrive at would deal with this circumscription, then we can instead extend the aggregate to avoid the inconsistency.
+This rule says that if we cannot construct $\stepass_a$ using the circ rule, but $\Pi_c$ would extend the aggregate $a$ with new information, then we can extend $a$ with the new information even though the proposed circumscription would not result in a world.
 We define $\leq$ based on $\stepass$ exactly as before.
 
-Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into
+Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into can access a world where all accessible worlds can access a world where the formula is true. More succinctly, $\Pi \models \dia \boks \dia F$.
