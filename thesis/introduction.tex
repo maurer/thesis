@@ -1,11 +1,36 @@
 \chapter{Introduction}
+We need program analysis techniques that can find security bugs in
+binary programs. Binary program analysis is essential because code is
+often only available in binary form, and even when source code is
+available, some security properties are more appropriate at the binary
+level.
+
+   - Let's not over-explain many people don't' have source. Needs to be
+   said, but don't dwell.
+   - Second thing: sometimes binary code is the right place to perform
+   analysis, e.g., buffer overflow more accurate if you know the size
+   the compiler created not just what's stated in source. We may not
+   want to say this since we don't have a buffer overflow detector,
+   though. Is there a case for this for use-after-free?  What about
+   types at the binary level?
+
+
+
+
 Bugs in software can cause significant damage.
 Some software is distributed in binary-only form, for reasons ranging from a desire to keep proprietary information secret to wanting to avoid compilation or interpretation overhead on the client.
 Unfortunately, inspecting the behavior of machine code is difficult:
 It is undecidable for pathological cases and difficult to approximate in common ones.
 
 Existing tools~\cite{ida, bap, bitblaze, bindead} tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next.
-In this model, an analysis author must ensure any information they wish to consume has been calculated before their analysis, but after any analyses that could benefit their dependency's accuracy.
+In this model, an analysis author must ensure any information they
+wish to consume has been calculated before their analysis, but after
+any analyses that could benefit their dependency's accuracy. \todo{put
+  in DAG here. You want to say explicitly that in many cases, e.g.,
+  source code, a DAG is sufficient.  Recently Jackstab argued that
+  there may be cycles in co-dependent analysis. They perform initial
+  investigations, but are limited to a single cycle.  Further, they
+  hardcoded the cycle.}
 Representing individual analyses as nodes, with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must be run before $n_2$, this graph forms a sequence.
 The sequence model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
 In LLVM's pass model, each pass declares what analyses it depends upon, allowing the LLVM pass manager to ensure the necessary steps are performed and allow a configurable pipeline.
@@ -14,6 +39,19 @@ Jakstab~\cite{jakstab} takes the approach of running their analyses to a fixed p
 As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
 A natural extension then is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
 This full graph model of analysis management is investigated in this thesis.
+
+
+- We often need co-dependent analysis to detect bugs. This needs to be
+said. Right now it's not really in the intro.  Then say in previous
+work this is a known requirement (?).  Examples.  Then you need to
+explicitly say why previous work is insufficient (either technically
+or ``not good enough'').
+
+
+\todo{This paragraph should start with: our main insight is that we
+  need an analysis framework that allows for arbitrary
+  cycles. Further, we want a framework that is extensible so that new
+  analysis can be added easily.}
 
 % Past work sets the stage for / encourages this
 Previous work in program analysis suggests that logic languages can help to structure this problem.
@@ -38,7 +76,9 @@ With a (backwards-chaining\footnote{Goal driven execution, more explanation in \
 % External code
 Using a fairly common extension of logic language, we can even call out to code not written as logical rules\footnote{We use a system similar to external predicates \S\ref{sec:extpred}}.
 This makes it possible to repurpose previously written analyses, or to write new analyses which may not be best represented as rules.
-There are still some restrictions on how such code can operate (for example, no preserved state across calls) but taking this approach gives the flexibility to be an integration system.
+There are still some restrictions on how such code can operate (for
+example, no preserved state across calls) but taking this approach
+gives the flexibility to be an integration system.\todo{fix me up.}
 
 \begin{inset}
 {\bf Thesis statement.}
