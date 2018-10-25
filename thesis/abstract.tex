@@ -1,20 +1,80 @@
-Vulnerability detection in compiled code can be more effectively performed using a logic-language based framework which supports non-stratified negation and co-dependent analyses.
+%Vulnerability detection in compiled code can be more effectively performed using a logic-language based framework which supports non-stratified negation and co-dependent analyses.
 %Compiled code needs to be analyzable
-In order to perform security audits of libraries and executables, continue the use of legacy code, and develop attacks, we need the ability to analyze this software.
+We need program analysis tools and techniques that address the unique
+problems of executable code software analysis.
+%In order to perform security audits of executable programs and
+%libraries,  and develop attacks,
 %This is difficult because binaries are turing complete, and even "well behaved" code does crazy shit
-When code is compiled, the compiler strips away information the original programmer had access to, such as intended control flow, types, and variable locations.
-Software analyzing compiled code faces a number of unique challenges as a direct consequence of dropping information during the compilation process.
+When code is compiled, the compiler strips away source code
+information, such as control flow, types, and variable locations.  As
+a result, program analyses of compiled code faces a number of unique
+challenges. % as a direct consequence of dropping information
+%during the compilation process.
 %General statement about how we can help?
-Researchers have developed a wide variety of techniques for attacking this problem from different angles, but these approaches are typically not integrated with one another.
-%Previous Work
-Previous work in analyzing compiled code has performed type recovery, variable identification, control flow recovery, and value analysis.
-However, previous work tended to focus on one or two specific questions at a time rather than holistic analysis.
-Co-dependent analyses are more important when traditional abstractions designed to allow for modular reasoning have been removed.
-Type recovery depends on dataflow information, which in turn depends on control flow.
-Recovering non-trivial control flow requires value analysis to resolve jump targets.
-One variety of value analysis (alias analysis) is sometimes done using type information.
-While co-dependency is most prevalent in control flow analysis, it finds its way into nearly every part of binary analysis.
+Previous work has proposed techniques to perform single analysis, such
+as control flow recovery, variable identification, and value analysis.
+However, previous work has not focused on the \emph{co-dependencies}
+between these individual analysis. For example, value set analysis
+requires control flow analysis, which in turn requires value set
+analysis. We need techniques that can handle such co-dependencies in
+order to effectively check higher-level
+security properties such as use-after-free bugs. % , nor proposed a
+% holistic platform for integrating new co-dependent analyses.
+% %Previous Work
+%  However, each of these individual analysis are co-dependent
+% in unique ways at the binary level.  These co-dependent analyses must be
+% able to iteratively call each other to refine their results.
 
-In this thesis we have implemented \sysname, a datalog dialect suited to this task of knitting together co-dependent analyses, and formally defined its operation.
-We demonstrate the system's effectiveness concretely by implmenting a use-after-free detector over binaries.
-We further present a binary type recovery system which despite not being written with \sysname\ in mind, is still structured such that it would be amenable to integration.
+% benefits from type analysis, which in turn depends on control flow
+% analysis. Control flow analysis
+
+% For example, type recovery depends on dataflow information, which in
+% turn depends on control flow which is an independent analysis.
+
+% Recovering non-trivial control flow
+% requires value analysis to resolve jump targets.  One variety of value
+% analysis (alias analysis) is sometimes done using type information.
+
+% However, previous work tended to focus on one or two
+% specific questions at a time rather than holistic analysis.
+
+In this thesis we propose using a logic-language based approach to
+encode co-dependent analysis, and build a tool called Holmes based on
+our approach to demonstrate our ideas on real code. We demonstrate
+several novel techniques for extending Datalog semantics to
+efficiently and effectively reason about real binary code. For
+example, our approach allows one to elegantly encode the co-dependence
+between value-set and control-flow analysis described above. We
+demonstrate {\sysname} and our approach by encoding several real-world
+co-dependent analysis, and showing that {\sysname} can effectively be
+used to check higher-level properties such as use-after-free on real
+executable code.
+
+Random ideas:
+1. Put Bitr into section 2 as a motivating example.  E.g., section 1
+is a complete overview. Then we use section 2 to provide motivating
+examples. The section 3 describes holmes.
+
+
+%
+%effectiveness concretely by implementing a
+% use-after-free detector over binaries.  We further present a binary
+% type recovery system which despite not being written with \sysname\ in
+% mind, is still structured such that it would be amenable to
+% integration.
+
+
+% Holmes is a well-defined system that extends datalog with appropriate
+% negation and aggregation
+
+% C
+% o-dependent analyses are more important when traditional abstractions
+% designed to allow for modular reasoning have been removed.  Type
+% recovery depends on dataflow information, which in turn depends on
+% control flow.  Recovering non-trivial control flow requires value
+% analysis to resolve jump targets.  One variety of value analysis
+% (alias analysis) is sometimes done using type information.  While
+% co-dependency is most prevalent in control flow analysis, it finds its
+% way into nearly every part of binary analysis.
+
+% In this thesis we have implemented \sysname, a datalog dialect suited to this task of knitting together co-dependent analyses, and formally defined its operation.
