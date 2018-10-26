@@ -6,7 +6,8 @@ May alias means that two values might point to the same thing, and the lack of s
 
 Additionally, alias analyses have different degrees of sensitivity.
 The sensitivity of an alias analysis refers to what additional parameters are given when asking whether two pointers alias.
-A flow-sensitive analysis uses the program counter or statement location as a parameter.
+A flow-sensitive analysis uses the program counter or statement location as a parameter.\footnote{
+This implicitly encodes the location within the control flow graph since the analysis is also conditioned on the particular compilation of the source program.}
 A context-sensitive analysis uses program call stack as a parameter.
 This term is also sometimes used to discuss the granularity of the memory model in use, e.g. a ``field sensitive analysis'' is one in which the model distinguishes between writes to \texttt{s->x} vs \texttt{s->y}.
 In our case, field sensitivity is made more complex by a lack of type information and the presence of pointer arithmetic, so it differs from the traditional presentation (\S~\ref{sec:field}).

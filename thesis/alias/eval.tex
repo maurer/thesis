@@ -165,5 +165,6 @@ This was few enough reports to enable practical manual auditing by a single indi
 This does not guarantee these programs are bug free - while we have a conservative analysis, that is dependent on seeing the entire control flow graph.
 In this case this condition is not met.
 Some C++ programs which use vtables are present in this path - calls to member functions there will appear as no-ops.
+Function pointers are similarly considered to be no-ops.
 Calls into libraries which were not analyzed with the binary are similarly absent.
 Finally, some of these are GUI or threaded applications, which utilize a callback system we again do not handle control flow edges for.

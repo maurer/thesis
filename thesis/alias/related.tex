@@ -57,6 +57,7 @@ Datalog has been used to perform program analysis before~\cite{bddbddb,doop1}, t
 These approaches transform the program into a set of input facts to be combined with rules and run by a datalog engine to receive the final results, essentially phasing the computation.
 Our approach uses a mixture of datalog with traditional procedural code instead.
 This allows us to do things like lifting newly found instructions from within the datalog context or hypothetical reasoning which requires a computation step.
+In our implementation, this occurs for every instruction other than the entry points, since we discover the location of the next instruction during lifting.
 However, this also means that we lose datalog's termination guarantees and cannot use most common datalog engines.
 
 \texttt{bddbddb}~\cite{bddbddb} used BDDs (binary decision diagrams) to exploit symmetry in context-sensitive points-to analysis for Java programs.
