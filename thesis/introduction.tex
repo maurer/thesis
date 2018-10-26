@@ -1,19 +1,37 @@
 \chapter{Introduction}
-Bugs in software can cause significant damage.
-Some software is distributed in binary-only form, for reasons ranging from a desire to keep proprietary information secret to wanting to avoid compilation or interpretation overhead on the client.
-Unfortunately, inspecting the behavior of machine code is difficult:
-It is undecidable for pathological cases and difficult to approximate in common ones.
+We need program analysis techniques that can find security bugs in binary programs.
+Binary program analysis is essential because code is often only available in binary form.
+Even when source code is available, some security properties are more appropriately checked at the binary level.
+As an example, use-after-free bugs present in source may not be present at the binary level if the compiler chooses to elide a read it believes to be cached in a register.
 
 Existing tools~\cite{ida, bap, bitblaze, bindead} tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next.
 In this model, an analysis author must ensure any information they wish to consume has been calculated before their analysis, but after any analyses that could benefit their dependency's accuracy.
-Representing individual analyses as nodes, with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must be run before $n_2$, this graph forms a sequence.
+Representing individual analyses as nodes, with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must be run before $n_2$, this graph forms a sequence, or line.
+
+Even in compilation, explicit staging can be cumbersome, so compilers have moved from this sequence or \emph{line} model to a dependency-based \emph{DAG} model.
 The sequence model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
 In LLVM's pass model, each pass declares what analyses it depends upon, allowing the LLVM pass manager to ensure the necessary steps are performed and allow a configurable pipeline.
 Considering the graph representation again, LLVM's model is a DAG.
-Jakstab~\cite{jakstab} takes the approach of running their analyses to a fixed point.
+
+This DAG model works well over source code, but falls short when applied to compiled code.
+Jakstab~\cite{jakstab} argues for the codependency of value analysis and lifting. 
+It takes the approach of running these two analyses to a fixed point, and allowing additional user-defined analyses to be run on each iteration.
 As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
+While this is a step forwards, it still causes unnecessary recalculation and places a form of monotonicity requirements on analyses in order to remain correct.
 A natural extension then is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
 This full graph model of analysis management is investigated in this thesis.
+
+We often want co-dependent analysis to detect bugs.
+Jakstab~\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to better results than IDA\cite{ida} for jump resolution.
+If both analyses had been specified as logical rules within the same environment, the additional power Jakstab found by integrating them would have come for free.
+Notably, IDA misses edges which Jakstab finds.
+The result is that an evaluation of a security property done over the CFG presented by IDA would miss some true positives along the undetected control flow edges.
+Doop\cite{doop1} found that integrating exception analysis and points-to analysis gave them half as many candidate targets on average for each object.
+Extra precision of this sort translates into reduced false positives when evaluating security conditions over the program.
+
+Our main insight is that we need an analysis framework that allows for arbitrary cycles in the dependency graph.
+Further, we want a framework that is extensible so that new analyses can be added easily.
+Using a logic language is a natural approach to representing such a dependency graph.
 
 % Past work sets the stage for / encourages this
 Previous work in program analysis suggests that logic languages can help to structure this problem.
@@ -22,19 +40,6 @@ Datalog has previously been successfully used to analyze programs~\cite{lam2005,
 A wide variety of properties from aliasing in compiled code~\cite{brumley2006} to security properties such as SQL injectability and cross site scriptability (XSS)~\cite{lam2005} have been modeled as facts in a deductive database, suggesting this as a potential common representation.
 Dataflow analyses are also representable~\cite{mcallester2002} in this way.
 
-% * Analysis Integration improved results
-As using a logic language to describe the analysis process gives us both a common representation for information and the ability to see which analyses can and should be run when, integration should be easier.
-%   * Jakstab
-Jakstab~\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to better results than IDA\cite{ida} for jump resolution.
-If both analyses had been specified as logical rules within the same environment, the additional power Jakstab found by integrating them would have come for free.
-
-%   * Compositional May Must
-Similarly, \textsc{Smash}~\cite{smash} combined \textsc{Dash}'s~\cite{dash} may and must analyses.
-\textsc{Dash}-may-analysis derives facts about procedures stating that if a given property holds on an input, a separate property holds at the output.
-\textsc{Dash}-must-analysis derives facts stating that within a given set of inputs, there exists at least one input that goes to each of a given set of outputs.
-The authors were able to prune a number of search paths via this combination, leading to property checks terminating which previously took too long to be feasible to run.
-With a (backwards-chaining\footnote{Goal driven execution, more explanation in \S\ref{sec:bchain}}) representation of may and must analyses separately, their analysis could be derived by adding a relatively small number of rules to describe the yes/no property check fact they introduce.
-
 % External code
 Using a fairly common extension of logic language, we can even call out to code not written as logical rules\footnote{We use a system similar to external predicates \S\ref{sec:extpred}}.
 This makes it possible to repurpose previously written analyses, or to write new analyses which may not be best represented as rules.
@@ -42,7 +47,7 @@ There are still some restrictions on how such code can operate (for example, no 
 
 \begin{inset}
 {\bf Thesis statement.}
-Co-dependence in compiled program analysis can be represented in a logic language that allows for formal reasoning about the derivation of its conclusions and increased modularity of analyses.
+A datalog derivative with extensions for negation and external callbacks can drive multiple potentially co-dependent analysis to reason about binary programs effectively.
 \end{inset}
 
 % Roadmap to defending the thesis statement
