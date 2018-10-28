@@ -152,8 +152,9 @@ Figure~\ref{fig:pts-update} shows the transfer function rules for each
 statement type.
 %This is illustrated in Figure \ref{fig:pts-update}.
 The ``Initial'' section shows a sample initial configuration a points-to relation might have.
-Each other region is labeled by a statement, and shows what would change about the points-to relation.
-Each time an ``i'' is used on the left, assume that portion is present 3 times, with i ranging from 0 to 2.
+Both \texttt{a} and \texttt{b} are two-level pointers, with \texttt{x} and \texttt{y} representing the possible things pointed to at each level.
+Each other region is labeled by an update summary, and shows what would change about the points-to relation.
+The shown transfer function is for field-insensitive analysis; as each summary is not tracking offsets, we cannot perform a destructive update to anything dereferenced on the left hand side.
 
 For updates to stack slots or registers, we can perform a ``destructive'' update.
 This is demonstrated in the \texttt{a =} examples in Figure \ref{fig:pts-update}.
