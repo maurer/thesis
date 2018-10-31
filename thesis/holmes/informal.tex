@@ -63,6 +63,7 @@ When the database's \texttt{query\_all\_reaching} function is called, it will re
 Facts are inserted at the level of the embedding language, the database can be run for an arbitrary number of steps (or to fixpoint), and queries can be performed whenever the database is not stepping.
 
 \subsection{Callbacks}
+\label{holmes:sec:callback}
 Callbacks are used in Holmes to allow the use of more traditional procedural or functional style code for some rules.
 After writing a rule, add \texttt{+ f}, where \texttt{f} is the name of the callback you would like to use.
 When the rule is considered, it will first try to match its body clause.
@@ -81,6 +82,7 @@ check_even: special_even(x) <- special(x) + is_even
 A \texttt{is_even} function which checked the last bit of x, then either returned \texttt{[\{\}]} (a list containing the empty binding) for true or \texttt{[]} (an empty list) for false could implement this rule.
 
 \subsection{Monotonic Aggregation}
+\label{holmes:sec:agg}
 Monotonic aggregation defines a new way to declare predicate fields.
 When declaring a field, a caret (\texttt{\^{}}) followed by a function name in the embedding language with signature $(T, T) \rightarrow T$ where $T$ is the type of the field may be provided.
 Such a function should be a lattice meet operator - it should be associative, commutative, and idempotent.

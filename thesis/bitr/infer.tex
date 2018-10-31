@@ -19,7 +19,6 @@ Previous work~\cite{tie,sw} has used some form of variable recovery before attem
 \subsection{Constraint Generation}
 %SSA means we can examine statements separately
 Using a SSA-based representation means we can examine statements separately, as the transformation encodes the dataflow problem in the naming. The constraint generation does not need to ask whether this \texttt{eax} and that \texttt{eax} are the same, as the variable names identify a unique definition site. As a result, we do not need to consider the context in which a statement occurs in order to generate the constraints for that statement. The constraints will interact with other constraints, but this will be dictated by type variable matching rather than control flow. This greatly simplifies this step.
-
 \subsubsection{Constraint Forms}
 \newcommand{\constr}{\textrm{constr}}
 \newcommand{\sconstr}{\textrm{stmt constr}}
@@ -54,6 +53,9 @@ By taking the conjunction of constraints formed like this, we can express any pa
 However, one of the unique parts of this particular typing problem is that some of our functions (especially +) have multiple interpretations which cannot be conveniently formed into a single type. For example, it is unclear whether $x$ is a number or pointer in the expression $x + 2$, and as a result, the type of $x + 2$ is unclear.
 This forces us to either consider intersection types~\cite{Jim1995,Shao1993} or use a disjunction of constraints per statement. In the intersection typing approach, the system generates as complete a type as possible for each variable. For example, if we were trying to type a function $f(x) = x + 2$, the type would be similar to $f : (\mathrm{int} \rightarrow \mathrm{int}) \wedge (\mathrm{ptr}(r@n) \rightarrow \mathrm{ptr}(r@(n+2)))$. While this approach initially seems more elegant, as it allows more complete descriptions of a piece of code, even inference of well-behaved code can quickly become exponential both in the time taken, and in the size of the result type. Instead, we opt to generate a disjunction of constraints for statements which include expressions which would require intersection typing for a most general type. As long as we are satisfying one constraint, the expression will be legal, and in practice, operations like $+$ are not used for different purposes in the same generated code. This approach leaves out some possible typings (e.g. if whether a variable is a pointer or an integer is unclear, the system will end up needing to select one) and makes a small number of programs no longer legal (for example, a non-builtin plus function used both for pointer arithmetic and for integer math). Additionally, the choice to use constraints will make our search problem (in terms of finding which interpretations work) more tractable than inference would be in the intersection typing case. As a result, a statement's constraint ($\sconstr$) is encoded as a disjunction of conjunctions of the core constraint type ($\constr$). In order to describe the entire program, we take the conjunction of all the statement constraints and solve the result.
 
+As each of these constraints are generated separately, in a datalog-based system their generation could be represented as an external predicate on a single rule.
+This rule could generate a separate fact for each possible disjunction for an IL statement, or a single no-op constraint for instructions which would normally not have yielded one.
+
 \subsubsection{Interprocedural Constraints}
 %Interprocedural
 The basics of interprocedural analysis are straightforwards in this system. We use unique variables when lifting each function and store them in a table. On a function call, we look up the target function's input registers, and say that their types must be a supertype of the type of those same registers at the event of function call. Next, we process the output registers similarly, applying subtyping constraints here instead. There are two issues here, both deriving from the stack: pointer super/subtyping and stack slot re-use. The first issue occurs when applying a supertyping to the stack register upon a call. The stack register's struct will then include temporaries from the callee. This will work fine, until two functions are called in sequence with incompatible local stacks. This will cause an issue because the stack is now constrained to have incompatible uses of stack slots beneath the caller's stack.
@@ -80,6 +82,13 @@ During pointer unification, region variables will need unification. First, we ne
 
 The primary design issues here are to avoid cycles in updates when there are cycles in the types, and to track only the relevant parts of the constraints (effectively reducing them). This allows us to efficiently check whether or not we have violated constraints in order to ensure that our search through the possible disjoint constraints can take place efficiently.
 
+%Datalog repr
+This operation, when implemented in Datalog, would need some care to avoid excessive redundant computation.
+When adding two constraints to the solution context, the order should not matter if both of them would succeed.
+Specifically, they should commute.
+Additionally, if some set of constraints has already been solved together, we do not wish to attempt to solve any subset.
+These two properties together suggest a lattice-like aggregation structure.
+
 \subsection{Search}
 % Necessary due to disjunctions
 As we alluded to before, instead of dealing with exponentially sized types, we choose to use constraints which were potentially disjunctive. Unfortunately, having disjunctions in our constraints means we have to make choices when attempting to unify them. This forms a sort of search problem where for each statement, we want to select the statement that will lead us to a valid unifier, if possible. Initially, this seems worrisome, as there are a potentially exponential number of choices. Luckily, as alluded to in our discussion of how to absorb a constraint into the context, we can cheaply check for correctness in partially inferred contexts. As a result, we can make a choice, and then if the choice is wrong, stop before we have spent time dealing with the whole path. This, combined with the desire to only require a single path, not all paths, reduces what would naively be an exponential process to a tractable one.
@@ -93,6 +102,17 @@ In situations where the constraints are not simultaneously satisfiable, this goa
 First, we sort the constraints by the number of disjunctive clauses. This means that in the case where the constraints are satisfiable, the solver processes the non-branching constraints first. This is both positive from a search perspective (early decisions are less likely to be wrong), and from a domain specific perspective, as pointer reads and writes are of this form. Processing pointer reads and writes early means that incorrect choices for pointer arithmetic are likely to fail immediately.
 Then, for every constraint, we process each disjunction into a separate possible context. We then score each context with a triple of the number of constraints possibly satisfied, the number of constraints already satisfied, and a tiebreaker value.
 In each of the constraints, the disjunction's ordering matches how probable the interpretation is. For example, doing array indexing by a constant is less likely than doing struct indexing by a constant. The tiebreaker is based on the combined likelihood of each disjunction choice in a vacuum. At each step, we take the current context under examination, grab its next constraint, then for each choice, or the choice of dropping the constraint, generate the possible next steps, and place them into a heap. The sorting order for the heap is first by constraints already processed (to avoid backtracking when we do not need to), then by possible constraints to solve (to ensure we will search for the best solution first), and finally by the tiebreaker, to prefer constraint choices that are more likely a priori.
+
+% Datalog link
+Searching for a minimum number of dropped constraints again informs Holmes design.
+Enabling the arbitrary dropping of constraints in a datalog representation would result in a huge intermediate state.
+Even if only one constraint need be dropped, a program written in this way would compute the potential dropping of every possible constraint, resulting in an enormous set of facts.
+In order to make this more practical, we would either need to introduce control flow primitives (such as Prolog's cut) or some form of nonmonotonic reasoning.
+Assuming no explicit control flow primitives, nonmonotonic reasoning is required because adding a new arm to a disjunctive constraint would add a fact, but possibly \emph{reduce} the number of facts which a correctly designed system would derive due to decreasing the number of constraints which need to be dropped.
+
+This form of nonmonotonicity can be represented by circumscription in combination with the call/cc feature.
+A maximum number of dropped constraints can be considered under a closed world hypothesis (circumscription), making an assumption that more constraints do not need to be dropped.
+Then, if for a given number of maximum dropped constraints, it can be determined that no complete solution can be generated, the maximum number of dropped constraints can be increased (call/cc), retracting the insolubility assertion in the process.
 
 %  Limitations
 \subsection{Limitations}
