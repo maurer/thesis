@@ -1,30 +1,30 @@
 \chapter{Conclusion}
 \label{sec:conc}
-We have presented Holmes, a new dialect of datalog for orchestrating binary analyses.
+We have presented Holmes, a new dialect of Datalog for orchestrating binary analyses.
 We described the language informally (\S~\ref{chap:holmes}) and formally (\S~\ref{chap:formal}).
 We demonstrated the concrete use of Holmes to detect real-world bugs as a use-after-free detector (\S~\ref{chap:alias}).
 We showed that some analyses, such as type recovery, written without Holmes in mind match its execution paradigm regardless (\S~\ref{chap:bitr}).
 %Big here
 We conclude that the Holmes approach improves upon the current ad-hoc model by representing the interplay between analyses.
 
-% Chap by chap resummarize
+% Chap by chap re-summarize
 % Holmes
-We described a new EDSL based on a dialect of datalog (\S~\ref{chap:holmes}).
-Holmes was designed here to be an orchestrator of procedural analyses, rather than an individual analysis itself.
+We described a new EDSL based on a dialect of Datalog (\S~\ref{chap:holmes}).
+Holmes was designed here to be an orchestrater of procedural analyses, rather than an individual analysis itself.
 We show a novel form of negation via exact aggregation, a useful tool in the domain of binary analysis (\S~\ref{holmes:sec:circ}).
 We extend that negation to make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}) as is the case when a control flow graph is incrementally recovered through use of analyses which assume a complete graph.
 We describe and evaluate implementation approaches for this language (\S~\ref{holmes:sec:impl}).
 
 % Formal
 To enable reasoning about programs written in Holmes, we give a formal semantics (\S~\ref{chap:formal}).
-We present the Holmes' unique extended negation notion in the context of a finite datalog world (\S~\ref{formal:sec:negation}), showing how it connects with stratified, stable set, and well-founded semantics. 
-We show how to rewrite a Holmes program into a datalog program in an infinite Herbrand universe (\S~\ref{formal:sec:herbrand}).
-Finally, we show how to augment the negation concept from finite datalog to one which may perform an infinite number of negations in a single step to enable circumscription (\S~\ref{formal:sec:semantics}).
+We present the Holmes' unique extended negation notion in the context of a finite Datalog world (\S~\ref{formal:sec:negation}), showing how it connects with stratified, stable set, and well-founded semantics. 
+We show how to rewrite a Holmes program into a Datalog program in an infinite Herbrand universe (\S~\ref{formal:sec:herbrand}).
+Finally, we show how to augment the negation concept from finite Datalog to one which may perform an infinite number of negations in a single step to enable circumscription (\S~\ref{formal:sec:semantics}).
 
 % Alias
 We show that Holmes can be used to author real world analyses by creating a use-after-free detector built on it which leverages Holmes to explore different sensitivities of alias analysis (\S~\ref{chap:alias}).
-We translate alias analysies from the traditional programming language world for use in the binary analysis world (\S~\ref{alias:sec:system}).
-We quantify the cost/benefit tradeoff for precision in alias analysis for bugfinding (\S~\ref{alias:sec:eval}).
+We translate alias analyses from the traditional programming language world for use in the binary analysis world (\S~\ref{alias:sec:system}).
+We quantify the cost/benefit tradeoff for precision in alias analysis for bug finding (\S~\ref{alias:sec:eval}).
 We show that Holmes assists in the ability to write such a system concisely and to allow modularity between analyses (\S~\ref{alias:sec:impl}).
 
 % BiTR

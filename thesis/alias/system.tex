@@ -41,7 +41,7 @@ The front end:
 \begin{itemize}
   \item Parses the executable file container, e.g., ELF on Linux
   \item Finds potential function entry points
-%TODO if I do a codependence trial, forward reference here
+%TODO if I do a co-dependence trial, forward reference here
   \item Builds a control flow graph
   \item Provides an intermediate language with the semantics for every reachable instruction
   \item Builds a call graph and call-site information
@@ -262,7 +262,7 @@ Context-sensitivity requires we only change our \texttt{Location}
 values to contain information about the stack.
 We add an empty stack to entry points to initialize the new stack-enhanced CFG.
 Called functions must copy their control flow graphs to separate versions for every stack at which they are being called.
-When generating the target of a call function, we now add the current instruction's fallthrough to the stack as a return address.
+When generating the target of a call function, we now add the current instruction's fall-through to the stack as a return address.
 If the return address is already on the stack, we truncate the stack so that it is the topmost.
 
 Unfortunately, with an unbounded stack, of our real-world samples (\S \ref{alias:sec:eval:real}), this approach exhausts available resources (128G RAM) for all but \texttt{gnome-nettool}.
@@ -337,7 +337,7 @@ iteration, the allocation for \texttt{site\_0} will appear already
 freed.  The usual response to this type of imprecision is to unroll
 loops a fixed number of times.  However, our tool is intended to be
 complete (assuming a complete control flow graph, provided functions,
-etc.) so we want to avoid fixed unrollings.
+etc.) so we want to avoid fixed unrolling.
 
 To this end, we extend our allocation domain with a ``recent'' bit, similar to the MRAB vs NMRAB abstraction~\cite{vsa}, though for different purposes.
 Relative to a concrete trace, the address most recently given by an allocation at a given site belongs to the set where ``recent'' is true.
@@ -459,10 +459,10 @@ While this is certainly imperfect, going much further would begin to graft flow 
 
 \section{Implementation}
 \label{alias:sec:impl}
-Our implementation consists of 3k lines of Rust and 234 lines of datalog.
-Each additional sensitivity (field, context, flow, recency) is implemented by adding an additional datlaog file.
+Our implementation consists of 3k lines of Rust and 234 lines of Datalog.
+Each additional sensitivity (field, context, flow, recency) is implemented by adding an additional Datalog file.
 The switches to determine which sensitivities actually run operate by adding initial facts to the database to suppress unwanted rule triggers.
-As a result of this design, other than field sensitivity (which requires significant logic in both the constraint generator and points-to set structures), these additional sensitivites can be compiled out safely by simply removing the rules in question (and their associated bound functions).
+As a result of this design, other than field sensitivity (which requires significant logic in both the constraint generator and points-to set structures), these additional sensitivities can be compiled out safely by simply removing the rules in question (and their associated bound functions).
 
 \subsection{Limitations}
 Our system is conservative in almost all cases, but there are a few notable exceptions.

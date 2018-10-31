@@ -108,7 +108,7 @@ As a caveat, we could not feed them the same binaries our tool consumed - their 
 
 Figure~\ref{fig:guebperf} shows the performance.
 The crashes appear to be unhandled cases in the input, and not fundamental to their methods.
-The undetected bugs occur due to their choice to not follow backedges (either as recursion or loops) when computing their VSA.
+The undetected bugs occur due to their choice to not follow back edges (either as recursion or loops) when computing their VSA.
 This is an understandable choice, since VSA can become slow and be difficult to force convergence for when cycles are allowed, but in this case it caused bugs to be missed.
 Likely due to this forwards-only approach, GUEB terminated rather quickly on all inputs.
 
@@ -116,7 +116,7 @@ In Listing~\ref{lst:isisd-gueb}, we can see one of the real vulnerabilities the 
 The loop knows that \texttt{adj} is allocated and non-null on entry, so the first time through the loop is always fine.
 However, some paths through the loop cause \texttt{adj} to be deleted, and go around the loop again.
 At this point, a use-after-free can occur.
-If backedges are not followed, this will never be detected.
+If back edges are not followed, this will never be detected.
 
 \begin{figure}
 \begin{center}

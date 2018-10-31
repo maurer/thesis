@@ -1,8 +1,8 @@
 \chapter{Holmes}
 \label{chap:holmes}
-% We've argued why datalog, now argue why we want these extra features
-Holmes is a dialect of datalog, tailored with extensions for the specific use case of analyzing compiled code.
-Specifically, a normal dialect of datalog will fall short on several tools desired by the analysis author:
+% We've argued why Datalog, now argue why we want these extra features
+Holmes is a dialect of Datalog, tailored with extensions for the specific use case of analyzing compiled code.
+Specifically, a normal dialect of Datalog will fall short on several tools desired by the analysis author:
 \begin{itemize}
 		%TODO expand list
 	\item Data structures
@@ -17,29 +17,29 @@ To address these lacks, we add a few features to base Datalog.
 %TODO jam widening in dataflow somewhere in here as a justification?
 % Why do we need External Predicates
 %TODO rewrite condition - "computation" too vague
-Tasks which do not involve a fixpoint, but do involve computation, can frequently be both more difficult and more expensive to write in pure datalog.
-For example, parsing an ELF and splitting it up into segments, sections, generating records for its symbols, etc. could in principle be written in datalog.
+Tasks which do not involve a fixpoint, but do involve computation, can frequently be both more difficult and more expensive to write in pure Datalog.
+For example, parsing an ELF and splitting it up into segments, sections, generating records for its symbols, etc. could in principle be written in Datalog.
 However, this would be difficult to write (operating on a string as a linked list, or similar structure), slow to compute due to many-way joins, and would require that the input first be transformed before even entering the program.
 Other similar examples include lifting (translating a sequence of bytes into a semantics language), concrete execution, and arithmetic.
 
-Previous approaches have noted that many of these steps come towards the beginning of analysis, and perform these tasks as a precompute phase before handing the results to datalog to process.
+Previous approaches have noted that many of these steps come towards the beginning of analysis, and perform these tasks as a precompute phase before handing the results to Datalog to process.
 In our case, we are trying specifically to avoid such phasing.
 The lifter might be needed again for previously undiscovered code.
 The loader might be needed again if we discover a call to \texttt{execve} and wish to follow it.
-Doing a phased datalog prevents the easy interleaving of these functionalities into the global fixpoint.
+Doing a phased Datalog prevents the easy interleaving of these functionalities into the global fixpoint.
 
 Datalog predicates are not always the best data structure for all tasks.
 Datalog predicates can effectively be viewed as an append-only, deduplicated, index-by-anything table for each predicate with rows corresponding to true instances of the predicate.
 While this representation works for many tasks, some concepts are better represented in other ways.
 One example is ILs and ASTs.
-As frequently nested, branched structures, they \emph{can} be represented in datalog, but walking one would take a very large number of lookups compared to using a traditional algebraic datatype approach, not to mention the clumsiness.
+As frequently nested, branched structures, they \emph{can} be represented in Datalog, but walking one would take a very large number of lookups compared to using a traditional algebraic data type approach, not to mention the clumsiness.
 Other similar concepts include formulae (as in SMT) and any kind of variable-length buffer representation.
-All of these can be done in pure datalog, assuming appropriate preprocessing has been done.
+All of these can be done in pure Datalog, assuming appropriate preprocessing has been done.
 However, the resulting time and space costs make this something to be avoided.
 
-To address the above two, we add the ability to register a callback to a datalog rule.
+To address the above two, we add the ability to register a callback to a Datalog rule.
 If specified, whenever a that rule fires, the corresponding callback will be used supplementarily to determine the values to substitute into the head.
-This allows use of traditional functional or imperative style code to implement data structure transformations or perform operations which would be slow to do in the base datalog.
+This allows use of traditional functional or imperative style code to implement data structure transformations or perform operations which would be slow to do in the base Datalog.
 Additionally, it allows us to more readily incorporate existing code (such as the BAP~\cite{bap} lifter) rather than rewriting it from scratch.
 
 This is equivalently powerful to external predicates in other languages in terms of expressivity.
@@ -47,10 +47,10 @@ Any callback specified could instead be turned into an external predicate and si
 A query involving external predicates might need to be split up into phases to be expressed in callbacks.
 If an output variable of an external predicate is present in another term in the query, one would need to do a secondary join after evaluating the external predicate.
 As the callback only occurs at the \emph{end} of a query, there will only be one join per query.
-The callback restriction simplifies the design of the datalog engine (the join engine is entirely separate from the callbacks), at the cost of the ability for a sufficiently advanced engine to better optimize such queries.
+The callback restriction simplifies the design of the Datalog engine (the join engine is entirely separate from the callbacks), at the cost of the ability for a sufficiently advanced engine to better optimize such queries.
 
 \subsection{Monotonic Aggregation}
-Traditionally in datalog, match clauses may only access a fixed (though arbitrary) number of facts at the same time.
+Traditionally in Datalog, match clauses may only access a fixed (though arbitrary) number of facts at the same time.
 Even counting can be difficult.
 To verify that there are at least three instances of some predicate p, one would normally write:
 \begin{verbatim}
@@ -58,24 +58,24 @@ p(x) & p(y) & p(z) & neq(x, y) & neq(y, z) & neq(x, y)
 \end{verbatim}
 The size of this query grows as $n^2$ in the number of elements to be counted.
 
-This same difficulty occurs when encoding a dataflow or abstract interpretation algorithm into datalog.
+This same difficulty occurs when encoding a dataflow or abstract interpretation algorithm into Datalog.
 When two branches come together, a new fact representing the state with the meet lattice operation for the chosen domain applied needs to be generated.
-If we do this naively, simply matching on the existence of two states at that program point and generating a new one by merging, the resulting runtime will be superlinear in the number of performed meets.
+If we do this naively, simply matching on the existence of two states at that program point and generating a new one by merging, the resulting runtime will be super-linear in the number of performed meets.
 
 In existing systems~\cite{doop1} this is dealt with by ensuring the state in question can be extended simply by adding more facts.
 This solution works in some cases, but it prevents the use of data structures like strided intervals~\cite{vsa} or widening operators in dataflow algorithms which lack finite descending chains.\footnote{
 A lattice is said to have finite descending chains if at any point at the lattice, there are a finite number of values less than it on the lattice.
-This property is desirable for a dataflow analysis because it gaurantees termination.
+This property is desirable for a dataflow analysis because it guarantees termination.
 When finite descending chains are not present, a dataflow analysis can provide a ``widening'' operator, which can force the termination of the system by moving farther in the lattice under heuristic conditions.
 }
 This is because all of these situations require reasoning about a variable sized subset of the data to make their conclusion, not just a fixed window.
 
 Finally, external solvers often need to receive all the inputs up front, rather than incrementally.
-Calling out to an SMT solver will not work if the formula from symbolic execution is stored as facts in a datalog representation; the program would first have to walk them with a rule and a callback (or a rule and an external predicate in another system) to build up a viable representation and hand it off.
+Calling out to an SMT solver will not work if the formula from symbolic execution is stored as facts in a Datalog representation; the program would first have to walk them with a rule and a callback (or a rule and an external predicate in another system) to build up a viable representation and hand it off.
 The same is true even of simpler concepts, like applying Steensgaard's algorithm~\cite{steensgaard-alias} to a set of constraints - the algorithm will either need to process all constraints at once, or it will end up store incremental program states in the database as well, ending up back at the $n^2$ problem.
 
-Traditionally, this is dealt with by appling a postprocessing step to the datalog computation.
-After rules have bene executed to saturation, a query is run, and the aggregation is performed by an outside-of-datalog program.
+Traditionally, this is dealt with by applying a post-processing step to the Datalog computation.
+After rules have been executed to saturation, a query is run, and the aggregation is performed by an outside-of-Datalog program.
 As stated earlier though, we want all portions of the analysis to be able to trigger all others to avoid explicit phasing.
 
 Some of these specific scenarios can be worked around with via clever rules, but they do not apply universally.
@@ -87,7 +87,7 @@ To address the issue of combining information from multiple facts efficiently, w
 If a predicate is declared with aggregation, a provided meet operator will be used to aggregate submissions to each aggregate field for which all non-aggregate fields match.
 In the case of counting, we simply use set-union as our meet operator.
 For dataflow or abstract interpretations, we can have parameters like program location be non-aggregate fields, while the state is an aggregated one.
-Programs using this feature need to be aware that they may receive the aggregation of any subset of derived facts, and are only gauranteed to ever receive the aggregation at the fixpoint.
+Programs using this feature need to be aware that they may receive the aggregation of any subset of derived facts, and are only guaranteed to ever receive the aggregation at the fixpoint.
 %TODO add forwardref here for why
 
 \subsection{Hypothetical Circumscription}
@@ -107,7 +107,7 @@ When multiple control flow paths to define a variable exist, a $\phi$ expression
 } representation of a function, creating an SSA representation of that function requires the entire control flow graph.
 If we add edges later, conclusions derived from the incomplete SSA form might become incorrect.
 
-Traditional datalog either disallows negation, or allows it through explicit stratification.
+Traditional Datalog either disallows negation, or allows it through explicit stratification.
 In the context of doing program analysis on binaries, we might wish to avoid this even when reasoning purely monotonically.
 Consider an analysis which determines whether a function will never return.
 This information is important in analysis of a calling function because it should not expect control to proceed past the called function.
@@ -121,7 +121,7 @@ This leaves us unable to employ information that a called function will never re
 To address this need, we add hypothetical circumscription.
 The core concept is that we can at need assume that a particular chunk of information is expanded, and reason forwards.
 In the event that this turns out to be false, we can retract that assumption, and reason forwards again.
-This allows us to deal with cases of negation which are not trivialy stratified.
+This allows us to deal with cases of negation which are not trivially stratified.
 In the language, this feature is implemented as the an additional kind of match clause.
 If a rule circumscriptively matches on an aggregated predicate, the resulting computation will be as if it matched only on the aggregation which is present in the final fixpoint database.
 Circumscription is in contrast with monotonic aggregation, where rules must have correct operation for any subset of the possible aggregations along the way.

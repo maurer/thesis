@@ -54,24 +54,24 @@ However, their ability to resolve virtual function calls on C++ objects is poten
 
 \subsection{Datalog Program Analysis}
 Datalog has been used to perform program analysis before~\cite{bddbddb,doop1}, though only on source code or a compiler IR like LLVM bitcode or Java bytecode.
-These approaches transform the program into a set of input facts to be combined with rules and run by a datalog engine to receive the final results, essentially phasing the computation.
-Our approach uses a mixture of datalog with traditional procedural code instead.
-This allows us to do things like lifting newly found instructions from within the datalog context or hypothetical reasoning which requires a computation step.
+These approaches transform the program into a set of input facts to be combined with rules and run by a Datalog engine to receive the final results, essentially phasing the computation.
+Our approach uses a mixture of Datalog with traditional procedural code instead.
+This allows us to do things like lifting newly found instructions from within the Datalog context or hypothetical reasoning which requires a computation step.
 In our implementation, this occurs for every instruction other than the entry points, since we discover the location of the next instruction during lifting.
-However, this also means that we lose datalog's termination guarantees and cannot use most common datalog engines.
+However, this also means that we lose Datalog's termination guarantees and cannot use most common Datalog engines.
 
 \texttt{bddbddb}~\cite{bddbddb} used BDDs (binary decision diagrams) to exploit symmetry in context-sensitive points-to analysis for Java programs.
-In order to encode this problem as a BDD, \texttt{bddbddb} first encodes the points-to problem as a datalog program.
-Then, they converted each operation needed to run a datalog program (join, substitution, extension) into operations on BDDs, one per predicate.
+In order to encode this problem as a BDD, \texttt{bddbddb} first encodes the points-to problem as a Datalog program.
+Then, they converted each operation needed to run a Datalog program (join, substitution, extension) into operations on BDDs, one per predicate.
 Finally, by running these operations unto fixpoint, the resultant BDD could be queried efficiently for points-to information which if represented concretely would be far too large to manipulate.
 
-Perhaps the closest to \aliasname\ is \textsc{Doop}~\cite{doop1,doop2,doop3}, a program analysis framework for Java bytecode based in datalog.
-While \textsc{Doop} still extracts to pure datalog, then runs to completion, it models the actual analysis within datalog rather than relying on preprocessing as much.
-They showed~\cite{doop1} that information needs to flow bidirectionally between pointer and exception analyses, a condition which datalog is great at, since it does not require manual control flow interleaving.
+Perhaps the closest to \aliasname\ is \textsc{Doop}~\cite{doop1,doop2,doop3}, a program analysis framework for Java bytecode based in Datalog.
+While \textsc{Doop} still extracts to pure Datalog, then runs to completion, it models the actual analysis within Datalog rather than relying on preprocessing as much.
+They showed~\cite{doop1} that information needs to flow bidirectionally between pointer and exception analyses, a condition which Datalog is great at, since it does not require manual control flow interleaving.
 \textsc{Doop} distinguishes itself on modeling accuracy as a result of this analysis combination approach~\cite{doop2}, outperforming \texttt{bddbddb} even with the same sensitivity simply by discovering more of the control graph.
 Finally, they found that careful modification of the algorithm can recover most of the compactness wins normally acquired from a BDD representation~\cite{doop3}.
 
-\textsc{Doop} uses LogicBlox~\cite{logicblox} as their datalog backing engine.
-LogicBlox uses Leapfrog Trie-Join~\cite{lftj} a novel join algorithm whose primary property is its ability to handle multi-way joins of the sort found in datalog queries efficiently.
-They combine this with incremental maintenance~\cite{lftj-incr} to provide a framework to compute their datalog dialect, LogiQL.
+\textsc{Doop} uses LogicBlox~\cite{logicblox} as their Datalog backing engine.
+LogicBlox uses Leapfrog Trie-Join~\cite{lftj} a novel join algorithm whose primary property is its ability to handle multi-way joins of the sort found in Datalog queries efficiently.
+They combine this with incremental maintenance~\cite{lftj-incr} to provide a framework to compute their Datalog dialect, LogiQL.
 LogicBlox is disk-backed, meaning they might be able to avoid some of the memory issues our implementation hit for high sensitivity outputs.

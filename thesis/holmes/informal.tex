@@ -49,7 +49,7 @@ reaching_propagate: reaching {loc, var} <-
   & succ (prev, loc)
   & unchanged {loc: prev, var}
 \end{verbatim}
-Rules written like this act as normal datalog rules, interpreted with a fixpoint semantics.
+Rules written like this act as normal Datalog rules, interpreted with a fixpoint semantics.
 If facts are present in the database so that an assignment to variables exists for which the right side is all present, then the left hand side will be added to the database.
 
 Queries are essentially named body clauses, which may be evaluated as a way of querying the program state by the embedding language.
@@ -88,7 +88,7 @@ When declaring a field, a caret (\texttt{\^{}}) followed by a function name in t
 Such a function should be a lattice meet operator - it should be associative, commutative, and idempotent.
 This function acts as an ``aggregator'' for that field.
 Whenever a new fact is added which matches the non-aggregated fields of a another fact, they will be combined according to this aggregator.
-Because the order of rule execution is up to the engine, this means the rule may receive multiple, incomplete aggregations along the way, or it may only receive the final aggregation - the only gaurantee is that if run to a fixpoint, the rule will have received the final (largest) aggregation.
+Because the order of rule execution is up to the engine, this means the rule may receive multiple, incomplete aggregations along the way, or it may only receive the final aggregation - the only guarantee is that if run to a fixpoint, the rule will have received the final (largest) aggregation.
 
 For example, say that we wrote the program:
 \begin{verbatim}
@@ -105,9 +105,9 @@ p(0, {1, 3})
 p(0, {2, 4})
 \end{verbatim}
 
-When calling \texttt{query\_result} after the program completed, we would be gauranteed to always see the assignments \texttt{(0, \{1, 2, 3, 4\}), (1, \{2, 5\})}.
+When calling \texttt{query\_result} after the program completed, we would be guaranteed to always see the assignments \texttt{(0, \{1, 2, 3, 4\}), (1, \{2, 5\})}.
 However, we might also see present \texttt{(0, \{1, 2\}), (0, \{1, 3\}), (0, \{2, 4\}), (0, \{1, 2, 3\}), (0, \{1, 2, 4\})}.
-Their presence in the output is up to the discresion of the evaluation engine.
+Their presence in the output is up to the discretion of the evaluation engine.
 
 Generally, this kind of aggregation is useful in cases where a rule wants to operate on all the information that is available, but future information will not make any of its actions incorrect.
 Imagine \texttt{p} in our example as having a first field representing a variable, and the second representing values it held in a specific evaluation of a program.
@@ -166,7 +166,7 @@ where we add \texttt{p(\{1\})} to the database initially.
 Naively, we would oscillate between the two states \texttt{p(\{1, 2\})} and \texttt{p(\{1\})}, never finding an answer.
 With call/cc, we instead interpret \texttt{p(\{1, 2\})} only to be the correct result moving forwards.
 Essentially, the engine will assert \texttt{p(\{2\})} on the basis that we cannot proceed without \texttt{p(\{2\})}.
-More speicfically, matching \texttt{~p(~\{1\})} is matching on, among other things, $\neg p(\{2\})$.
+More specifically, matching \texttt{~p(~\{1\})} is matching on, among other things, $\neg p(\{2\})$.
 From this, we derive $p(\{2\})$.
 This fits the form of call/cc, so we add $p(\{2\})$ to the database, with call/cc as the provenance rather than a rule.
 

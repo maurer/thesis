@@ -11,7 +11,7 @@
 
 \section{Motivating Holmes}
 While this system was designed before the inception of {\sysname}, its operation matches the computational patterns we will introduce when we describe the language (\S~\ref{chap:holmes}).
-The constraint generation step matches simple datalog rules, with external predicates or an equivalent feature (\S~\ref{holmes:sec:callback}).
+The constraint generation step matches simple Datalog rules, with external predicates or an equivalent feature (\S~\ref{holmes:sec:callback}).
 SSA instructions are processed, one at a time, and transformed into constraints to try to simultaneously satisfy.
 The solving phase matches up with the aggregation feature (\S~\ref{holmes:sec:agg}).
 A single constraint can be promoted into a partial solution context, and the operation to add a new constraint to the context transformed into a join operation between two partial contexts.
@@ -24,7 +24,7 @@ This step requires call/cc, as we must circumscribe over the maximum number of p
 A {\bitr} system re-implemented in this way would still calculate more than the system described here.
 This is because it would examine \emph{all} minimal constraint dropping solutions rather than stopping after finding one.
 It would also gain in incrementality, as adding or removing a constraint (such as due to user annotation, or a small patch) would be able to operate on the existing state as much as possible.
-The non-datalog implementation would need additional work to be made incremental in this way.
+The non-Datalog implementation would need additional work to be made incremental in this way.
 
 \begin{figure*}
 \centering{

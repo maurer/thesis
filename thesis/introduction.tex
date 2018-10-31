@@ -14,7 +14,7 @@ In LLVM's pass model, each pass declares what analyses it depends upon, allowing
 Considering the graph representation again, LLVM's model is a DAG.
 
 This DAG model works well over source code, but falls short when applied to compiled code.
-Jakstab~\cite{jakstab} argues for the codependency of value analysis and lifting. 
+Jakstab~\cite{jakstab} argues for the co-dependency of value analysis and lifting. 
 It takes the approach of running these two analyses to a fixed point, and allowing additional user-defined analyses to be run on each iteration.
 As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
 While this is a step forwards, it still causes unnecessary recalculation and places a form of monotonicity requirements on analyses in order to remain correct.
@@ -47,10 +47,10 @@ There are still some restrictions on how such code can operate (for example, no 
 
 \begin{inset}
 {\bf Thesis statement.}
-A datalog derivative with extensions for negation and external callbacks can drive multiple potentially co-dependent analysis to reason about binary programs effectively.
+A Datalog derivative with extensions for negation and external callbacks can drive multiple potentially co-dependent analysis to reason about binary programs effectively.
 \end{inset}
 
-% Roadmap to defending the thesis statement
+% Road map to defending the thesis statement
 % * Show the power by
 %   * Implementing the integration of several real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
@@ -66,7 +66,7 @@ These semantics enhance the ability to reason about the results of an analysis b
 They also make it possible to determine compliance for alternative implementations of the engine, potentially allowing programs to run on backends other than the initial one written for this thesis.
 
 We show that \sysname can implement different sensitivities of alias analysis, and show how this affects practical use-after-free classification (\S~\ref{chap:alias}).
-We implemented codependent alias analysis, use-after-free detection, and control flow recovery using \sysname.
+We implemented co-dependent alias analysis, use-after-free detection, and control flow recovery using \sysname.
 This implementation provides evidence for the feasibility of using a logic language as an integration layer for cyclically dependent analyses.
 This concrete bug finding tool demonstrates the applicability of the \sysname language to the domain of compiled-code program analysis.
 We translate analysis techniques from the compiler and program analysis communities into analysis of compiled code (\S~\ref{alias:sec:system}).

@@ -122,7 +122,7 @@ Termination directly implies a limit to the language's power.
 While a number of different kind of closure or search procedures are specifiable as Datalog programs, its inability to create new symbols is fairly limiting.
 %
 Many language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
-When this happens, the resulting language loses its termination gaurantees.
+When this happens, the resulting language loses its termination guarantees.
 \subsubsection{External Predicates}
 \label{sec:extpred}
 %   * Motivation for external predicates (e.g. +2)
@@ -284,7 +284,7 @@ Being unsound here by asserting complete knowledge of control flow in cases wher
 
 %   * Extraordinarily stateful, with large state
 One of the features of functional code that makes it easier to analyze is its thorough reduction of state.
-Traditional procedural/imperative langauges make this slightly more difficult through the use of variables in many places, expanding the set of implicit inputs to each step greatly.
+Traditional procedural/imperative languages make this slightly more difficult through the use of variables in many places, expanding the set of implicit inputs to each step greatly.
 Binary code is yet more difficult to analyze.
 With information about variables, arrays, or inputs, it becomes quickly difficult to determine what parts of memory and registers are really live.
 Due to the lack of scope or lifetime abstractions, once a new piece of state enters an execution, it is rare for it to leave at a later point --- much of the program image in memory is potential state.
@@ -302,7 +302,7 @@ While information from a concrete execution can be useful to the final product (
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point and watching for a transition to a distinguished exit node (usually via a function return).
 However, indirect jumps due to function pointers, C++ virtual method calls, and even creative compilation of case statements can wreak havoc on this method, since the value being jumped to is not known ahead of time.
 
-In each of the above cases, the range of possible jumpe targets can be fairly accurately determined by the compiler when the source is provided.
+In each of the above cases, the range of possible jump targets can be fairly accurately determined by the compiler when the source is provided.
 The type of a C++ object determines a small subset of legal function targets for a given method.
 Switch statements have explicit targets and can be resolved exactly.
 Function pointers are the most difficult to resolve, but the compiler at least has the ability to restrict the possible targets to functions of the right type, or in a conservative approximation to any function.
@@ -310,12 +310,12 @@ All of these methods are not directly usable on raw compiled code, since the abs
 
 \subsubsection{Value Analysis}
 \label{sec:valanal}
-It follows that recovering overapproximations of the range of potential values for various pieces of state in a program would be useful.
+It follows that recovering over-approximations of the range of potential values for various pieces of state in a program would be useful.
 One common way to do this is to perform abstract interpretation of the program over a domain which is expected to model the range of values well~\cite{vsa,wrappedintervals,wrappedintervals2}.
 
 Unfortunately, this abstract interpretation assumes that the control flow graph has already been determined in order to sequence its transformations.
 Additionally, it can be made to lose nearly all its precision by loops whose transformations are not well represented by its particular domain.
-The state of the art approach to the codependence of the control flow recovery and value analysis problems is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis~\cite{jakstab}.
+The state of the art approach to the co-dependence of the control flow recovery and value analysis problems is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis~\cite{jakstab}.
 
 \subsubsection{Type Recovery}
 Another important static analysis is type recovery.

@@ -1,12 +1,12 @@
 \input{formal/syms}
 \chapter{Formal Holmes}
 \label{chap:formal}
-Holmes differs from base datalog in callbacks (analogous to external predicates), aggregates, circumscription, and call/cc.
+Holmes differs from base Datalog in callbacks (analogous to external predicates), aggregates, circumscription, and call/cc.
 External predicates already have a well understood semantics, and we will model callbacks as interpreted functions by extension of our Herbrand universe during instantiation (\S \ref{formal:sec:callbacks}).
-Aggregates in the presence of interpreted functions can be replaced by a syntactic tranformation, other than for purposes of circumscription.
+Aggregates in the presence of interpreted functions can be replaced by a syntactic transformation, other than for purposes of circumscription.
 Adding call/cc forces a solution to exist when it otherwise would not, adding a restricted set of solutions which violate the minimality constraint of stable set semantics when no stable set exists.
 
-We will first go over the negation model embedded at base datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
+We will first go over the negation model embedded at base Datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
 Then, we will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
 Finally, I will give semantics for the Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
 %TODO add any proofs to intro
@@ -31,7 +31,7 @@ This procedure is run unto fixpoint, and produces exactly one well-founded parti
 
 In our case, stable-set semantics leaves something to be desired due to the potential for no model, and the well-founded approach may return partial solutions.
 \subsection{Negation in Holmes}
-Traditional datalog consists only of a head clause, implied by a series of body clauses.
+Traditional Datalog consists only of a head clause, implied by a series of body clauses.
 To this, we allow clauses to be optionally negated.
 In the original input program, the head clause may not be negated.
 
@@ -39,7 +39,7 @@ As we have no function symbols or interpreted functions, we define a Herbrand un
 $\hb$ is the set of every predicate instantiated at every combination of values in $\hu$.
 
 We instantiate the program into the Herbrand universe, making a version of each rule with every variable instantiated at every member of $\hu$.
-This eliminates pattern matching and reduces all rules ot a set of rules of the form
+This eliminates pattern matching and reduces all rules to a set of rules of the form
 \[
 	p \leftarrow \bigwedge q_i \wedge \bigwedge \neg r_j
 \]
@@ -164,7 +164,7 @@ where $+ j$ as in the informal Holmes description means to attach the function $
 For each aggregated predicate, introduce a circumscripted version of the predicate, $P_c$.
 Perform simple replacement of all circumscripted matches to $P$ with matches against $P_c$.
 
-Now, the program looks like normal datalog but with functions attached to some rules.
+Now, the program looks like normal Datalog but with functions attached to some rules.
 For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body clause, and instantiate the head term.
 This will result in a rules of the form
 \[
@@ -207,7 +207,7 @@ Rather than deciding individual facts as we did previously, we now decide aggreg
 \]
 The bounded case indicates that we have circumscribed this aggregate, and so have decided it.
 The no-base case indicates that this aggregate is totally unpopulated by the program.
-Since our lattices are not gauranteed to be bounded, no circumscription can be made.
+Since our lattices are not guaranteed to be bounded, no circumscription can be made.
 As we cannot circumscribe over it, we are considered to decide the aggregate.
 Specifically, the program has decided on the negation of all values which could make up the aggregate.
 
