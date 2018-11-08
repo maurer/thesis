@@ -2,49 +2,51 @@
 \label{chap:background}
 % Logic Language
 \section{Logic Language}
-Logic languages are a family of mostly declarative programming languages which express computation as a series of rules to be applied to derive a conclusion.
+Logic languages are a family of declarative programming languages which express computation as a series of rules used to derive a conclusion.
 This makes them well suited to the task at hand because it allows us to describe the provenance of information and to separate the execution strategy for a suite of analyses from the expression of said analyses.
 We will review Datalog and Prolog as a way of giving a general overview of logic programming, but these are not the only logic languages.
-%%Sentence omitted because it forward references too many concepts
-%Datalog and Prolog are selected to give an example of both a forwards-chaining and backwards-chaining search, and to motivate the notion of a database of facts as our incremental store.
 % * Datalog
 \subsection{Datalog}
 \label{sec:fchain}
 \subsubsection{Basics}
-%   * Predicates
-Predicates form the concept of a relation between several values.
+Predicates form the concept of a relation between multiple values.
 For example,
 \[
         \pred{parent}{\cdot, \cdot}
 \]
-could be used to represent a relation in which the left argument is the parent of the right argument.
+represents a relation in which the left argument is the parent of the right argument.
 %   * Facts
-The concept of a ``fact'' is used to represent a particular member of a relation.
+A ``fact'' is a particular member of a relation.
 Here, we use italics to denote a constant.
 As an example,
 \[
         \pred{parent}{\id{alice}, \id{bob}}
 \]
 represents the fact that $\id{alice}$ is $\id{bob}$'s parent.
-The set of facts known is sometimes referred to as the database, and is separated into extensional and intensional parts.
-The extensional portion of the database is those facts which are given to the system prior to execution, while the intensional database consists of those derived from the extensional database.
+The set of facts known is sometimes referred to as the database.
+The database has two parts: extensional and intensional.
+The extensional portion of the database is those facts which the program author or user provides to the system prior to execution, while the intensional database consists of those derived from the extensional database.
 %   * Rules
-In order to actually perform computation with this system and create such an extensional database, logic languages use ``rules'', which function very much like inference rules from traditional proof writing.
+In order to actually perform computation with this system and create such an extensional database, logic languages use ``rules'', which function similarly to inference rules from traditional proof writing.
 To write rules, I'll use $\var{X}$ to represent a variable named x.
 Following in the vein of the previous examples,
 \[
         \frule{\pred{sibling}{\var{X}, \var{Y}}}{\pred{parent}{\var{P}, \var{X}}, \pred{parent}{\var{P}, \var{Y}}}
 \]
 expresses that if for some assignment to $\var{P}$, $\var{X}$, and $\var{Y}$, we know that $\var{X}$ shares parent $\var{P}$ with $\var{Y}$, then we can derive that $\var{X}$ and $\var{Y}$ are siblings.
-The left hand side is referred to as the \emph{head clause} and represents the template from which new facts will be built by this rule.
-The right hand side is called the \emph{body clause} and describes the search or match to be performed on the database.
-Rules are applied ``to saturation'', meaning that they are applied repeatedly until the body clause no longer has any new matches in the database.\footnote {
-Without external code, this is equivalent to ``the head clause is in the database, or the body clause does not match``. However, with external code, the head clause is not necessarily predictable, so we instead describe each rule being run at most once per assignment of variables which matches the database.
+The left hand side is referred to as the \emph{head clause} and represents the template used to build new facts with this rule.
+The right hand side is called the \emph{body clause} and describes the search or match which must have a result on the database.
+An evaluation engine applies rules``to saturation'', meaning that it applies all rules repeatedly until the body clause no longer has any new matches in the database.\footnote {
+Without external code, this is equivalent to ``the head clause is in the database, or the body clause does not match``. However, with external code, the head clause is not necessarily predictable, so we instead describe each rule triggering at most once per assignment of variables which matches the database.
 }
-The order in which rules are declared is irrelevant: all rules are examined for matching body clauses repeatedly until none match.
+Given this, rule declaration order is irrelevant.
+\footnote{
+  Rule declaration order is irrelevant to results.
+  It may cause different performance in some engines.
+}
 %   * Simple examples
 \subsubsection{Example: Uncle}
-If we ignore the genderedness of the term ``Uncle'', calculating from a series of parent/child relations all of the uncles is a fairly straightforward example.
+If we ignore the genderedness of the term ``Uncle'', calculating from a series of parent/child relations all of the uncles is a straightforward example.
 We begin with an extensional database consisting of:
 \[
         \pred{parent}{\id{alice}, \id{bob}}
@@ -56,7 +58,7 @@ We take the sibling rule from the earlier example, and also
 \[
         \frule{\pred{uncle}{\var{X}, \var{Y}}}{\pred{sibling}{\var{X}, \var{P}}, \pred{parent}{\var{P}, \var{Y}}}
 \]
-which indicates that someone is considered an uncle if they are that person's parent's sibling.
+which indicates that someone is an uncle if they are that person's parent's sibling.
 
 With the rules and extensional database in hand, we can compute the complete database.
 The uncle rule cannot apply, since there are no facts for the sibling predicate.
@@ -95,9 +97,9 @@ Consider the rules
         \frule{\pred{related}{\var{Y}, \var{X}}}{\pred{related}{\var{X}, \var{Y}}}\\
         \frule{\pred{related}{\var{X}, \var{Z}}}{\pred{related}{\var{X}, \var{Y}}, \pred{related}{\var{Y}, \var{Z}}}
 \end{gather*}
-This is potentially more interesting because it is a recursive build up of information, unlike the previous example which could be viewed as a two-step procedure: find the siblings, then find siblings of parents.
+This is potentially more interesting because it is a recursive build up of information, unlike the previous example which is representable as a two-step procedure: find the siblings, then find siblings of parents.
 However, since Datalog applies its rules until saturation, this is not any more difficult than the previous query.
-The first rule translates a parent/child relationship into being related.
+The first rule translates a parent/child relationship into a ``related'' relationship.
 The second provides symmetry.
 The third provides transitivity.
 This is sufficient to compute the actual related set.
@@ -105,23 +107,23 @@ Execution proceeds much the same as the previous example, simply firing each rul
 The only real difference is that the second and third rule will fire recursively.
 %   * Termination
 \subsubsection{Termination}
-It might be surprising to realize that despite recursive rules being permitted, the language as described thus far is actually terminating.
+It might be surprising to realize that despite allowing recursive rules, the language as described thus far is actually terminating.
 Head clauses construct facts with variables or directly with values.
-If constructed with a variable, the variable must have been bound in the body clause.
-If the variable was bound in the body clause, its value must have been in the database.
+If constructed with a variable, the body clause must bind that variable.
+If a body clause binds a variable to a value, that value must have been in the database.
 As a result, the only possible values are those which were in the extensional database and those mentioned concretely in the rules.
-With a finite domain of values, and a finite list of predicates, there is a finite list of facts which could be instantiated.
+With a finite domain of values, and a finite list of predicates, there is a finite list of facts which any execution could instantiate.
 
-Evaluation is structured as a series of steps, each of which fires the first rule it can find which matches, or if none match, terminate.
+Evaluation is a series of steps, each of which fires the first rule it can find which matches, or if none match, terminate.
 Since this evaluation strategy is always productive or terminating, and we have established a finite upper bound on the database, we have a bound on the length of such an evaluation.
 Since this evaluation strategy only produces facts according to the rules, and only stops when no rules apply, it matches the saturation/fixpoint semantics of Datalog.
 
-While termination is a convenient property for a language to have, there are several caveats.
+While termination is a convenient property for a language to have, there are caveats.
 %
 Termination directly implies a limit to the language's power.
-While a number of different kind of closure or search procedures are specifiable as Datalog programs, its inability to create new symbols is fairly limiting.
+While a number of different kind of closure or search procedures are specifiable as Datalog programs, its inability to create new symbols is limiting.
 %
-Many language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
+Some language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
 When this happens, the resulting language loses its termination guarantees.
 \subsubsection{External Predicates}
 \label{sec:extpred}
@@ -134,13 +136,13 @@ However, having such a table is massively impractical.
 One way to deal with this issue is to introduce external predicates: predicates whose truth is not defined by presence in the database, but is rather computed or queried from some external system when needed.
 This leads to the need for a mode system.
 Consider an external predicate $\pred{sum}{\cdot, \cdot, \cdot}$, where the first entry is the sum of the other two.
-When trying to match the body clause of a rule, it becomes important that at least two entries be provided; if only one argument is provided, the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
-In the case of functions which are designed to be hard to invert (e.g.,\ a hash function), this becomes not only a result size concern and an actual implementability concern.
+When trying to match the body clause of a rule, it becomes important that at the match algorithm sends at least two values to th external code; if only it only sends one, the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
+In the case of functions designed to be hard to invert (e.g.,\ a hash function), this becomes not only a result size concern and an actual implementability concern.
 To deal with this, external predicates can have mode signatures, explaining which entries are logical inputs, and which are outputs. For example, we could have
 \[
         \pred{sum}{-, +, +} \quad \pred{hash}{-, +}
 \]
-A mode checking phase on the rule can then guarantee that matches against the sum predicate can be performed using
+A mode checking phase on the rule can then guarantee that matches against the sum predicate only needs an implementation of
 \[
         \textrm{add} : \textrm{uint64} \rightarrow \textrm{uint64} \rightarrow \textrm{uint64}
 \]
@@ -164,8 +166,8 @@ The evaluation model discussed thus far is what is commonly known as forward cha
 This approach searches for a proof by taking known facts and deriving anything they can hoping to reach the goal.
 However, there are some applications for which this approach does not work well --- as an example, any system that would have a potentially infinite intensional database would never complete execution with such a semantics.
 
-The other approach is known as backwards chaining, or top-down search, and is what is used in Prolog.
-In backwards chaining, search is directed by a particular goal instead.
+The other approach is backwards chaining, or top-down search, and is what Prolog uses.
+In backwards chaining, a particular goal match directs the search rather than enumerating all possible derivations from available information.
 The logic engine examines the goal and the available rules, and by unification breaks it down to a series of potential subgoals, and recurses.
 
 \subsection{Negation}
@@ -173,14 +175,14 @@ The logic engine examines the goal and the available rules, and by unification b
 \subsubsection{Stratified Negation}
 One interpretation of negation is as the inability of the system to prove a particular fact.
 For example, this sort of negation could be useful to describe routing.
-Network reachability can be described similar to $\pred{related}{\cdot, \cdot}$
+We can describe network reachability as:
 \begin{gather*}
         \frule{\pred{reachable}{\var{X}, \var{Y}}}{\pred{link}{\var{X}, \var{Y}}}\\
         \frule{\pred{reachable}{\var{Y}, \var{X}}}{\pred{reachable}{\var{X}, \var{Y}}}\\
         \frule{\pred{reachable}{\var{X}, \var{Z}}}{\pred{reachable}{\var{X}, \var{Y}}, \pred{reachable}{\var{Y}, \var{Z}}}
 \end{gather*}
 Next, our machine has a local network and a gateway --- a common configuration.
-Traffic serviceable by the local network should be sent direct, while the remainder of routable traffic should be sent to the gateway.
+Traffic serviceable by the local network should be directly sent, while the remainder of routable traffic should go to the gateway.
 \begin{gather*}
         \frule{\pred{route}{\id{local}, \var{T}}}{\pred{reachable}{\id{local}, \var{T}}}\\
         \frule{\pred{route}{\id{gw}, \var{T}}}{\neg \pred{reachable}{\id{local}, \var{T}}, \pred{reachable}{\id{gw}, \var{T}}}
@@ -188,17 +190,17 @@ Traffic serviceable by the local network should be sent direct, while the remain
 In the case of this set of rules, negation has a clear interpretation.
 First, generate all reachability predicates.
 Then, if reachable was not derivable thus far, matches against not reachable should succeed.
-However, when recursive rules and negation are mixed, it can cause termination and stability issues. Consider the set of rules:
+However, when recursive rules and negation mix, it can cause termination and stability issues. Consider the set of rules:
 \begin{gather*}
         \frule{\pred{p}{\var{X}}}{\neg \pred{q}{\var{X}}}\\
         \frule{\pred{q}{\var{X}}}{\neg \pred{p}{\var{X}}}
 \end{gather*}
 There is no interpretation of this which terminates with the fixpoint semantics, or which provides a minimal model~\cite{prologbook}.
 To deal with this, Datalog imposes a requirement on negation known as stratification.
-This requirement can be phrased as a graph property:
+It is possible to phrase this requirement as a graph property:
 
 Create a graph where the predicates are nodes, and there is an edge between two nodes iff there is a rule in the program which uses the source node predicate as a premise to derive the destination node predicate.
-Additionally, label all those edges where the premise predicate was negated.
+Additionally, label all those edges where the with a negated premise predicate.
 There must be no cycles which include one or more negated edges.
 
 % * Circumscription
@@ -221,17 +223,17 @@ We know the above formula is true, but not the truth values for $a$, $b$, and $c
 Circumscription is a mode of reasoning that in this situation allows us to examine the first two options rather than the third.
 It is about picking the minimal situation that could correspond to what we know.
 
-More examples are given in McCarthy's paper introducing the idea~\cite{circumscription}.
-A slightly simpler (if imprecise) way of thinking about circumscription is to consider it as taking a specification of truth which is irrefutable, while interpreting as few things as true as possible --- conclusions are not necessarily grounded in fact, but rather are statements without refutation.
+McCarthy's paper introducing the idea~\cite{circumscription} gives more examples.
+A slightly simpler (if imprecise) way of thinking about circumscription is to consider it as taking a specification of truth which is irrefutable, while interpreting a minimal set of facts as true --- conclusions are not necessarily grounded in fact, but rather are statements without refutation.
 %   * Original definition by McCarthy
 \subsubsection{Original Definition}
-Originally, circumscription was defined with respect to first order logic.
-Specifically, the circumscription of a predicate $P$ to a predicate $Q$ in a formula $A$ is defined~\cite{circumscription} as
+Originally, McCarthy defined circumscription with respect to first order logic.
+Specifically, the circumscription of a predicate $P$ to a predicate $Q$ in a formula $A$ is
 \[
 (A [Q/P] \wedge \forall x. Q(x) \rightarrow P(x)) \rightarrow (\forall x. P(x) \rightarrow Q(x))
 \]
 McCarthy calls this a ``sentence schema''.
-Essentially, this says that for a given formula $A$ we know to be true, and some predicate $P$ we have incomplete information about, if some other (usually artificially defined) predicate $Q$ could be used in $A$ everywhere $P$ was without changing its truth value, and $P$ is true whenever we know $Q$ to be true, then we can have the other half of the implication, making $Q$ a legitimate proxy for $P$.
+Essentially, this says that for a given formula $A$ we know to be true, and some predicate $P$ we have incomplete information about, if some other (usually artificially defined) predicate $Q$ could replace $P$ in $A$ without changing its truth value, and $P$ is true whenever we know $Q$ to be true, then we can have the other half of the implication, making $Q$ a legitimate proxy for $P$.
 Practically applying this usually involves declaring a $Q$ which is true in exactly those situations we know $P$ to be.
 As a simple example, consider the formula
 \[
@@ -246,13 +248,13 @@ Circumscribing $P$ in the example formula using $Q$ yields
 \[
         P(x) \rightarrow (x = 0) \vee (x = 1) \vee (x = 2)
 \]
-This transformation gives more information about $P$ than was defined in the original formula.
+This transformation gives more information about $P$ than the original formula.
 Specifically, we now know that $\neg P(4)$.
 
 %   * Negation as circumscription yields stratified negation
 \subsubsection{Relation to Logic Programming}
-Circumscription is directly connected to modern logic programming through the negation features present in many languages.
-The database and rules can be considered as a single logical formula, the conjunction of known facts as predicates applied to concrete values, and rules encoded as implications.
+Circumscription is directly connected to modern logic programming through the negation features present in some logic language dialects.
+We express the database and rules as a single logical formula, with conjunction of known facts as predicates applied to concrete values and rules encoded as implications.
 Circumscribing over this formula will yield results consistent with a given logic program, yet also allow us to potentially derive more by giving us an explicit definition of a predicate.
 Circumscription provides the theoretical underpinnings for stratified negation.
 For example, take the system
@@ -280,11 +282,11 @@ Function locations, variable locations and bounds, variable types, and control f
 While all of these can cause difficulties, the inability to recover a complete control flow graph can be one of the most difficult to deal with.
 Many algorithms for recovering any of the other missing abstractions depend strongly on having a pre-existing control flow graph\cite{vsa,bddbddb,smash,tie,bitr,wrappedintervals,ramalingam2000}.
 However, without the abstractions present in the source language, determining the potential targets of an indirect (computed) jump becomes difficult, if not impossible.
-Being unsound here by asserting complete knowledge of control flow in cases where only partial knowledge is available can result in unsoundness in every analysis down the road, but frequently ``good enough'' approximations are used due to the difficulty of this problem.
+Being unsound here by asserting complete knowledge of control flow in cases where only partial knowledge is available can result in unsoundness in every analysis down the road, but frequently use ``good enough'' approximations due to the difficulty of this problem.
 
 %   * Extraordinarily stateful, with large state
 One of the features of functional code that makes it easier to analyze is its thorough reduction of state.
-Traditional procedural/imperative languages make this slightly more difficult through the use of variables in many places, expanding the set of implicit inputs to each step greatly.
+Traditional procedural/imperative languages make this slightly more difficult through the use of variables, expanding the set of implicit inputs to each step greatly.
 Binary code is yet more difficult to analyze.
 With information about variables, arrays, or inputs, it becomes quickly difficult to determine what parts of memory and registers are really live.
 Due to the lack of scope or lifetime abstractions, once a new piece of state enters an execution, it is rare for it to leave at a later point --- much of the program image in memory is potential state.
@@ -293,62 +295,64 @@ Due to the lack of scope or lifetime abstractions, once a new piece of state ent
 \subsection{Static Analyses}
 %   * What is static?
 Static analyses are those which focus on deriving information from the structure of the complete program.
-While not a hard and fast rule, these analyses usually operate on many or all execution paths through the program.
+While not a hard and fast rule, these analyses usually operate on a majority or all execution paths through the program.
 
 \subsubsection{Control Flow Recovery}
 \label{sec:cfg}
-The goal of control flow recovery is to generate a complete graph of possible program counter transitions in the program while containing as few spurious edges as possible.
+The goal of control flow recovery is to generate a complete graph of possible program counter transitions in the program while containing minimal number of spurious edges.
 While information from a concrete execution can be useful to the final product (as it contains a series of jumps which the output graph must contain to be correct) it does not allow for the declaration of any control flow graph as complete.
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point and watching for a transition to a distinguished exit node (usually via a function return).
-However, indirect jumps due to function pointers, C++ virtual method calls, and even creative compilation of case statements can wreak havoc on this method, since the value being jumped to is not known ahead of time.
+However, indirect jumps due to function pointers, C++ virtual method calls, and even creative compilation of case statements can wreak havoc on this method, since the value of the jump target to is not known ahead of time.
 
-In each of the above cases, the range of possible jump targets can be fairly accurately determined by the compiler when the source is provided.
+In each of the above cases, the compiler would be able to accurately determine the range of jump targets based on its own code generation information and information present in the source code.
 The type of a C++ object determines a small subset of legal function targets for a given method.
-Switch statements have explicit targets and can be resolved exactly.
+Switch statements have explicit targets, and so the compiler knows where it might go.
 Function pointers are the most difficult to resolve, but the compiler at least has the ability to restrict the possible targets to functions of the right type, or in a conservative approximation to any function.
-All of these methods are not directly usable on raw compiled code, since the abstractions used have been stripped away.
+All of these methods are not directly usable on raw compiled code, since compilation stripped the abstractions away.
 
 \subsubsection{Value Analysis}
 \label{sec:valanal}
-It follows that recovering over-approximations of the range of potential values for various pieces of state in a program would be useful.
-One common way to do this is to perform abstract interpretation of the program over a domain which is expected to model the range of values well~\cite{vsa,wrappedintervals,wrappedintervals2}.
+It follows that recovering over-approximations of the range of potential values for pieces of state in a program would be useful.
+One common way to do this is to perform abstract interpretation of the program over a domain designed to model the range of values well~\cite{vsa,wrappedintervals,wrappedintervals2}.
 
-Unfortunately, this abstract interpretation assumes that the control flow graph has already been determined in order to sequence its transformations.
-Additionally, it can be made to lose nearly all its precision by loops whose transformations are not well represented by its particular domain.
-The state of the art approach to the co-dependence of the control flow recovery and value analysis problems is to combine value analysis with control flow recovery, allowing new paths to be informed by new values, which in turn re-inform the value analysis~\cite{jakstab}.
+Unfortunately, this abstract interpretation assumes that the control flow graph has already known in order to sequence its transformations.
+Additionally, it can lose nearly all its precision by loops whose transformations are not well represented by its particular domain.
+The state of the art approach to the co-dependence of the control flow recovery and value analysis problems is to combine value analysis with control flow recovery, allowing the creation of new paths from new values, which in turn re-inform the value analysis~\cite{jakstab}.
 
 \subsubsection{Type Recovery}
 Another important static analysis is type recovery.
 While there is no rule that says there must be types as we think of them in a binary program, they are usually present due to source language or programmer volition.
 Even assembly programmers and dynamic language users~\cite{jsinfer} usually use consistent types to some extent.
 
-Since the annotations have all been compiled away, there are two primary sources for type information: propagation from API/ABI boundaries and how the program interacts with the structure of the data.
+Since compilation removed type annotations, there are two primary sources for type information: propagation from API/ABI boundaries and how the program interacts with the structure of the data.
 Propagation~\cite{howard} of type information from code boundaries entails knowing a priori that a particular library or service in use by the program matches some signature, then following definitions of its arguments and uses of its results to annotate the program with this information.
-This helps some, but largely fails on any kind of internal data structure.
+This helps some, but encounters difficulties with any kind of internal data structure.
 Usage based analysis~\cite{tie,bitr} tends to perform better at recovering internal structures, and works by examining how the code defines and uses state and generating constraints for types based on that.
 
 % * Dynamic
 \subsection{Dynamic Analyses}
 Dynamic analyses are those which focus on properties of individual executions, or statements of the form ``there exists a trace with the property\ldots''.
 These analyses are frequently good at pinpointing problems or increasing the accuracy of approximations.
-However, as path oriented techniques, they are limited to describing what could happen, rather than what must always be the case.
+However, being path oriented limits these techniques to describing what could happen, rather than what must always be the case.
 
 %   * Fuzzing
 \subsubsection{Fuzzing}
-One common modern way to find issues in code, especially code not in a form intended for human consumption (such as compiled code), is to simply perform a very large number of executions with varied inputs.
+One common modern way to find issues in code, especially code not in a form intended for human consumption (such as compiled code), is to simply perform a large number of executions with varied inputs.
 This technique is known as ``fuzzing'', and is widely used in the search for security flaws.
-There are a number of axes along which this technique can differ, but the primary two are blackbox~\cite{peach,zzuf,rebert2014} vs whitebox~\cite{klee,godefroid2008,avgerinos2014} and generational~\cite{peach} vs mutational~\cite{zzuf}.
+The primary two defining axes of fuzzing are blackbox~\cite{peach,zzuf,rebert2014} vs whitebox~\cite{klee,godefroid2008,avgerinos2014} and generational~\cite{peach} vs mutational~\cite{zzuf}.
 
 %   * Symbolic Execution + SMT
 \subsubsection{Symbolic Execution}
 A slightly more sophisticated (though more expensive) approach is to keep inputs ``symbolic'' while executing.
-Essentially, if an exact value is not needed in order to take a step, expressions based on inputs are used in place of concrete values.
-When a conditional branch is taken, the condition is added to a path constraint, restricting the range of inputs for which this execution is considered feasible.
-When a potentially dangerous operation is about to be performed (such as jumping to or dereferencing a symbolic value), a check for the plausibility of the ``bad'' scenario can be fed to an SMT solver\footnote{\
-SMT stands for Satisfiability Modulo Theory, and can be thought of as a SAT solver whose variables have extra domains and additional operations. In this work, we primarily consider the theory of bitvectors.
+Essentially, if an exact value is not needed in order to take a step, the evaluator uses expressions based on inputs in place of concrete values.
+When a the evaluator encounters a conditional branch, it extends path constraint by conjunction with the condition, restricting the range of feasible inputs for this execution.
+When the next instruction is a potentially dangerous operation (such as jumping to or dereferencing a symbolic value), an SMT solver can check a formula for the plausibility of the ``bad'' scenario\footnote{\
+  SMT stands for Satisfiability Modulo Theory.
+  It is a SAT solver whose variables have extra domains and additional operations.
+  The SMT solvers discussed here operate over the theory of bitvectors.
 }.
-The formula is created by taking the conjunction of the path constraint with whatever condition suffices to cause the badly behaved event.
-If the SMT solver returns a solution, a bad input has been found\cite{aeg,mayhem}.
+The execution engine constructs the formula by taking the conjunction of the path constraint with whatever condition suffices to cause the badly behaved event.
+If the SMT solver returns a solution, that solution describes a bug-causing input\cite{aeg,mayhem}.
 If instead of simply sufficing, the condition passed is complete (i.e.\ the operation is \emph{only} dangerous if the formula is satisfiable), the SMT solver returning UNSAT gives safety, but for \emph{this path only}.
 Since loops may create an infinite number of paths, it is difficult to demonstrate that any region is safe this way, but receiving a concrete trace which exercises a bug condition is a major benefit.
 

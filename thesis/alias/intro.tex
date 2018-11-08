@@ -1,4 +1,4 @@
-In order to show that Holmes can be used in practice, we implement a concrete system with it.
+In order to show that Holmes is useful in practice, we implement a concrete system with it.
 We chose to focus on the problem of use-after-free, as it is a little-explored area for static binary analysis.
 We used Holmes here to link together control flow analysis, alias analysis, string recovery, and general function loading in order to build a working use-after-free engine.
 
@@ -6,7 +6,7 @@ We used Holmes here to link together control flow analysis, alias analysis, stri
 There were 238 use-after-free (UaF) vulnerability disclosures (CWE-416) issued in 2017 alone, with 36.2\% given a critical security
 rating.
 % From cvedetails.com, mitre doesn't seem to issue CVE/CWE associations.
-Use-after-free bugs happen when a pointer has been freed and the memory pointed to subsequently written to or read from.
+Use-after-free bugs happen when a program frees a pointer and subsequently writes to or reads from the memory pointed.
 Use-after-free bugs can lead to DoS, control flow hijack, and information leaks.
 
 Despite the number of CVEs, few tools exist that can automatically and statically detect such bugs in off-the-shelf \emph{binary} code.
@@ -20,15 +20,15 @@ Can we adapt such techniques to be effective even without source?
 
 At a high level, UaF bugs require reasoning about memory allocation and memory aliasing.
 Source code techniques are more plentiful due to the rich and mature research area of alias, points-to, and similar schemes for reasoning about memory over the lifetime of a program.
-In comparison, at the binary level the primary approach for reasoning about memory is Value Set Analysis~\cite{vsa}, which is less mature and has several limitations in practice such as inability to reason about all arithmetic operations (e.g., bit-shifts and division) and the fact it may not terminate without ad-hoc widening in the presence of loops.
-For example, GUEB~\cite{gueb} was proposed to detect UaF bugs using VSA, but is handicapped by disallowing cyclic paths to allow rapid termination of VSA.
+In comparison, at the binary level the primary approach for reasoning about memory is Value Set Analysis~\cite{vsa}, which is less mature and has limitations in practice such as inability to reason about all arithmetic operations (e.g., bit-shifts and division) and the fact it may not terminate without ad-hoc widening in the presence of loops.
+For example, GUEB~\cite{gueb} proposed to detect UaF bugs using VSA, but is handicapped by disallowing cyclic paths to allow rapid termination of VSA.
 
 We present a new binary-level static analysis approach for detecting UaF bugs in executable programs.
 One of the main technical challenges we address is showing how to adapt source-code memory alias analysis to compiled code, where previous work has instead created all-new binary-only approaches to alias
 analysis like VSA.
 We experiment with two classes of analysis: flow insensitive alias analysis via a Steensgaard-type~\cite{steensgaard-alias} algorithm, and  flow-sensitive alias analysis using a data flow approach adapted from Andersen~\cite{andersen} style analysis with added rules to handle binary-specific details such as calling conventions and computed addresses.
 We also add context-sensitivity by allowing the analysis to reason about the call-stack discipline followed by executable code, and a type of field sensitivity appropriate for direct pointer arithmetic without type information.
-To the best of our knowledge, very little work has been done in applying the literature in source alias analysis to compiled code, and no previous work has shown how to then use such techniques to find UaF bugs statically in compiled code.
+To the best of our knowledge, there is little work in applying the literature in source alias analysis to compiled code, and no previous work has shown how to then use such techniques to find UaF bugs statically in compiled code.
 
 We have built a tool called \aliasname\ that uses \sysname\ to drive the different levels and co-dependencies in binary analysis, alias analysis, and UaF detection.
 Taking this approach allows us to have an end-to-end reasoning chain from input binary to why this particular candidate use-after-free could not be disproven with a given sensitivity.

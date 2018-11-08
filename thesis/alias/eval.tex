@@ -6,7 +6,7 @@ Our evaluation has 3 major components.
 \item Ubuntu \texttt{\$PATH} - How often do we alarm on real bug-free code?
 \end{itemize}
 
-Evaluation over the Juliet test set is included both for comparability with other work~\cite{tac, juliet-eval-static-source} and to act as a baseline for our detection power and false positive rates.
+We evaluate over the Juliet test set both for comparability with other work~\cite{tac, juliet-eval-static-source} and to act as a baseline for our detection power and false positive rates.
 It helps answer the question ``In the absences of confounding factors from the real world, how well does this work?''.
 We also evaluate over real use-after-free bugs pulled from MITRE's CVE database.
 Evaluating on these verifies that real world code, while potentially confounding, does not stop our technique from functioning altogether.
@@ -15,14 +15,14 @@ Finally, we evaluate over a variety of believed-good binaries.
 The intent behind this evaluation is to get a better idea of false positive rates and analysis costs for average programs believed to be non-buggy.
 
 \subsection{Juliet}
-IARPA released the Juliet test suite~\cite{juliet} as a way of providing standardized examples of various CWEs.
+IARPA released the Juliet test suite~\cite{juliet} as a way of providing standardized examples of CWEs.
 By building only those corresponding to use-after-free, we get a high density test suite.
 
 All three sensitivities find all intended bugs in Juliet.
 Insensitive analysis generates 39834 false positives, reducing to 0 with flow sensitivity.
 Run time was 19m30s for the flow sensitive version, and 30m4s for insensitive.
 However, the insensitive variety generates its alias information as of 3m23s.
-The rest of the time was spent generating reachability information.
+The system spent the remainder of the time generating reachability information.
 
 Unfortunately, while Juliet serves as a good test for true positives, it does not do much to elicit false positives from our system, which is why both our performance and others' look too-good-to-be-true here.
 While there are negative tests present, there is little in the way of things that checkers are traditionally weak against (data structures, recursion, loops, etc.).
@@ -30,8 +30,8 @@ For this reason, it is important to evaluate ourselves on real world code as wel
 
 \subsection{Live CVEs}
 \label{alias:sec:eval:real}
-Our system successfully detects 7 real CVEs across 6 programs.
-These CVEs were detected by all sensitivities of the checker.
+Our system successfully detects 7 real bugs across 6 programs.
+All sensitivities of the checker detected all bugs.
 We assume that all potential use after frees which do not match the known bugs in each of these programs are false positives.
 
 \begin{figure*}
@@ -89,15 +89,15 @@ Program & Sensitivity & Run time & Memory & False Positives & Binary Size\\
 
 Note that while the insensitive analysis completes quickly and cheaply for every binary, the false positive rates are so high that the output would be difficult to use.
 Flow sensitivity reduces false positives significantly.
-Manual analysis reveals that most remaining false positives are either due to data structure usage (which makes many things potentially alias), confused allocation sites from wrapped malloc constructors, and infeasible paths.
-Context sensitivity gives additional minor improvements, mostly by helping to differentiate between instances of calling wrapped mallocs (e.g. \texttt{new\_foo()} to allocate and initialize a \texttt{foo}).
+Manual analysis reveals that most remaining false positives are either due to data structure usage (which decreases the precision of the alias analysis), confused allocation sites from wrapped malloc constructors, and infeasible paths.
+Context sensitivity gives additional improvements by helping to differentiate between instances of calling wrapped mallocs (e.g. \texttt{new\_foo()} to allocate and initialize a \texttt{foo}).
 
 While performance for insensitive and flow-sensitive analyses appears similar, this is in large part because the generation of a global program reachability graph for each \texttt{free} is costly.
 If the analysis is instead timed in phases, the alias-analysis-only portion for the insensitive system takes seconds, while it takes the bulk of the non-CFG-recovery time in a flow-sensitive analysis.
 
-For the known-vulnerable set, the false positives were reduced by an average of 90\% with the addition of flow sensitivity, and an additional 84.1\% by adding context sensitivity on top of that.
+For the known-vulnerable set, flowsensitivity reduced the false positive set by an average of 90\%, and context sensitivity reduced it by an additional 84.1\%.
 The false positive reduction for the addition of flow sensitivity is immense, and the increase in time and space needed for the alias analysis was manageable for programs in our known-vulnerable set, the largest of which was 768kb.
-Adding context sensitivity had a substantially higher cost, but still yielded a major increase in precision.
+Adding context sensitivity furhter increased the time and space cost, but still yielded a major increase in precision.
 
 \subsubsection{GUEB}
 The author of the GUEB~\cite{gueb} tool made his tool open source\footnote{
@@ -107,16 +107,16 @@ We connected IDA, BinNavi, and GUEB and ran the system over the same bugs we eva
 As a caveat, we could not feed them the same binaries our tool consumed - their tool's stack only accepts 32-bit, so we recompiled the same vulnerable programs in 32-bit mode.
 
 Figure~\ref{fig:guebperf} shows the performance.
-The crashes appear to be unhandled cases in the input, and not fundamental to their methods.
+The crashes derive from unhandled cases in the input, and not fundamental to their methods.
 The undetected bugs occur due to their choice to not follow back edges (either as recursion or loops) when computing their VSA.
-This is an understandable choice, since VSA can become slow and be difficult to force convergence for when cycles are allowed, but in this case it caused bugs to be missed.
+This is an understandable choice, since VSA can become slow and be difficult to force convergence for when cycles are present in the input, but in this case it caused their analysis to miss bugs.
 Likely due to this forwards-only approach, GUEB terminated rather quickly on all inputs.
 
 In Listing~\ref{lst:isisd-gueb}, we can see one of the real vulnerabilities the lack of a fixpoint fails to detect.
 The loop knows that \texttt{adj} is allocated and non-null on entry, so the first time through the loop is always fine.
-However, some paths through the loop cause \texttt{adj} to be deleted, and go around the loop again.
+However, some paths through the loop free \texttt{adj}, and go around the loop again.
 At this point, a use-after-free can occur.
-If back edges are not followed, this will never be detected.
+If back edges are not followed, the analysis cannot detect this.
 
 \begin{figure}
 \begin{center}
@@ -158,7 +158,7 @@ Adding flow sensitivity provided an average reduction in bug candidates of 93.1\
 Then adding context sensitivity ($k$ = 1) reduced it by an additional 43.5\%, in those situations where the flow sensitive analysis had a bug candidate, and the context sensitive analysis terminated.
 
 Manual auditing of the reported bugs did not reveal any true bugs, but did show that a common pattern amongst false positives was functions for whom one path freed and replaced a pointer, and the other did neither, and they rejoined.
-This could have been remedied by a more aggressive analysis for dead variables, pruning them to allow the freed region to leave the points-to relationship before the paths rejoined.
+A more aggressive analysis for dead variables could remedy this by pruning them to allow the freed region to leave the points-to relationship before the paths rejoined.
 
 While we did not find any new bugs in this case, the system emitted a maximum of 22 reports on individual binaries (and this worst case had most of them clustered in the same code area).
 This was few enough reports to enable practical manual auditing by a single individual.

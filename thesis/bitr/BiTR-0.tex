@@ -10,21 +10,21 @@
 \input{bitr/related}
 
 \section{Motivating Holmes}
-While this system was designed before the inception of {\sysname}, its operation matches the computational patterns we will introduce when we describe the language (\S~\ref{chap:holmes}).
+While we designed this system before the inception of {\sysname}, its operation matches the computational patterns we will introduce when we describe the language (\S~\ref{chap:holmes}).
 The constraint generation step matches simple Datalog rules, with external predicates or an equivalent feature (\S~\ref{holmes:sec:callback}).
-SSA instructions are processed, one at a time, and transformed into constraints to try to simultaneously satisfy.
+We process SSA instructions one at a time and transform them into constraints to try to simultaneously satisfy.
 The solving phase matches up with the aggregation feature (\S~\ref{holmes:sec:agg}).
-A single constraint can be promoted into a partial solution context, and the operation to add a new constraint to the context transformed into a join operation between two partial contexts.
-Finally, attempting to leave out as few constraints as possible corresponds to circumscription(\S~\ref{holmes:sec:circ}) and call/cc (\S~\ref{holmes:sec:callcc}).
-Specifically, we circumscribe over how many predicates may be dropped in a final answer.
-If no final answer can be found, we increase the number by using a \texttt{max} join operation on the maximum number of dropped clauses.
+We can promote a single constraint into a partial solution context, and the operation to add a new constraint to the context transformed into a join operation between two partial contexts.
+Finally, attempting to leave out a minimum of constraints corresponds to circumscription(\S~\ref{holmes:sec:circ}) and call/cc (\S~\ref{holmes:sec:callcc}).
+Specifically, we circumscribe over the quantity of predicates to ignore in a final answer.
+If no final answer can is possible, we increase the number by using a \texttt{max} join operation on the maximum number of dropped clauses.
 If we circumscribe over the list of available merged contexts at well, we can detect the case of an inability to produce an answer, and increase the number of potential dropped clauses.
 This step requires call/cc, as we must circumscribe over the maximum number of predicates to drop to know there is no solution, but our response to knowing there is no solution is to extend that predicate.
 
 A {\bitr} system re-implemented in this way would still calculate more than the system described here.
 This is because it would examine \emph{all} minimal constraint dropping solutions rather than stopping after finding one.
 It would also gain in incrementality, as adding or removing a constraint (such as due to user annotation, or a small patch) would be able to operate on the existing state as much as possible.
-The non-Datalog implementation would need additional work to be made incremental in this way.
+The non-Datalog implementation would need additional work to become incremental in this way.
 
 \begin{figure*}
 \centering{

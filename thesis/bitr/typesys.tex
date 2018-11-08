@@ -4,7 +4,7 @@
 %  Define the problem precisely
 We approach the problem of recovering types from compiled code with the goal of recovering the type of every register at every program point. The main complication here is that there are operations with multiple possible meanings, and we must discover which one is actually in use. For example, in the case of addition, the operation may mean any of array indexing, struct indexing, or arithmetic addition.
 There may be multiple legal interpretations available in some cases.
-We design our type system to try to restrict the number of legal interpretations as much as possible, while still accepting the vast bulk of programs generated under a C-like paradigm.
+We design our type system to try to restrict the number of legal interpretations as much as possible, while still accepting real-world programs generated under a C-like paradigm.
 
 % Explain approach more directly
 To this end, we set out to form a descriptive type system. This means we primarily focus on describing what actions are actually taken in practice; we focus on the property that if what the code is doing is reasonable, we accept and characterize how that could be the case, rather than rejecting the code outright because it does not fit our type system.
@@ -62,24 +62,27 @@ o ::=&\, \textrm{any integer}
 
 \noindent {\bf Types.}
 %Integers
-The $\tint{w}$ type is used to represent integers of width w.
+The $\tint{w}$ type represents integers of width w.
 %Memory
-Our intermediate semantics language (BIL) represents memory writes as non-destructive updates to a global array. As such, we need a type for that array: $\mem$. This type can be directly inferred from the source language, as a value of type $\mem$ can only be created by performing a write to an existing $\mem$, and that operation is unambiguous. It does not correspond to anything in C or other source language, it is just to type our memory variable.
+Our intermediate semantics language (BIL) represents memory writes as non-destructive updates to a global array. As such, we need a type for that array: $\mem$. This type can be directly inferred from the source language, as a value of type $\mem$ is only created by performing a write to an existing $\mem$, and that operation is unambiguous. It does not correspond to anything in C or other source language, it is just to type our memory variable.
 %Bool
-To represent flags or other single bit registers on which branching can be done, we use the $\bool$ type. While it is isomorphic to a single bit integers, we are trying to recover abstractions, and would like to distinguish between things we perform arithmetic on versus boolean operations.
+To represent flags or other single bit registers, we use the $\bool$ type. While it is isomorphic to a single bit integers, we are trying to recover abstractions, and would like to distinguish between things we perform arithmetic on versus boolean operations.
 
 %Tops and bottoms
-$\utop$, $\ubot$, $\top_{w}$, and $\bot_{w}$ are synthetic types intended to be used in subtyping bounds and complete our lattice. $\utop$ and $\ubot$ are universal top and bottom for all our types. $\top_{w}$ and $\bot_{w}$ are provide a top and bottom bound for types of size $w$. This allows us to use subtyping bounds to indicate knowledge of the size of something, as can be indicated by the width of a write or similar low level clues.
+$\utop$, $\ubot$, $\top_{w}$, and $\bot_{w}$ are synthetic types for use in subtyping bounds and to complete our lattice. $\utop$ and $\ubot$ are universal top and bottom for all our types. $\top_{w}$ and $\bot_{w}$ are provide a top and bottom bound for types of size $w$. This allows us to use subtyping bounds to indicate knowledge of the size of something, as given by the width of a write or similar low level clues.
 
 %regions
-While type variables are a standard construction, region variables (and the regions they represent) are specific to our particular system. Regions are represented in the grammar by $\rho$, and are defined as a collection of mappings from offsets to type variables. The regions form the basis for our inference of structs. Figure \ref{fig:region} shows the region corresponding to the stack for a function with one integer stack variable. Note that when combined with an offset, the same region can be represent the stored base pointer (if the function is a leaf function, otherwise the base pointer must be abstract), the initial stack pointer, and the stack pointer right before return. In another example, a structure representing a sized string
+While type variables are a standard construction, region variables (and the regions they represent) are specific to our particular system.
+The grammar represents regions as $\rho$.
+Regions are a collection of mappings from offsets to type variables.
+The regions form the basis for our inference of structs. Figure \ref{fig:region} shows the region corresponding to the stack for a function with one integer stack variable. Note that when combined with an offset, the same region can be represent the stored base pointer (if the function is a leaf function, otherwise the base pointer must be abstract), the initial stack pointer, and the stack pointer right before return. In another example, we can represent a structure representing a sized string
 \begin{verbatim}
 struct {
   int size;
   char* str;
 }
 \end{verbatim}
-would be encoded by \bitr\ as $\lptr{r_0}{0}$ where
+ in \bitr\ as $\lptr{r_0}{0}$ where
 $$r_0 = (0 : t_0) (4 : t_1) \qquad t_0 = \tint{32} \qquad t_1 = \aptr{r_1}{0}$$
 $$r_1 = (0 : t_2) \qquad t_2 = \tint{8}$$
 At first, this might seem a clumsy way of dealing with structures, but it has a specific important benefit --- it can express that two pointers point at the same kind of structure, or that two structure members point at the same type, even when that structure definition or type information is incomplete. This allows information from different interactions with the same structure to naturally propagate into all uses.
@@ -91,10 +94,10 @@ $\lptr{rv}{o}$ and $\aptr{rv}{o}$ represent pointer and array types respectively
 $\trec{A}{\tau_A}$ introduces a recursive type. Within $\tau_A$, $A$ refers to $\tau_A$. Since our type system does not have additive types as a primitive, the only useful place to put $A$ is inside a region that a pointer uses. This provides an implicit option type (our pointers are nullable), allowing the recursive types to be finite size. This corresponds to the common C usage of using a struct pointer as a member of the struct itself.
 
 %poly
-$\tpoly{\tau}{A}{\tau'}{\tau_A}$ constructs a polymorphic type. $\tau$ is the lower bound, and $\tau'$ the upper bound. While our inference system does not directly generate polymorphic types, once inference is done we bind type variables that are only partially constrained with this construct before returning them. This allows for the expression of polymorphic linked lists and other simple data structures. This allows us to deal with many of the cases where C programmers use \texttt{void*} and casts to deal with their lack of polymorphism. The upper and lower bounds are most commonly used in conjunction with $\top_{w}$ and $\bot_{w}$ to indicate a type variable for which only its size is known, but in principle could express other restrictions.
+$\tpoly{\tau}{A}{\tau'}{\tau_A}$ constructs a polymorphic type. $\tau$ is the lower bound, and $\tau'$ the upper bound. While our inference system does not directly generate polymorphic types, once inference completes we bind type variables that are only partially constrained with this construct before returning them. This allows for the expression of polymorphic linked lists and other simple data structures. This allows us to deal with some cases where C programmers use \texttt{void*} and casts to deal with their lack of polymorphism. The upper and lower bounds are most commonly used in conjunction with $\top_{w}$ and $\bot_{w}$ to indicate a type variable for which only we only know its size, but in principle could express other restrictions.
 
 %code
-$\code$ is used to represent any pointer to code that can be jumped to. In future work, we may attempt to type this more specifically, expressing type preconditions for the jump and treating it more like a continuation. Function pointers, and values created by \texttt{setjmp} use this type. However, its most common and practical use is to represent the return pointer the function jumps to in order to return control to its caller.
+$\code$ represents any pointer to code that is a valid jump target. In future work, we may attempt to type this more specifically, expressing type preconditions for the jump and treating it more like a continuation. Function pointers, and values created by \texttt{setjmp} use this type. However, its most common and practical use is to represent the return pointer the function jumps to in order to return control to its caller.
 
 \noindent {\bf Subtyping}
 An important feature of the system is subtyping --- this allows us to constrain the bounds of a type even when we do not know everything about it yet.
@@ -160,9 +163,9 @@ $\oplus$ here is a substitute for most mathematical operations (+, -, etc), and 
 \]
 
 \noindent {\bf Type and Region Variable Binding.}
-In a traditional type system, variables must be bound before use. However, as this system was primarily designed for inference rather than direct use, it assumes initially that all region variables and type variables are defined mutually recursively. A set of bindings for type variables and region variables which satisfies the constraints we will describe later forms the solution to our typing problem. However, this system of a mess of mutually recursive bindings is difficult for humans to read and understand, so when the binding for a given type variable is requested, we narrow the scopes of type variables as much as possible, introducing $\forall$ and $\mu$ where appropriate, while substituting in region variables for their bindings, making a self-contained type. The polymorphic types arise from type variables who are insufficiently restricted in the response type. Recursive types arise from type variables whose bounds refer to themselves.
+In a traditional type system, the program binds variables before use. However, as this system was primarily designed for inference rather than direct use, it assumes initially that all region variables and type variables may be mutually recursive. A set of bindings for type variables and region variables which satisfies the constraints we will describe later forms the solution to our typing problem. However, this system of a mess of mutually recursive bindings is difficult for humans to read and understand, so when the user asks for the binding for a given type variable, we narrow the scopes of type variables as much as possible, introducing $\forall$ and $\mu$ where appropriate, while substituting in region variables for their bindings, making a self-contained type. The polymorphic types arise from type variables who are insufficiently restricted in the response type. Recursive types arise from type variables whose bounds refer to themselves.
 
-In summary, during inference, all region variables and type variables are defined mutually recursively and exist together. When the type is output, $\mu$ and $\forall$ bind new type variables, and region variables do not exist as they are replaced by the regions they represent.
+In summary, during inference, all region variables and type variables are potentially mutually recursive and exist together. When the type is output, $\mu$ and $\forall$ bind new type variables, and region variables do not exist as we substitute them with the regions they represent.
 
 %  Discussion (summary of algorithm, brief)
 \subsection{Approach}

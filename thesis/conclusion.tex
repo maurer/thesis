@@ -10,7 +10,7 @@ We conclude that the Holmes approach improves upon the current ad-hoc model by r
 % Chap by chap re-summarize
 % Holmes
 We described a new EDSL based on a dialect of Datalog (\S~\ref{chap:holmes}).
-Holmes was designed here to be an orchestrater of procedural analyses, rather than an individual analysis itself.
+We designed {\sysname} as an orchestrater of procedural analyses, rather than an individual analysis itself.
 We show a novel form of negation via exact aggregation, a useful tool in the domain of binary analysis (\S~\ref{holmes:sec:circ}).
 We extend that negation to make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}) as is the case when a control flow graph is incrementally recovered through use of analyses which assume a complete graph.
 We describe and evaluate implementation approaches for this language (\S~\ref{holmes:sec:impl}).
@@ -22,7 +22,7 @@ We show how to rewrite a Holmes program into a Datalog program in an infinite He
 Finally, we show how to augment the negation concept from finite Datalog to one which may perform an infinite number of negations in a single step to enable circumscription (\S~\ref{formal:sec:semantics}).
 
 % Alias
-We show that Holmes can be used to author real world analyses by creating a use-after-free detector built on it which leverages Holmes to explore different sensitivities of alias analysis (\S~\ref{chap:alias}).
+We showed that {\sysname} can function as a framework for real world analyses by creating a use-after-free detector built on it which leverages Holmes to explore different sensitivities of alias analysis (\S~\ref{chap:alias}).
 We translate alias analyses from the traditional programming language world for use in the binary analysis world (\S~\ref{alias:sec:system}).
 We quantify the cost/benefit tradeoff for precision in alias analysis for bug finding (\S~\ref{alias:sec:eval}).
 We show that Holmes assists in the ability to write such a system concisely and to allow modularity between analyses (\S~\ref{alias:sec:impl}).

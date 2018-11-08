@@ -1,60 +1,60 @@
 \subsection{Dynamic Approaches}
 % How do we find them? Dynamic story.
 A use-after-free bug specifically describes a temporal safety property:
-In a specific execution of the program, a region of memory will be released to the allocator, and used afterwards.
+In a specific execution of the program, it releases a region of memory to the allocator, and uses that region afterwards.
 As a result, checking this property on an actual execution of the program via dynamic analysis is appealing.
-Assuming we have a single execution path in mind, checking for a use-after-free bug becomes mostly a matter of remembering which addresses have been freed, and watching for additional dereferences of these.
+Assuming we have a single execution path in mind, checking for a use-after-free bug becomes a matter of remembering which addresses have are free, and watching for additional dereferences of these.
 \footnote{Technically, to avoid false positives you also need an allocator which does not hand out the same region twice, or another mitigation strategy.}
 This approach avoids false positives by using real runs, and frequently only incurs constant-factor overhead on runs, making it widely applicable.
-However, it also has the limitation that bugs along paths not included in a trace will remain completely unnoticed.
+However, it also has the limitation that bugs along paths not included in a trace will remain unnoticed.
 
 LLVM's ASAN~\cite{asan} and Valgrind~\cite{valgrind} approach this through instrumented execution while monitoring the safety property.
 ASAN accomplishes this via compile-time instrumentation, and Valgrind through a hooked virtual machine.
-Undangle~\cite{undangle} monitors derived pointers whose allocation has been freed (dangling pointers) using taint analysis via TEMU (a virtual machine hooking framework on top of QEMU).
+Undangle~\cite{undangle} monitors derived pointers whose allocation the program has freed (dangling pointers) using taint analysis via TEMU (a virtual machine hooking framework on top of QEMU).
 DangNull~\cite{dangnull} uses LLVM to do compile time instrumentation to track dangling pointers, writing \texttt{NULL} to them on free.
 This converts otherwise exploitable conditions into either a DoS (if there was no null handling) or a recoverable error.
 
 The major limitation in dynamic analysis is code coverage.
-Manual coverage can be achieved through comprehensive test suites, but these are difficult to write and can often miss the faulty cases - if the author were thinking about that case when they wrote the code, they likely would not have written the bug.
+Comprehensive test suites can achieve coverage manually, but these are difficult to write and can often miss the faulty cases - if the author were thinking about that case when they wrote the code, they likely would not have written the bug.
 Fuzzing can allow for automated generation of interesting execution traces for the purpose of use by dynamic analysis, but relies on statistical techniques or manual guidance to achieve reasonable coverage.
-This approach guarantees that found bugs are real, but ties their power to whatever mechanism is used to generate paths.
+This approach guarantees that found bugs are real, but ties their power to whatever the mechanism used to generate paths.
 
 \subsection{Static Approaches}
 Alternatively, we can search for bugs by tracking properties that will hold across all traces, and finding uses we don't know aren't freed.
 This approach will not miss any bugs, and does not depend on any kind of test suites or input generators for its results.
 Unfortunately, this approach also brings false positives and a greater potential for scaling issues.
-As a result, while the core of many static techniques could give the completeness property of detecting all bugs, in a final user version this will be dropped in order to reduce false positive rates.
+As a result, while the core of static techniques could give the completeness property of detecting all bugs, in a final user version may drop this gaurantee in order to reduce false positive rates.
 
 \textsc{Metal} proposed~\cite{metal} the use of simple, programmer written state machines to enforce additional properties across C code.
-This approach works for things like interrupts, locking, no-alloc zones, and no-side effect zones, and is extremely efficient.
-It even works for simple use-after-free bugs where no alias analysis is required (e.g. \texttt{free(x); *x}), and real instances of this were found.
+This approach works for things like interrupts, locking, no-alloc zones, and no-side effect zones, and is low overhead.
+It even works for simple use-after-free bugs where no alias analysis is necessary (e.g. \texttt{free(x); *x}), and found real instances of this.
 
 \textsc{Tac}~\cite{tac} applies an insensitive pointer analysis to identify candidate use after frees, then runs type-state, path-sensitive analysis on the results.
 In the type-state analysis, when they encounter what could be a use-after-free or a double-free, rather than immediately transitioning to the error state, they query their learned model.
 If the bug is not likely a real bug by their model, they continue executing past it as though it had no effect.
 The support vector machine step, while it does eliminate a good chunk of false positives, does fundamentally move Tac from one-sided error to two-sided.
-If a bug candidate is removed by the SVM, Tac will not report it.
+If the SVM removes a bug candidate, Tac will not report it.
 At the same time, in the type-state phase of the algorithm, they proceed along a slice from the allocation site, meaning they fundamentally cannot know that a condition is feasible if it depends on prior code, they can only detect infeasibility.
 Regardless of the two-sided error, it has good true and false positive rates, so the tool is practically applicable.
-It is possible that if our approach was used to generate the bug candidates, the SVM phase might not be quite as necessary due to the increased precision of both which pairs were highlighted, and the points-to sets provided.
+It is possible that if Tac used our approach to generate the bug candidates, the SVM phase might not be as necessary due to the increased precision of both selected use/free pairs, and the points-to sets provided.
 
-For compiled code, the existing static checker is known as GUEB~\cite{gueb}.
-GUEB employs VSA~\cite{vsa} to track values, augmented to track which chunks of memory have been allocated and freed.
-When it finds a situation where a dereference to a chunk which may have been freed occurs, it extracts a subgraph of the control flow graph trying to display only the portion with the allocation, free, and use of the relevant pointer.
+For compiled code, the GUEB~\cite{gueb} is the existing static checker.
+GUEB employs VSA~\cite{vsa} to track values, augmented to track allocations and frees.
+When it finds a situation where a dereference to a chunk which is possibly freed, it extracts a subgraph of the control flow graph trying to display only the portion with the allocation, free, and use of the relevant pointer.
 In order to allow VSA to run quickly, it use fixed loop unrolling and disallows recursive calls.
 This is pragmatic to allow VSA to converge, but causes GUEB to miss some real world bugs.
 
 One other tool~\cite{dewey-uncovering-2015} has the distinction of operating on object-oriented code, even in the presence of vtables.
-Their AODA tool has the benefit of reasoning about C++ code, but the limitation of not reasoning about pointers which have been moved onto the heap.
+Their AODA tool has the benefit of reasoning about C++ code, but the limitation of not reasoning about pointers which have the program compies onto the heap.
 When they reason about a use of an object, they use the use-def chain to identify the instantiation site.
-They also use the use-def chain to determine what to add to the kill-set when an object is destroyed.
-If a pointer to an object is moved onto the heap after being instantiated (e.g. \texttt{vector<*SomeObject>}), then when moved off, the use-def chain will no longer trace it back to its origin - this is one of the problems alias analysis is intended to solve.
+They also use the use-def chain to determine what to add to the kill-set when the program destroys an object..
+If a pointer to an object moves onto the heap (e.g. \texttt{vector<*SomeObject>}), then when moved off, the use-def chain will no longer trace it back to its origin - this is one of the problems alias analysis solves.
 They also only examine the output of MSVC, meaning they are possibly tied to some compiler idioms.
 However, their ability to resolve virtual function calls on C++ objects is potentially valuable.
 
 \subsection{Datalog Program Analysis}
-Datalog has been used to perform program analysis before~\cite{bddbddb,doop1}, though only on source code or a compiler IR like LLVM bitcode or Java bytecode.
-These approaches transform the program into a set of input facts to be combined with rules and run by a Datalog engine to receive the final results, essentially phasing the computation.
+Datalog has played a role in program analysis before~\cite{bddbddb,doop1}, though only on source code or a compiler IR like LLVM bitcode or Java bytecode.
+These approaches transform the program into a set of input facts to combine with rules and run by a Datalog engine to receive the final results, essentially phasing the computation.
 Our approach uses a mixture of Datalog with traditional procedural code instead.
 This allows us to do things like lifting newly found instructions from within the Datalog context or hypothetical reasoning which requires a computation step.
 In our implementation, this occurs for every instruction other than the entry points, since we discover the location of the next instruction during lifting.
@@ -63,7 +63,7 @@ However, this also means that we lose Datalog's termination guarantees and canno
 \texttt{bddbddb}~\cite{bddbddb} used BDDs (binary decision diagrams) to exploit symmetry in context-sensitive points-to analysis for Java programs.
 In order to encode this problem as a BDD, \texttt{bddbddb} first encodes the points-to problem as a Datalog program.
 Then, they converted each operation needed to run a Datalog program (join, substitution, extension) into operations on BDDs, one per predicate.
-Finally, by running these operations unto fixpoint, the resultant BDD could be queried efficiently for points-to information which if represented concretely would be far too large to manipulate.
+Finally, by running these operations unto fixpoint, the user can query the resultant BDD efficiently for points-to information which if represented concretely would be far too large to manipulate.
 
 Perhaps the closest to \aliasname\ is \textsc{Doop}~\cite{doop1,doop2,doop3}, a program analysis framework for Java bytecode based in Datalog.
 While \textsc{Doop} still extracts to pure Datalog, then runs to completion, it models the actual analysis within Datalog rather than relying on preprocessing as much.

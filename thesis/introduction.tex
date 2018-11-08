@@ -2,46 +2,47 @@
 We need program analysis techniques that can find security bugs in binary programs.
 Binary program analysis is essential because code is often only available in binary form.
 Even when source code is available, some security properties are more appropriately checked at the binary level.
-As an example, use-after-free bugs present in source may not be present at the binary level if the compiler chooses to elide a read it believes to be cached in a register.
+As an example, use-after-free bugs present in source may not be present at the binary level if the compiler chooses to elide a read when a register caches its value.
 
-Existing tools~\cite{ida, bap, bitblaze, bindead} tend to be designed as a sequence of analyses to perform, with the results of each previous analysis being available to the next.
-In this model, an analysis author must ensure any information they wish to consume has been calculated before their analysis, but after any analyses that could benefit their dependency's accuracy.
-Representing individual analyses as nodes, with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must be run before $n_2$, this graph forms a sequence, or line.
+Authors designed existing tools~\cite{ida, bap, bitblaze, bindead} as a sequence of analyses to perform, with the results of each previous analysis being available to the next.
+In this model, an analysis author must ensure the framework calculates any information needed before their analysis, but after any analyses that could benefit their dependency's accuracy.
+Representing individual analyses as nodes, with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must execute before $n_2$, this graph forms a sequence, or line.
 
 Even in compilation, explicit staging can be cumbersome, so compilers have moved from this sequence or \emph{line} model to a dependency-based \emph{DAG} model.
 The sequence model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
-In LLVM's pass model, each pass declares what analyses it depends upon, allowing the LLVM pass manager to ensure the necessary steps are performed and allow a configurable pipeline.
+In LLVM's pass model, each pass declares what analyses it depends upon, allowing the LLVM pass manager to dynamically schedule the analyses and allow a configurable pipeline.
 Considering the graph representation again, LLVM's model is a DAG.
 
 This DAG model works well over source code, but falls short when applied to compiled code.
 Jakstab~\cite{jakstab} argues for the co-dependency of value analysis and lifting. 
-It takes the approach of running these two analyses to a fixed point, and allowing additional user-defined analyses to be run on each iteration.
+It takes the approach of running these two analyses to a fixed point, and provides a hook for user-defined analyses to run on each iteration.
 As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
 While this is a step forwards, it still causes unnecessary recalculation and places a form of monotonicity requirements on analyses in order to remain correct.
 A natural extension then is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
-This full graph model of analysis management is investigated in this thesis.
+We investigate this full graph model of analysis management in this thesis.
 
 We often want co-dependent analysis to detect bugs.
 Jakstab~\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to better results than IDA\cite{ida} for jump resolution.
-If both analyses had been specified as logical rules within the same environment, the additional power Jakstab found by integrating them would have come for free.
+Specfiying these analyses as logical rules within the same environment would provide the same power Jakstab found by integrating them for free.
 Notably, IDA misses edges which Jakstab finds.
 The result is that an evaluation of a security property done over the CFG presented by IDA would miss some true positives along the undetected control flow edges.
-Doop\cite{doop1} found that integrating exception analysis and points-to analysis gave them half as many candidate targets on average for each object.
+Doop\cite{doop1} found that integrating exception analysis and points-to analysis gave them candidate target sets which were half the size on average for each object.
 Extra precision of this sort translates into reduced false positives when evaluating security conditions over the program.
 
 Our main insight is that we need an analysis framework that allows for arbitrary cycles in the dependency graph.
-Further, we want a framework that is extensible so that new analyses can be added easily.
+Further, we want a framework that is extensible so that adding new analyses is easier.
 Using a logic language is a natural approach to representing such a dependency graph.
 
 % Past work sets the stage for / encourages this
 Previous work in program analysis suggests that logic languages can help to structure this problem.
 % * Datalog/prolog as a program analysis tool
 Datalog has previously been successfully used to analyze programs~\cite{lam2005,brumley2006,alpuente2011,doop1,bddbddb}.
-A wide variety of properties from aliasing in compiled code~\cite{brumley2006} to security properties such as SQL injectability and cross site scriptability (XSS)~\cite{lam2005} have been modeled as facts in a deductive database, suggesting this as a potential common representation.
+Existing work has modeled a wide variety of properties from aliasing in compiled code~\cite{brumley2006} to security properties such as SQL injectability and cross site scriptability (XSS)~\cite{lam2005} as facts in a deductive database.
+This work suggests a datalog format as a potential common representation.
 Dataflow analyses are also representable~\cite{mcallester2002} in this way.
 
 % External code
-Using a fairly common extension of logic language, we can even call out to code not written as logical rules\footnote{We use a system similar to external predicates \S\ref{sec:extpred}}.
+Using a common extension of logic language, we can even call out to code not written as logical rules\footnote{We use a system similar to external predicates \S\ref{sec:extpred}}.
 This makes it possible to repurpose previously written analyses, or to write new analyses which may not be best represented as rules.
 There are still some restrictions on how such code can operate (for example, no preserved state across calls) but taking this approach gives the flexibility to be an integration system.
 
@@ -52,17 +53,17 @@ A Datalog derivative with extensions for negation and external callbacks can dri
 
 % Road map to defending the thesis statement
 % * Show the power by
-%   * Implementing the integration of several real analyses using the language
+%   * Implementing the integration of real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
 We investigated this approach by designing and implementing \sysname, a logic language engine designed for the integration of binary analyses.
-For this purpose we invented a novel form of negation, based on circumscription~\cite{circumscription}, which is suited to this particular application (\S~\ref{holmes:sec:circ}).
-This negation can further be allowed to make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}).
+For this purpose we invented a novel form of negation, based on circumscription~\cite{circumscription} suited to this particular application (\S~\ref{holmes:sec:circ}).
+This negation can further make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}).
 This adaptation allows Holmes to resolve an output even in the case of a negation cycle, as would be the case with a co-dependent control flow recovery and a value analysis assuming completeness of the control flow graph.
 This is concretely the case in the use of VSA to resolve function pointers.
 We also investigated different implementation approaches for \sysname (\S~\ref{holmes:sec:impl}).
 
 We define the semantics of the resulting logic language in terms of a Kripke structure (\S~\ref{chap:formal}).
-These semantics enhance the ability to reason about the results of an analysis by formally constraining what derivations the analysis engine is allowed to make.
+These semantics enhance the ability to reason about the results of an analysis by formally constraining what derivations the analysis engine may follow.
 They also make it possible to determine compliance for alternative implementations of the engine, potentially allowing programs to run on backends other than the initial one written for this thesis.
 
 We show that \sysname can implement different sensitivities of alias analysis, and show how this affects practical use-after-free classification (\S~\ref{chap:alias}).
@@ -79,4 +80,4 @@ We address the problem of inconsistent type constraints by suggesting a resoluti
 Finally, previous work in type recovery used a metric which minimized the importance of correct recovery of structure types.
 In \S~\ref{subsec:metrics}, we provide a novel metric for type recovery based on the probability of correctness of any individual query by a reverse engineer or downstream analysis.
 
-We conclude that \sysname does address the problem of co-dependence in program analysis and allow analyses to be specified in a modular fashion(\S~\ref{sec:conc}).
+We conclude that \sysname does address the problem of co-dependence in program analysis and allow specification of analyses in a modular fashion(\S~\ref{sec:conc}).

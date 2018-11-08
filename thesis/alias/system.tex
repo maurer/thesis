@@ -9,12 +9,12 @@ use-after-frees.
 
 \subsection{Alias Analysis}
 Alias analysis consists of computing the possible ways to access different variables.
-If dereferencing two expressions may access the same variable, they are said to alias.
+If dereferencing two expressions may access the same variable, they alias.
 
-Our machine-level alias analysis involves three main design choices that must be addressed:
+Our machine-level alias analysis involves three main design choices:
 \begin{enumerate}
 \item Selecting variables.
-  Alias analysis is performed over program variables, but unlike C, the assembly from a binary does not contain variable information.
+  We describe alias analysis over program variables, but unlike C, the assembly from a binary does not contain variable information.
 \item Selecting sensitivity.
   We can return points-to information parameterized on different pieces of context.
   Common examples of parameters are flow sensitivity (program location), context sensitivity (call stack), field sensitivity (offsets within memory regions), and object sensitivity (possible construction sites for a ``this'' pointer).
@@ -34,8 +34,8 @@ Our machine-level alias analysis involves three main design choices that must be
 \subsection{Front-End}
 Before we can apply our analysis, we first need to transform the raw
 bytes of the input file into a form similar to the AST\footnote{Abstract Syntax Tree} received after
-parsing.  Techniques in this section are not novel, and are described
-for completeness to understand our overall system.
+parsing.
+Techniques in this section are not novel; we describe them for completeness to understand our overall system.
 
 The front end:
 \begin{itemize}
@@ -54,14 +54,14 @@ In our approach, we use 3 kinds of variables:
 \begin{itemize}
 	\item Stack slots, parameterized by which function they are in. Written \texttt{sp+off@func}
 	\item Registers
-	\item Dynamic Allocations, parameterized by the location at which they are allocated. Written \texttt{dyn@loc}
+	\item Dynamic Allocations, parameterized by their allocation site. Written \texttt{dyn@loc}
 \end{itemize}
 We use an abstract location in these parameterizations.
 In the context-insensitive case it is simply the address of the instruction, and in the context-sensitive case it is the pair of the address with the return stack.
 
 Our choice of dynamic allocation variables defines our heap model.
-We assume that two memory regions may only alias if they were allocated at the same program point.
-This assumption matches reality unless a pointer has been released back to the allocator via free, but then used afterwards (a use-after-free bug).
+We assume that two memory regions may only alias if they share an allocation site.
+This assumption matches reality unless the program releases pointer back to the allocator via free, but then uses it afterwards (a use-after-free bug).
 This may violate the assumption because a write to or read from the now freed pointer may alias with newly returned memory.
 As a result, this heap model is correct at least until the first use-after-free in an execution.
 As we are not performing a value analysis, we also assume all accesses are in-bounds.
@@ -80,25 +80,16 @@ Our update summaries are then a description of the action of an IL instruction o
 \item \texttt{*a = \&b}
 \end{itemize}
 
-A list of these is generated for each instruction and associated with
-the location of the instruction.  At allocation sites we emit the
-summary \texttt{a = \&dyn@loc}, meaning that the variable \texttt{a}
-(usually \texttt{RAX}) takes on the address of the allocation region
-corresponding to that location.  % In our example~\ref{lst:example-asm}
-% we would emit \texttt{RAX = \&dyn@0} for the instruction on line 4
-% (location 0).  In the context-insensitive case, this gives us an
-% abstraction parameterized only on the address of the malloc; values
-% from one allocation site are assumed to never alias with those from
-% another.  In the context-sensitive cases, this summary additionally
-% parameterizes the abstraction by the return stack at allocation time.
+We generate a list of these constraints for each instruction and associated with the location of the instruction.
+At allocation sites we emit the summary \texttt{a = \&dyn@loc}, meaning that the variable \texttt{a} (usually \texttt{RAX}) takes on the address of the allocation region corresponding to that location.
 
 \subsection{Insensitive Analysis}
 In the flow-insensitive case, we modify the summaries before use to adapt our variable selection to better fit the problem.
-Specifically, we annotate registers with definition sites, similar to what might be found in SSA form.
+Specifically, we annotate registers with definition sites, similar to SSA form.
 
 We compute the possible definition sites of each register on the right side of a summary, and clone the summary for every possible definition.
 If the left side of a summary contains a register, we parameterize it with the location it came from.
-We do this because a single register may hold many different logical variables at different points of time.
+We do this because a single register may hold multiple different logical variables at different points of time.
 The register location parameterization allows us to avoid every definition of a register being potentially readable from every other site in the program.
 Without our approach, the resulting alias sets would be too imprecise to be useful as a register's alias set (e.g., \texttt{RAX}) would include information about all variables ever assigned to \texttt{RAX} by register allocation.
 Notably, this would include every call to \texttt{malloc}.
@@ -112,32 +103,26 @@ We use insensitive analysis as a baseline to help quantify the additional precis
 
 
 \subsection{Adding Flow Sensitivity}
-Our flow sensitive analysis is structured as a dataflow problem.  At each assembly instruction, we use a transfer
-function based on Andersen's~\cite{andersen} inclusion-style analysis.
+We structure our flow sensitive analysis as a dataflow problem.
+At each assembly instruction, we use a transfer function based on Andersen's~\cite{andersen} inclusion-style analysis.
 We use the inter-procedural dataflow adaptation described next (\S\ref{sec:interproc}).
-The same rules and functions are used to handle both context-sensitive
-and context-insensitive analysis, as the Location's stack context is
-considered optional.
+The same rules and functions handle both context-sensitive and context-insensitive analysis, as the Location's stack context is optional.
 
-A dataflow analysis is defined by a transfer function which calculates how a statement should update the dataflow facts
-(alias sets in our case),
-a set of control flow edges to walk from a set of starting points,
-and a meet function with specifies how to merge information sets at control flow graph confluence points.
+A dataflow analysis is defined by a transfer function which calculates how a statement should update the dataflow facts (alias sets in our case), a set of control flow edges to walk from a set of starting points, and a meet function with specifies how to merge information sets at control flow graph confluence points.
 We describe these below.
 
 By default, alias analysis calculates alias sets even when a variable is dead.
 We run a pass before alias analysis to determine which variables are live.
 While calculating alias analysis, we use this information to remove dead points-to information to improve performance and precision.
-Performance is increased because we do not waste time and space updating and tracking points-to
-sets we know will never be used.
-Precision is increased because if no pointers to a given allocation exist any longer, we know any new pointer to that allocation points to copy of that region which does not need the information from the old copy.
+This technique increases performance because we do not waste time and space updating and tracking points-to sets which cannot affect the outcome.
+It also increases precision because if no pointers to a given allocation exist any longer, we know any new pointer to that allocation points to copy of that region which does not need the information from the old copy.
 
 \subheading{Transfer Function}
-The actual processing of the update summaries based on summaries is calculated via the transfer function.
+The transfer function processes the update summaries.
 We follow Andersen as shown in Listing \ref{lst:process}:
 \begin{itemize}
-\item Definitions of variables are performed destructively.
-\item Writes through variables are applied to each value they may point to.
+\item Definitions of variables are destructive
+\item Apply writes through variables to each value they may point to.
 \item Right hand sides go through 0, 1, or 2 levels of dereference for \texttt{\&b}, \texttt{b}, and \texttt{*b} respectively to generate the set to update with
 \end{itemize}
 
@@ -150,31 +135,26 @@ We follow Andersen as shown in Listing \ref{lst:process}:
 
 Figure~\ref{fig:pts-update} shows the transfer function rules for each
 statement type.
-%This is illustrated in Figure \ref{fig:pts-update}.
 The ``Initial'' section shows a sample initial configuration a points-to relation might have.
 Both \texttt{a} and \texttt{b} are two-level pointers, with \texttt{x} and \texttt{y} representing the possible things pointed to at each level.
-Each other region is labeled by an update summary, and shows what would change about the points-to relation.
+The chart labels each other box by an update summary, and shows what would change about the points-to relation.
 The shown transfer function is for field-insensitive analysis; as each summary is not tracking offsets, we cannot perform a destructive update to anything dereferenced on the left hand side.
 
 For updates to stack slots or registers, we can perform a ``destructive'' update.
-This is demonstrated in the \texttt{a =} examples in Figure \ref{fig:pts-update}.
+The \texttt{a =} examples in Figure \ref{fig:pts-update} demonstrate this style of update.
 This means that since we know the new value
 is the only value the variable could have, we can \emph{replace} the
 points-to set.  In the case of pointer write though, we cannot do
 this, because our analysis is not field sensitive.
 
-In a field sensitive analysis, this destructive update logic would be
-extended to writes through pointers with a points-to size of one,
-allowing for more destructive updates and increasing the precision of
-our analysis.
+A field sensitive analysis extends this destructive update logic to writes through pointers with a points-to size of one, allowing for more destructive updates and increasing the precision of our analysis.
 We will explain and add field sensitivity shortly in section \ref{sec:field}, but until then, pointer updates need to remain non-destructive.
 
-After we complete the updates to the points-to structure, we remove
-all variables which are no longer live according to the previously computed information.
-These variables will never be used, so tracking them is imprecise and expensive.
+After we complete the updates to the points-to structure, we remove all variables which are no longer live according to the previously computed information.
+The program will not use these variables, so tracking them is imprecise and expensive.
 
-Finally, we perform a mark-and-sweep garbage collection of the tracked pointers, using stack slots, registers, and anything that was pointed to at the entrance of the function as roots.
-This last caveat is necessary so that if an argument to a function is written to, and then never used again, the parent will still see the update even though the callee no longer knows how to reference the region.
+Finally, we perform a mark-and-sweep garbage collection of the tracked pointers, using stack slots, registers, and anything reachable at the entrance of the function as roots.
+This last caveat is necessary so that if a function writes through one of its arguments, then never uses it again, the parent will still see the update even though the callee no longer knows how to reference the region.
 This allows us to \emph{forget} about allocations which are no longer accessible.
 
 \paragraph{Dataflow}
@@ -215,9 +195,9 @@ match update {
 }
 \end{lstlisting}
 
-The overall flow rules we use are shown in  Listing \ref{lst:flowrules}.
+Listing \ref{lst:flowrules} shows the overall flow rules we use.
 Andersen-style analysis formulates updates as inclusion constraints, rather than equality constraints like Steensgaard.
-In the initial declaration of predicates, \texttt{flow\_in} is declared to aggregate via set union on each points-to set.
+In the initial declaration of predicates, we declare \texttt{flow\_in} to aggregate via set union on each points-to set.
 Since each \texttt{flow\_in} value at a location produces a unique \texttt{flow\_out} value, aggregation is not necessary on that predicate.
 We create an empty input map at every allocation site, because allocation is the only action which will add information to an empty points-to relation.
 \texttt{flow\_step} propagates points-to relations along normal succession edges.
@@ -226,16 +206,16 @@ Finally, \texttt{flow\_xfer} performs the meat of the operation, absorbing the u
 \subsection{Inter-procedural Dataflow}
 \label{sec:interproc}
 Our approach to inter-procedural dataflow follows the example of Reps~\cite{interproc-dataflow} with some modifications.
-While many optimizations described there are inapplicable to our domain, the general structure still applies.
-At the site of a call, an inter-procedural edge is added from the call site to the target function.
+While some optimizations described there are inapplicable to our domain, the general structure still applies.
+At the site of a call, we add an inter-procedural edge from the call site to the target function.
 Following this edge elides stack slots which are not currently pointed to.
 This is a departure from Reps in that their restricted domain, all local variables were not passed through.
-An intra-procedural edge is added which skips over the call, applying effects (see \S \ref{sec:effects}) and clobbering variables not preserved by the function.
-Finally, at each return site, an inter-procedural edge which forgets the stack slots local to that function if not pointed to is added.
-We do not report an error even if a local stack slot is pointed to, as this is a legal possibility in the case of a recursive call which passes one of its stack variables by reference.
-Again, we depart from Reps here by keeping around what would normally be local variables if they are pointed to.
+We add an intra-procedural edge which skips over the call, applying effects (see \S \ref{sec:effects}) and clobbering variables not preserved by the function.
+Finally, at each return site, we add an inter-procedural edge which forgets the stack slots local to that function if not pointed to.
+We do not report an error even if a local stack slot is reachale in the parent to, as this is a legal possibility in the case of a recursive call which passes one of its stack variables by reference.
+Again, we depart from Reps here by keeping around what would normally be local variables if they are reachable through dereferences.
 
-\texttt{flow\_call} and \texttt{flow\_ret} apply when functions are entered and exited to cut down on unnecessary information being propagated around, applying the restrictions for our inter-procedural edges, as described earlier.
+\texttt{flow\_call} and \texttt{flow\_ret} apply at function entry and exit to cut down on unnecessary information propagation, applying the restrictions for our inter-procedural edges, as described earlier.
 
 \texttt{flow\_call\_over} propagates information at a call site \emph{over} a function call, skipping it but removing definitions for variables known to be overwritten by the function.
 This corresponds to the special intra-procedural edge added to our dataflow when processing a call.
@@ -261,25 +241,25 @@ flow_call_over: flow_in(dst, pts2) <-
 Context-sensitivity requires we only change our \texttt{Location}
 values to contain information about the stack.
 We add an empty stack to entry points to initialize the new stack-enhanced CFG.
-Called functions must copy their control flow graphs to separate versions for every stack at which they are being called.
+Called functions must copy their control flow graphs to separate versions for every stack the program calls them at.
 When generating the target of a call function, we now add the current instruction's fall-through to the stack as a return address.
 If the return address is already on the stack, we truncate the stack so that it is the topmost.
 
 Unfortunately, with an unbounded stack, of our real-world samples (\S \ref{alias:sec:eval:real}), this approach exhausts available resources (128G RAM) for all but \texttt{gnome-nettool}.
 To remedy this, we use a $k$-stack approach combined with the stack truncation above.
-If a call is made from a location parameterized by a stack, it is first checked to see if the call site is present.
-If so, it is truncated as before.
-Otherwise, it is pushed onto the stack, and if the stack is longer than $k$, the oldest entry is removed.
+If a call's location has a stack, the stack is first checked to see if the call site is present.
+If so, we truncate the stack as before.
+Otherwise, we push the call site onto the stack, and if the stack is longer than $k$, we remove the oldest entry.
 In the case of our example, a stack size of 1 would be sufficient, and we'd see the allocations \texttt{dyn@0\{10\}}, \texttt{dyn@0\{11\}}, and \texttt{dyn@1\{\}}.
 
 \subsection{Adding Field Sensitivity}
 \label{sec:field}
 %TODO add arith and widening
 Up until now, we've been treating each memory region like a single homogeneous bag:
-Anything written into it ever can be read out again on any subsequent read.
+Anything written into it ever is a possibile result on any subsequent read.
 This reduces precision.
 
-In traditional alias analysis, field sensitivity can be done by simply treating each variable with a struct type as though it were several - one for each field.
+In traditional alias analysis, simply treating each variable with a struct type as though it were multiple variables, one for each field, can implement field sensitivity.
 Unfortunately, in the binary case, things are slightly messier for two reasons: overlapping fields, and variable offset writes.
 Since this is only a pointer analysis, not a general value analysis, we only consider fields with size equal to the pointer size.
 
@@ -289,29 +269,28 @@ We will use the word ``reference'' to describe the pair of a variable and an off
 The offset may be a fixed value, or a special value indicating a computed offset.
 
 A field map has two components: a set of references for unknown offsets, and a set of references for some subset of possible fixed offsets.
-If a fixed offset read is performed, we return the offset's set if defined, otherwise the unknown set.
-If a computed offset read is performed, we return the union of every set (both unknown and fixed) present in the map.
+If we see a fixed offset read, we return the offset's set if defined, otherwise the unknown set.
+If we instead see a computed offset read, we return the union of every set (both unknown and fixed) present in the map.
 
-We split update rules into cases for a single pointer write (so we know which memory cell was updated precisely) and for multiple.
+We split update rules into cases for a single pointer write (so we know which memory cell the write updated precisely) and for multiple possibilities.
 
 \subheading{Single Pointer}
-If a fixed offset write is performed on a variable, we destructively update the set corresponding to that offset.
-If a computed offset write is performed, we extend both the unknown set, and every tracked offset to contain the new reference.
-If an overlapping field is written to, the field it overlaps is emptied.
+For a fixed offset write on a variable, we destructively update the set corresponding to that offset.
+In case of a computed offset write, we extend both the unknown set, and every tracked offset to contain the new reference.
+If a write targets an overlapping field, we empty the field it overlaps.
 
 \subheading{Multiple Pointers}
-If a fixed offset write is performed on a variable, extend the set corresponding to that offset.
-If a computed offset write is performed, we extend both the unknown set, and every tracked offset to contain the new reference.
-If an overlapping field is written to, nothing happens.
+For a fixed offset write to variable, extend the set corresponding to that offset.
+If we find a computed offset write, we extend both the unknown set, and every tracked offset to contain the new reference.
 
 This structure is conservative so long as we accept the assumption that pointers are not constructed piece-wise.
-Specifically, if pointers are constructed over the course of multiple writes, we will not know about them.
+Specifically, multiple writes construct a single pointer, we will not know about it.
 This limitation was present in the previous, field insensitive formulation, but becomes more obvious in the description of the field sensitive extension.
-This practice is extremely uncommon (outside bulk copy functions like \texttt{memcpy}, which may be summarized), so we accept this limitation to limit the need to reason about the exact possible values of a computed offset.
+This practice is extremely uncommon (outside bulk copy functions like \texttt{memcpy}), so we accept this limitation to limit the need to reason about the exact possible values of a computed offset.
 
 Unfortunately, this formulation gives the alias analyzer slightly too much power.
 Specifically, it can now count.
-Despite the fact that we did not model actually performing arithmetic, a pointer being incremented in a loop will look like repeatedly examining relative offsets of a struct.
+Despite the fact that we did not model actually performing arithmetic, a incrementing a pointer in a loop will look like repeatedly examining relative offsets of a struct.
 To deal with this, we add a widening operator\footnote{
 	A widening operator is an addition to a dataflow analysis which provides termination by moving further on the lattice than is strictly necessary under certain conditions.
 }which, if the same variable points to a fixed limit or more offsets in a region, will replace it with pointing to an unknown offset to that region.
@@ -319,7 +298,7 @@ This reclaims termination.
 
 \subsection{Recent Allocation Domain}
 \label{sec:effects}
-Using the site or site and size of an allocation to define the allocation domain is fairly common.
+Using the site or site and size of an allocation to define the allocation domain is common.
 However, this can have poor behavior around loops:
 
 \begin{lstlisting}
@@ -335,8 +314,8 @@ site_0:
 If running a dataflow computation to fixpoint, on the second
 iteration, the allocation for \texttt{site\_0} will appear already
 freed.  The usual response to this type of imprecision is to unroll
-loops a fixed number of times.  However, our tool is intended to be
-complete (assuming a complete control flow graph, provided functions,
+loops a fixed number of times.
+However, we intend our tool to be complete (assuming a complete control flow graph, provided functions,
 etc.) so we want to avoid fixed unrolling.
 
 To this end, we extend our allocation domain with a ``recent'' bit, similar to the MRAB vs NMRAB abstraction~\cite{vsa}, though for different purposes.
@@ -348,13 +327,13 @@ Note that once in static form, the recent set may have more than one member, and
 
 This extension is a departure from the normal Andersen alias analysis.
 It is only for precision, not correctness.
-It can essentially be viewed as 1 bit path-sensitivity, where path-sensitivity would be parameterizing on entire sequences of instructions which could be taken to reach the current point.
+We can consider this as 1 bit path-sensitivity, where path-sensitivity would be parameterizing on entire sequences of instructions which could reach the current point.
 
 To implement this in our static alias analysis, we construct summaries for each function of allocations and possible allocations.
-When processing the edge which skips the function which is meant to propagate variables not accessible to it, we update the points-to relation using information from this summary to keep recency information accurate.
-We do this by modifying the behavior of \texttt{flow\_call\_over} to update the caller points-to to represent what may have happened in the callee.
+When processing the edge which skips the function, we update the points-to relation using information from this summary to keep recency information accurate.
+We do this by modifying the behavior of \texttt{flow\_call\_over} to update the caller points-to for the purpose of representing what may have happened in the callee.
 
-We define an ``effect'' to be a set of definite allocation sites and a set of possible allocation sites that occur when a call is made.
+We define an ``effect'' to be a set of definite allocation sites and a set of possible allocation sites that may occur when calling the function.
 To apply an effect to a points-to set:
 For every definite allocation site, make the recent bit false.
 For every possible allocation site, duplicate any recent references to have both recent and non-recent values.
@@ -397,7 +376,7 @@ It does this by intersecting their definite allocations, and migrating all other
 \texttt{effect::sequence\_effect} will update the currently processed effect with the called function's effect by unioning together both possible and definite effects, then removing those possible effects which are also definite.
 \texttt{effect::malloc} just adds the current site as a definite allocation to the effect.
 
-The result is that these effect summaries allow greater precision over allocation sites, similar to what is achieved through loop unrolling, but without sacrificing fix-point semantics.
+The result is that these effect summaries allow greater precision over allocation sites, similar to the benefits of loop unrolling, but without sacrificing fix-point semantics.
 
 In our example earlier, this would give rise to three allocations - \texttt{dyn@0}, \texttt{dyn@1+old}, and \texttt{dyn@1}.
 This would suppress the false positive by distinguishing between the two invocations of \texttt{g}.
@@ -406,7 +385,7 @@ However, were a third added, it would not be able to distinguish between the fir
 \subsection{Use-after-Free}
 With alias relationship in hand, we must determine which reads and writes in the program are use-after-free candidates.
 For the flow and flow \& context analyses, we can augment the alias analysis itself to track most of this information for us.
-When a free occurs, we generate a special form of the \texttt{*a = \&b} summary, with \texttt{a} as the pointer being freed, and \texttt{b} as a special value representing things freed at that location.
+When a free occurs, we generate a special form of the \texttt{*a = \&b} summary, with \texttt{a} as the argument to free, and \texttt{b} as a special value representing things freed at that location.
 This is as presented in Listing \ref{lst:uafflow}.
 \texttt{read\_vars} generates pointer access information from actual assembly instructions, and \texttt{use\_vars} imports it from summaries which can do things like determine argument count to \texttt{printf}.
 
@@ -429,9 +408,9 @@ uaf_flow: uaf_flow(v, loc, loc2) <-
 \end{lstlisting}
 
 However, this approach only works with alias information that is at least flow sensitive.
-Without flow sensitivity, any pointer which was ever freed will appear freed everywhere in the program, even before it was freed.
+Without flow sensitivity, any pointer which was ever freed will appear freed everywhere in the program, even before that free occurred.
 As a result, the false positive rate would be absurd, and such a detector would be more a heap-access detector than a use after free detector.
-To help it along and make the difference in false positive rates more about the precision of the alias information rather than the ability to track state changes, we add a few extra conditions to report a use after free without flow sensitivity by essentially doing flow sensitive tracking of the freed-property only.
+To help it along and make the difference in false positive rates more about the precision of the alias information rather than the ability to track state changes, we add a extra conditions to report a use after free without flow sensitivity by essentially doing flow sensitive tracking of the freed-property only.
 
 \begin{lstlisting}[label=lst:uafins, caption={Tracking Frees Insensitively}]
 base_freed: freed_base(v, loc) <-
@@ -451,7 +430,7 @@ path_step: path_exists(loc, loc3) <-
 uaf: uaf(v, loc, loc2) <- freed_var(v, loc) & path_exists(loc, loc2) & deref_var(v, loc2)
 \end{lstlisting}
 
-The implementation of this modification is shown in Listing \ref{lst:uafins}.
+Listing \ref{lst:uafins} shows the implementation of this modification.
 In the first stanza, we mark the variable freed by the free call and everything it aliases with as potentially freed at that location.
 In the next, we find those parts of the program reachable from the free site.
 We then finalize the results by saying that if a path exists from a freed variable to a dereference of that same variable, then there is a use after free candidate.
@@ -460,20 +439,20 @@ While this is certainly imperfect, going much further would begin to graft flow 
 \section{Implementation}
 \label{alias:sec:impl}
 Our implementation consists of 3k lines of Rust and 234 lines of Datalog.
-Each additional sensitivity (field, context, flow, recency) is implemented by adding an additional Datalog file.
+We implement each additional sensitivity (field, context, flow, recency) by adding an additional Datalog file.
 The switches to determine which sensitivities actually run operate by adding initial facts to the database to suppress unwanted rule triggers.
-As a result of this design, other than field sensitivity (which requires significant logic in both the constraint generator and points-to set structures), these additional sensitivities can be compiled out safely by simply removing the rules in question (and their associated bound functions).
+As a result of this design, other than field sensitivity (which requires significant logic in both the constraint generator and points-to set structures), we can safely cut out these sensitivities by simply removing the rules in question (and their associated bound functions).
 
 \subsection{Limitations}
 Our system is conservative in almost all cases, but there are a few notable exceptions.
-If the provided file is linked against files which are not provided, their functions will be assumed to effectively be no-ops.
+If the provided file links against files which are not provided, the analysis will treat those functions as if they are no-ops.
 If in reality, these functions free memory or write to the heap, this may cause missed vulnerabilities.
 The system uses the BAP control flow graph and any indirect jump resolution and the analysis assumes they go nowhere; we do no additional resolution beyond \texttt{ret} calls.
 %This may result in an incomplete control flow graph, which in turn can lead to %missed bugs.
 Control flow recovery is a general problem in binary analysis and not specific to our approach.
 Essentially, if a prerequisite step gives our algorithm incomplete information, it will produce an incomplete result.
-This was sufficient for the programs analyzed, which are written largely in C, but some resolution would be required to achieve good quality result on C++ programs which use vtables or programs which use a callback architecture (and so rely heavily on function pointers).
+This was sufficient for the programs analyzed, which were primarily written in C, but some function pointer resolution would help to achieve good quality result on C++ programs which use vtables or programs which use a callback architecture (and so rely heavily on function pointers).
 
 We assume the transfer of a pointer from one place to another will take place in a single assembly instruction - we do not model ``the first 3 bytes of a pointer to x'' for example.
-Finally, we assume that a traditional stack discipline is being followed for purposes of points-to minimization in the sensitive cases.
-If it is not, aliases from stack calculations pointing above or below your own stack frame may be missed.
+Finally, we assume that the program follows traditional stack discipline for purposes of points-to minimization in the sensitive cases.
+If it is not, aliases from stack calculations pointing above or below your own stack frame may be incomplete.

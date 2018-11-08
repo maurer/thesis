@@ -23,12 +23,9 @@ Listing~\ref{lst:example-c}. To provide clarity on how updating alias
 sets work, this example does not show data-flow merges, which is a set
 union operation as previously described.
 
-Listing \ref{lst:example-c} contains one real use-after-free bug.  We
-also show one location that is safe, but without context-sensitivity
-an additional false positive will be raised. Without
-context-sensitivity, both the allocations for \texttt{g\_a} and
-\texttt{g\_b} get merged, making the analysis believe they are aliased
-when they are not.
+Listing \ref{lst:example-c} contains one real use-after-free bug.
+We also show one location that is safe, but without context-sensitivity the analysis will raise an additional false positive.
+Without context-sensitivity, both the allocations for \texttt{g\_a} and \texttt{g\_b} get merged, making the analysis believe \texttt{g\_a} aliases \texttt{g\_b} when it does not.
 
 \lstdefinestyle{hilight-asm}{
     language={[x86masm]Assembler},
@@ -42,8 +39,7 @@ when they are not.
 caption={Annotated Flow-Insensitive Analysis},
 label=lst:example-asm]{alias/example-annotated.asm}
 
-The corresponding assembly, annotated with comments on the location of
-the UaF and alias sets, is shown in Listing~\ref{lst:example-asm}.
+We show the corresponding assembly, annotated with comments on the location of the UaF and alias sets, in Listing~\ref{lst:example-asm}.
 Portions of the alias set hilighted in green are new bindings.
 Portions in blue are bindings which have been destructively updated.
 In the example, the variables are:
@@ -57,8 +53,8 @@ In the example, the variables are:
           \end{itemize}
 \end{itemize}
 
-The alias sets are annotated as comments. For example, right before
-the free on line 35, the alias set is:
+Comments show the alias sets after each step.
+For example, right before the free on line 35, the alias set is:
 
 \begin{figure}[h!]
 \texttt{\{ RAX -> dyn@0; sp+24@f -> dyn@1;
