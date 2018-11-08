@@ -115,6 +115,8 @@ In each of the constraints, the disjunction ordering matches how probable the in
 We base the tie breaker on the combined likelihood of each disjunction choice in a vacuum.
 At each step, we take the current context under examination, grab its next constraint, then for each choice, or the choice of dropping the constraint, generate the possible next steps, and place them into a heap. The sorting order for the heap is first by constraints already processed (to avoid backtracking when we do not need to), then by possible constraints to solve (to ensure we will search for the best solution first), and finally by the tie breaker, to prefer constraint choices that are more likely a priori.
 
+\subsection{Non-Monotonicity}
+\label{bitr:sec:circ}
 % Datalog link
 Searching for a minimum number of dropped constraints again informs Holmes design.
 Enabling the arbitrary dropping of constraints in a Datalog representation would result in an intermediate state too large to deal with.

@@ -103,6 +103,7 @@ We use insensitive analysis as a baseline to help quantify the additional precis
 
 
 \subsection{Adding Flow Sensitivity}
+\label{alias:sec:dataflow}
 We structure our flow sensitive analysis as a dataflow problem.
 At each assembly instruction, we use a transfer function based on Andersen's~\cite{andersen} inclusion-style analysis.
 We use the inter-procedural dataflow adaptation described next (\S\ref{sec:interproc}).
