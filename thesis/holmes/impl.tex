@@ -112,6 +112,25 @@ As Mycroft is in process and in memory, large objects are not a problem.
 They are returned as read-only references to the existing structure, and can be operated on that way.
 The implementation is available at \url{https://github.com/maurer/mycroft}, and as a crate on \texttt{crates.io} for direct inclusion in rust projects.
 
+\subsubsection{Callbacks vs. External Predicates}
+\label{holmes:sec:implcall}
+By selecting callbacks instead of external predicates, we pushed some of the execution strategy back onto the programmer, rather than needing the engine to determine it.
+With even one external predicate, it will not be clear to the engine how to structure the body clause match most efficiently without hints.
+For example, if we have $p(x,y) \& q(x, z) \& r(x, z)$, where $p$ and $q$ are traditional predicates, and $r(-, +)$ is external, there are three possible match orders.
+We could match on $p$, then invoke $r$, then match on $q$, the reverse, or match on $p$ and $q$, then invoke $r$.
+All have merits depending on the extents of $p$ and $q$ and the runtime characteristics of $r$.
+When a query is purely data, this simplifies into join processing (\S~\ref{holmes:sec:join}).
+While computing joins efficiently is still relatively complex, it is a well studied area.
+With $r$ as a black box however, any such processing order will be fundamentally heuristic.
+With multiple external predicates in the same rule, the problem is exacerbated, with more orders becoming possible, and another uncharacterized evaluation cost.
+
+Using the callback method, the programmer knows the callback will only be invoked on a complete match, and may use an intermediate predicate to structure the matching strategy how they choose.
+Additionally, since the functions are monodirectional and occupy a special place in the language, this removes the complexity of mode checking from both the compiler and the author/reader of code.
+In our implementation, the staging is explicit: The body clause is matched in its entirety, any callback is run, and the head is instantiated.
+
+This method does have one performance downside.
+As \sysname\ does not have any notion of a temporary predicate, any rules which would use two external predicates normally will potentially eat up additional space.
+While this may \emph{improve} performance at times due to effectively tabling a subquery of the intended query, forcing tabling when two external predicates would be used may not be desirable in all cases.
 \subsubsection{Typed Storage}
 Rather than store data values directly in rows as was done in the PostgreSQL-based implementation, here we keep a separate deduplication table for each type of data on which we operate.
 This allows us to efficiently map back and forth between values, which the callbacks need to consume, and integer keys, which are convenient for indexing and join algorithms. 
@@ -143,6 +162,7 @@ If it is not, we start the iteration at the index, and perform iterative meets u
 We then return the tuple, extended by the aggregate fields and reordered.
 
 \subsubsection{Join Computation}
+\label{holmes:sec:join}
 Datalog computation is join-heavy, and as a result attempting to compute the join naively can lead to disastrous execution times.
 There are a variety of existing join approaches.
 % Cite Postgres?

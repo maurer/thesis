@@ -63,8 +63,7 @@ A complete set of jump targets implicitly discusses a does-not-jump relation, wh
 Similarly, the a dataflow analysis producing an upper bound which increases throughout the analysis, such as a may-alias dataflow (\S~\ref{alias:sec:dataflow}), is not meaningful until it can no longer grow.
 This means that it speaks to the negation of its complement, again requiring negation.
 {\sc BiTR} also shows a case where we require negation to drop a \emph{minimal} number of constraints (\S~\ref{bitr:sec:circ}).
-%TODO impl doesn't reeealy discuss callbacks at the moment, I should drop a note there and make this reference more specific
-The use of callbacks allows us both to more easily implement the engine (\S~\ref{holmes:sec:impl}).
+The use of callbacks allows us both to more easily implement the engine (\S~\ref{holmes:sec:implcall}).
 It also allows us to utilize traditional imperative data structures, such as hash tables, during the implementation of performance critical analyses (\S~\ref{chap:alias}). 
 These analyses together allow the implementation of a real security analysis (use-after-free, \S~\ref{chap:alias}).
 
