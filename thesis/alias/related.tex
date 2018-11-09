@@ -4,7 +4,7 @@ A use-after-free bug specifically describes a temporal safety property:
 In a specific execution of the program, it releases a region of memory to the allocator, and uses that region afterwards.
 As a result, checking this property on an actual execution of the program via dynamic analysis is appealing.
 Assuming we have a single execution path in mind, checking for a use-after-free bug becomes a matter of remembering which addresses have are free, and watching for additional dereferences of these.
-\footnote{Technically, to avoid false positives you also need an allocator which does not hand out the same region twice, or another mitigation strategy.}
+\footnote{Technically, to avoid false positives the allocator must not hand out the same region twice, or must employ some other mitigation strategy.}
 This approach avoids false positives by using real runs, and frequently only incurs constant-factor overhead on runs, making it widely applicable.
 However, it also has the limitation that bugs along paths not included in a trace will remain unnoticed.
 

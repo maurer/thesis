@@ -9,7 +9,7 @@ The choice of which constraint to satisfy in each disjunction effectively specif
 	Intersection types represent a more general type for values which can have multiple possible types which are not partially ordered on the subtyping lattice.
 }.
 
-% Overview: describe the different parts of your thing
+% Overview: describe the different parts
 \input{bitr/example}
 
 % Subsec for each part
@@ -68,7 +68,7 @@ The basics of inter-procedural analysis are straightforwards in this system. We 
 This will work fine, until two functions calls occur in sequence with incompatible local stacks.
 This will cause an issue because the stack is now constrained to have incompatible uses of stack slots beneath the caller's stack.
 
-The second issue is that compilers will commonly re-use stack slots for calling functions, so if the program calls functions with incompatible inputs in sequence, the stack will be ill-typed. The easiest approach is to simply assume that your stack register has lost all meaning post function call, and re-infer the relevant portions based on its use after that. However, this will be dropping potentially useful information. A slightly more sophisticated approach would be to try to identify function call prologues and pull the stack type from before them. Unfortunately, that approach would be compiler specific.
+The second issue is that compilers will commonly re-use stack slots for calling functions, so if the program calls functions with incompatible inputs in sequence, the stack will be ill-typed. The easiest approach is to simply assume that the stack register has lost all meaning post function call, and re-infer the relevant portions based on its use after that. However, this will be dropping potentially useful information. A slightly more sophisticated approach would be to try to identify function call prologues and pull the stack type from before them. Unfortunately, that approach would be compiler specific.
 
 Instead, we add the ability to erase type variables from regions after a function call occurs. For example, on an i386 system, calling a two argument function will cause the bottom three values on the stack (e.g. including the return pointer) to no longer be present in the type of the stack post call. This is one of the few convention-specific adaptations of the system; the function call ABI is agnostic, as the convention definition is just a description of what registers each call uses/defines, and what registers the convention uses for input and output. However, in order to deal with stack-based calling convention, we have adapted to the notion that the stack pointer has a special set of invariants at calls.
 

@@ -456,4 +456,4 @@ This was sufficient for the programs analyzed, which were primarily written in C
 
 We assume the transfer of a pointer from one place to another will take place in a single assembly instruction - we do not model ``the first 3 bytes of a pointer to x'' for example.
 Finally, we assume that the program follows traditional stack discipline for purposes of points-to minimization in the sensitive cases.
-If it is not, aliases from stack calculations pointing above or below your own stack frame may be incomplete.
+If it is not, aliases from stack calculations pointing above or below the current stack frame may be incomplete.

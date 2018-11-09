@@ -84,7 +84,7 @@ int f(void* x) {
 \end{verbatim}
 we would get code which would be legal if our mystery type (represented by a ?) were either an \texttt{int} or a pointer of some variety. We can use heuristics when outputting a type for decompilation (for example, preferring the lower bound of a type in order to avoid casting), but since both are legal, and all constraints on \texttt{v} are visible in this snippet, we would never be able to get an exact type.
 
-Dealing with these would be a matter of better heuristics, and would have left the realm of program analysis and gone into the realm of programmer analysis. The heuristic of selecting the lower bound is not a good one, as this will reduce your conservativeness, but sometimes this choice may make sense. Developing heuristics to deal with this issue is outside the scope of this work, but presents an interesting challenge discovered in our experiments.
+Dealing with these would be a matter of better heuristics, and would have left the realm of program analysis and gone into the realm of programmer analysis. The heuristic of selecting the lower bound is not a good one, as this will reduce conservativity, but sometimes this choice may make sense. Developing heuristics to deal with this issue is outside the scope of this work, but presents an interesting challenge discovered in our experiments.
 
 \subsection{How does \bitr\ fare at recovering constrained types?}
 \begin{figure}

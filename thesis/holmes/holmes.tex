@@ -141,8 +141,8 @@ Changing the control flow graph would in turn invalidate the circumscribed alias
 Strictly looking at the system thus far, this would loop.
 Altering the control flow graph would retract the alias analysis, which would retract the alteration to the control flow graph.
 Thinking about what a human would do if they had gone down the same reasoning path points to a potential solution.
-If you had assumed you saw the totality of control flow, and from that, came to find a new control flow edge, you would assume that your initial assumption must have been wrong, and that edge really is there.
-Essentially, you would assume $(\neg P \rightarrow P) \rightarrow P$.
+If the analyst had assumed they had been shown the totality of control flow, and from that, came to find a new control flow edge, the analyst would decide that their initial assumption must have been wrong, and that edge really is there.
+Essentially, this step is $(\neg P \rightarrow P) \rightarrow P$.
 
 This matches the type signature of \texttt{call/cc}\footnote{
 	\texttt{call/cc} stands for ``call with current continuation'' and is a programming technique originating in Lisp.

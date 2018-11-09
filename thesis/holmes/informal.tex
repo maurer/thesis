@@ -1,5 +1,5 @@
 \section{Informal Semantics}
-Before giving a more formal treatment of what outputs are correct for a given Holmes program, we describe how each feature functions informally, as you might see in a programmer's guide.
+Before giving a more formal treatment of what outputs are correct for a given Holmes program, we describe how each feature functions informally, as in a programmer's guide.
 Afterwards, there is a simple traced execution of a toy program which employs all of these features.
 \subsection{Initial Syntax}
 In Holmes, there are three kinds of possible statements, predicate declarations, rule declarations, and queries.
@@ -65,7 +65,7 @@ Facts are inserted at the level of the embedding language, the database can be r
 \subsection{Callbacks}
 \label{holmes:sec:callback}
 Callbacks are used in Holmes to allow the use of more traditional procedural or functional style code for some rules.
-After writing a rule, add \texttt{+ f}, where \texttt{f} is the name of the callback you would like to use.
+After writing a rule, add \texttt{+ f}, where \texttt{f} is the name of the callback to be invoked.
 When the rule is considered, it will first try to match its body clause.
 If this succeeds, the variable assignments which match will be passed, one at a time, to \texttt{f}.
 \texttt{f} will return for each input assignments a list of assignments to those variables present in the head clause, but unbound by the body clause.
@@ -145,7 +145,7 @@ and insert both \texttt{p(\{1\})} and \texttt{q(\{1\})}.
 The engine will now either output \texttt{p(\{1, 2\}), q(\{1\})} or \texttt{p(\{1\}), q(\{1, 2\})}, and what it does is implementation defined, and may even differ from run to run.
 
 This nondeterminism is usually not desired, but there are currently no checks to detect it, either at compilation time or at run time.
-If you stratify~\cite{prologbook} your circumscription, this condition will be avoided, but part of the strength of circumscription is to allow exactly unstratified negation.
+Stratifying~\cite{prologbook} circumscription will avoid this, but part of the strength of circumscription is to allow exactly unstratified negation.
 This can occur when there are two facts (not predicates) which have in their derivation a dependency cycle containing two circumscriptions.
 Even if this is the case, it may not force this nondeterminism, depending on the action of the rules.
 The condition where one circumscription is present is dealt with via \texttt{call/cc}, presented next.
