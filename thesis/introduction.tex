@@ -48,7 +48,7 @@ There are still some restrictions on how such code can operate (for example, no 
 
 \begin{inset}
 {\bf Thesis statement.}
-A Datalog derivative with extensions for negation and external callbacks can drive multiple potentially co-dependent analysis to reason about binary programs effectively.
+A Datalog derivative with extensions for negation and external callbacks can drive multiple potentially co-dependent analyses to reason about binary programs effectively.
 \end{inset}
 
 % Road map to defending the thesis statement
@@ -67,7 +67,7 @@ The use of callbacks allows us both to more easily implement the engine (\S~\ref
 It also allows us to utilize traditional imperative data structures, such as hash tables, during the implementation of performance critical analyses (\S~\ref{chap:alias}). 
 These analyses together allow the implementation of a real security analysis (use-after-free, \S~\ref{chap:alias}).
 
-We investigated this approach by designing and implementing \sysname, a logic language engine designed for the integration of binary analyses.
+We investigated our thesis statement by designing and implementing \sysname, a logic language engine designed for the integration of binary analyses.
 BiTR (\S~\ref{chap:bitr}) inspired this design.
 For this purpose we invented a novel form of negation, based on circumscription~\cite{circumscription} suited to this particular application (\S~\ref{holmes:sec:circ}).
 This negation can further make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}).
@@ -85,6 +85,8 @@ This implementation provides evidence for the feasibility of using a logic langu
 This concrete bug finding tool demonstrates the applicability of the \sysname language to the domain of compiled-code program analysis.
 We translate analysis techniques from the compiler and program analysis communities into analysis of compiled code (\S~\ref{alias:sec:system}).
 We measure the performance cost and precision benefits of different sensitivities of alias analysis by leveraging the modularity of the \sysname-based implementation (\S~\ref{alias:sec:eval}).
+We did not set out to invent a new or better alias analysis.
+Rather, we set out to demonstrate the suitability of \sysname\ as a platform for this type of analysis.
 
 We present a type recovery mechanism for compiled code which would be well suited to a Holmes-based implementation (\S~\ref{chap:bitr}).
 This demonstrates that even work written without \sysname in mind may be naturally translatable into a Holmes implementation.
@@ -92,5 +94,3 @@ We define a \emph{descriptive} type system, more powerful than direct C types fo
 We address the problem of inconsistent type constraints by suggesting a resolution system which seeks a solution in which it drops the fewest constraints (\S~\ref{sec:infmeth}).
 Finally, previous work in type recovery used a metric which minimized the importance of correct recovery of structure types.
 In \S~\ref{subsec:metrics}, we provide a novel metric for type recovery based on the probability of correctness of any individual query by a reverse engineer or downstream analysis.
-
-We conclude that \sysname does address the problem of co-dependence in program analysis and allow specification of analyses in a modular fashion(\S~\ref{sec:conc}).
