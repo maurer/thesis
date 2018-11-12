@@ -57,14 +57,23 @@ A Datalog derivative with extensions for negation and external callbacks can dri
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
 We examined the co-dependent analyses of control flow recovery (\S~\ref{sec:cfg}), value analysis (\S~\ref{sec:valanal}), and alias analysis (\S~\ref{bkg:sec:alias}, \S~\ref{chap:alias}).
 Datalog fits well as a structuring tool for these analyses due to its incrementality and ability to handle mutual recursion.
-We add negation (\S~\ref{holmes:sec:circ}) both to handle both the notion of a complete set of jump targets, and completion of a dataflow analysis.
-%TODO I don't like ``require'', but ``encourages'' or ``suggests'' are too weak here
-A complete set of jump targets implicitly discusses a does-not-jump relation, which requires some form of negation.
+
+
+In allowing analysis co-dependence, we introduce a new challenge.
+In previous work, the framework runs an analysis ``to completion'' before proceeding.
+This means that previous frameworks implicitly encoded negated information.
+For example, after control flow recovery has completed, downstream analyses know not only what addresses may jump somewhere, but also those which may not.
+In the case of a dataflow analysis, the bound it computes is not valid until it has reached a fixed point.
+We add negation (\S~\ref{holmes:sec:circ}) both to handle both of these cases.
+A complete set of jump targets implicitly discusses a does-not-jump relation, which we encode as the completeness of the may-jump relation.
 Similarly, the a dataflow analysis producing an upper bound which increases throughout the analysis, such as a may-alias dataflow (\S~\ref{alias:sec:dataflow}), is not meaningful until it can no longer grow.
-This means that it speaks to the negation of its complement, again requiring negation.
-{\sc BiTR} also shows a case where we require negation to drop a \emph{minimal} number of constraints (\S~\ref{bitr:sec:circ}).
-The use of callbacks allows us both to more easily implement the engine (\S~\ref{holmes:sec:implcall}).
-It also allows us to utilize traditional imperative data structures, such as hash tables, during the implementation of performance critical analyses (\S~\ref{chap:alias}). 
+This means that it speaks to the negation of its complement.
+We encode this by circumscribing on the may-alias relation.
+{\sc BiTR} also shows a case where negation would allow us to drop a \emph{minimal} number of constraints (\S~\ref{bitr:sec:circ}).
+
+The use of callbacks as opposed to external predicates to more easily implement the engine (\S~\ref{holmes:sec:implcall}).
+Having callbacks is important to allow the use of already existing analysis code, such as BAP~\cite{bap} lifting and ELF parsing.
+It also allows us to utilize traditional imperative data structures, such as hash tables, during the implementation of performance critical analyses (\S~\ref{chap:alias}).
 These analyses together allow the implementation of a real security analysis (use-after-free, \S~\ref{chap:alias}).
 
 We investigated our thesis statement by designing and implementing \sysname, a logic language engine designed for the integration of binary analyses.
