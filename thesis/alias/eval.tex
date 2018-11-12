@@ -95,9 +95,9 @@ Context sensitivity gives additional improvements by helping to differentiate be
 While performance for insensitive and flow-sensitive analyses appears similar, this is in large part because the generation of a global program reachability graph for each \texttt{free} is costly.
 If the analysis is instead timed in phases, the alias-analysis-only portion for the insensitive system takes seconds, while it takes the bulk of the non-CFG-recovery time in a flow-sensitive analysis.
 
-For the known-vulnerable set, flowsensitivity reduced the false positive set by an average of 90\%, and context sensitivity reduced it by an additional 84.1\%.
+For the known-vulnerable set, flow sensitivity reduced the false positive set by an average of 90\%, and context sensitivity reduced it by an additional 84.1\%.
 The false positive reduction for the addition of flow sensitivity is immense, and the increase in time and space needed for the alias analysis was manageable for programs in our known-vulnerable set, the largest of which was 768kb.
-Adding context sensitivity furhter increased the time and space cost, but still yielded a major increase in precision.
+Adding context sensitivity further increased the time and space cost, but still yielded a major increase in precision.
 
 \subsubsection{GUEB}
 The author of the GUEB~\cite{gueb} tool made his tool open source\footnote{

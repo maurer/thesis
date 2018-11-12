@@ -23,7 +23,7 @@ This approach guarantees that found bugs are real, but ties their power to whate
 Alternatively, we can search for bugs by tracking properties that will hold across all traces, and finding uses we don't know aren't freed.
 This approach will not miss any bugs, and does not depend on any kind of test suites or input generators for its results.
 Unfortunately, this approach also brings false positives and a greater potential for scaling issues.
-As a result, while the core of static techniques could give the completeness property of detecting all bugs, in a final user version may drop this gaurantee in order to reduce false positive rates.
+As a result, while the core of static techniques could give the completeness property of detecting all bugs, in a final user version may drop this guarantee in order to reduce false positive rates.
 
 \textsc{Metal} proposed~\cite{metal} the use of simple, programmer written state machines to enforce additional properties across C code.
 This approach works for things like interrupts, locking, no-alloc zones, and no-side effect zones, and is low overhead.
@@ -45,7 +45,7 @@ In order to allow VSA to run quickly, it use fixed loop unrolling and disallows 
 This is pragmatic to allow VSA to converge, but causes GUEB to miss some real world bugs.
 
 One other tool~\cite{dewey-uncovering-2015} has the distinction of operating on object-oriented code, even in the presence of vtables.
-Their AODA tool has the benefit of reasoning about C++ code, but the limitation of not reasoning about pointers which have the program compies onto the heap.
+Their AODA tool has the benefit of reasoning about C++ code, but the limitation of not reasoning about pointers which have the program copies onto the heap.
 When they reason about a use of an object, they use the use-def chain to identify the instantiation site.
 They also use the use-def chain to determine what to add to the kill-set when the program destroys an object..
 If a pointer to an object moves onto the heap (e.g. \texttt{vector<*SomeObject>}), then when moved off, the use-def chain will no longer trace it back to its origin - this is one of the problems alias analysis solves.

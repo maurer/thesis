@@ -213,7 +213,7 @@ Following this edge elides stack slots which are not currently pointed to.
 This is a departure from Reps in that their restricted domain, all local variables were not passed through.
 We add an intra-procedural edge which skips over the call, applying effects (see \S \ref{sec:effects}) and clobbering variables not preserved by the function.
 Finally, at each return site, we add an inter-procedural edge which forgets the stack slots local to that function if not pointed to.
-We do not report an error even if a local stack slot is reachale in the parent to, as this is a legal possibility in the case of a recursive call which passes one of its stack variables by reference.
+We do not report an error even if a local stack slot is reachable in the parent to, as this is a legal possibility in the case of a recursive call which passes one of its stack variables by reference.
 Again, we depart from Reps here by keeping around what would normally be local variables if they are reachable through dereferences.
 
 \texttt{flow\_call} and \texttt{flow\_ret} apply at function entry and exit to cut down on unnecessary information propagation, applying the restrictions for our inter-procedural edges, as described earlier.
@@ -257,7 +257,7 @@ In the case of our example, a stack size of 1 would be sufficient, and we'd see 
 \label{sec:field}
 %TODO add arith and widening
 Up until now, we've been treating each memory region like a single homogeneous bag:
-Anything written into it ever is a possibile result on any subsequent read.
+Anything written into it ever is a possible result on any subsequent read.
 This reduces precision.
 
 In traditional alias analysis, simply treating each variable with a struct type as though it were multiple variables, one for each field, can implement field sensitivity.

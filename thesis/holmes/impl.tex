@@ -125,7 +125,7 @@ With $r$ as a black box however, any such processing order will be fundamentally
 With multiple external predicates in the same rule, the problem is exacerbated, with more orders becoming possible, and another uncharacterized evaluation cost.
 
 Using the callback method, the programmer knows the callback will only be invoked on a complete match, and may use an intermediate predicate to structure the matching strategy how they choose.
-Additionally, since the functions are monodirectional and occupy a special place in the language, this removes the complexity of mode checking from both the compiler and the author/reader of code.
+Additionally, since the functions are mono-directional and occupy a special place in the language, this removes the complexity of mode checking from both the compiler and the author/reader of code.
 In our implementation, the staging is explicit: The body clause is matched in its entirety, any callback is run, and the head is instantiated.
 
 This method does have one performance downside.

@@ -23,7 +23,7 @@ We investigate this full graph model of analysis management in this thesis.
 
 We often want co-dependent analysis to detect bugs.
 Jakstab~\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to better results than IDA\cite{ida} for jump resolution.
-Specfiying these analyses as logical rules within the same environment would provide the same power Jakstab found by integrating them for free.
+Specifying these analyses as logical rules within the same environment would provide the same power Jakstab found by integrating them for free.
 Notably, IDA misses edges which Jakstab finds.
 The result is that an evaluation of a security property done over the CFG presented by IDA would miss some true positives along the undetected control flow edges.
 Doop\cite{doop1} found that integrating exception analysis and points-to analysis gave them candidate target sets which were half the size on average for each object.
@@ -38,7 +38,7 @@ Previous work in program analysis suggests that logic languages can help to stru
 % * Datalog/prolog as a program analysis tool
 Datalog has previously been successfully used to analyze programs~\cite{lam2005,brumley2006,alpuente2011,doop1,bddbddb}.
 Existing work has modeled a wide variety of properties from aliasing in compiled code~\cite{brumley2006} to security properties such as SQL injectability and cross site scriptability (XSS)~\cite{lam2005} as facts in a deductive database.
-This work suggests a datalog format as a potential common representation.
+This work suggests a Datalog format as a potential common representation.
 Dataflow analyses are also representable~\cite{mcallester2002} in this way.
 
 % External code
