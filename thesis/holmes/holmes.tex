@@ -30,7 +30,8 @@ Doing a phased Datalog prevents the easy interleaving of these functionalities i
 
 Datalog predicates are not always the best data structure for all tasks.
 Datalog predicates can effectively be viewed as an append-only, deduplicated, index-by-anything table for each predicate with rows corresponding to true instances of the predicate.
-While this representation works for many tasks, some concepts are better represented in other ways.
+This structure is very versatile, and can represent a wide variety of concepts.
+However, some concepts are better represented in other ways.
 One example is ILs and ASTs.
 As frequently nested, branched structures, they \emph{can} be represented in Datalog, but walking one would take a very large number of lookups compared to using a traditional algebraic data type approach, not to mention the clumsiness.
 Other similar concepts include formulae (as in SMT) and any kind of variable-length buffer representation.

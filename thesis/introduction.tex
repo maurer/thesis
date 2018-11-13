@@ -17,7 +17,8 @@ This DAG model works well over source code, but falls short when applied to comp
 Jakstab~\cite{jakstab} argues for the co-dependency of value analysis and lifting. 
 It takes the approach of running these two analyses to a fixed point, and provides a hook for user-defined analyses to run on each iteration.
 As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
-While this is a step forwards, it still causes unnecessary recalculation and places a form of monotonicity requirements on analyses in order to remain correct.
+The Jakstab upproach is undoubtably a step forwards.
+However, it still causes unnecessary recalculation and places a form of monotonicity requirements on analyses in order to remain correct.
 A natural extension then is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
 We investigate this full graph model of analysis management in this thesis.
 

@@ -114,7 +114,7 @@ We describe these below.
 
 By default, alias analysis calculates alias sets even when a variable is dead.
 We run a pass before alias analysis to determine which variables are live.
-While calculating alias analysis, we use this information to remove dead points-to information to improve performance and precision.
+We use this information to remove dead points-to information to improve performance and precision.
 This technique increases performance because we do not waste time and space updating and tracking points-to sets which cannot affect the outcome.
 It also increases precision because if no pointers to a given allocation exist any longer, we know any new pointer to that allocation points to copy of that region which does not need the information from the old copy.
 
@@ -207,7 +207,8 @@ Finally, \texttt{flow\_xfer} performs the meat of the operation, absorbing the u
 \subsection{Inter-procedural Dataflow}
 \label{sec:interproc}
 Our approach to inter-procedural dataflow follows the example of Reps~\cite{interproc-dataflow} with some modifications.
-While some optimizations described there are inapplicable to our domain, the general structure still applies.
+Some optimizations described in that work are inapplicable to our domain due to source-level assumptions.
+However, their general structure for procedural dataflow still applies.
 At the site of a call, we add an inter-procedural edge from the call site to the target function.
 Following this edge elides stack slots which are not currently pointed to.
 This is a departure from Reps in that their restricted domain, all local variables were not passed through.
@@ -435,7 +436,7 @@ Listing \ref{lst:uafins} shows the implementation of this modification.
 In the first stanza, we mark the variable freed by the free call and everything it aliases with as potentially freed at that location.
 In the next, we find those parts of the program reachable from the free site.
 We then finalize the results by saying that if a path exists from a freed variable to a dereference of that same variable, then there is a use after free candidate.
-While this is certainly imperfect, going much further would begin to graft flow sensitive information into the otherwise insensitive analysis.
+Going much further to disambiguate variables would begin to graft flow sensitive information into the otherwise insensitive analysis.
 
 \section{Implementation}
 \label{alias:sec:impl}

@@ -62,7 +62,7 @@ The query planner then makes bad decisions based on this, then sets them in ston
 As a result, indices sit there unused, and logarithmic operations are done linearly.
 
 If the statements are not prepared, we incur parsing and planning overhead on every query.
-While unfortunate, those costs were low in comparison to the troublesome queries.
+In practice, those costs were low in comparison to the troublesome queries.
 The true problem with completely non-prepared statements is that the query planner would rapidly change strategies, meaning that which indices are needed would change at different points in execution.
 
 Since in our case we have a fixed query set and a rapidly changing database, it would most likely make more sense to absorb the query planner into the compilation process somehow.
@@ -120,7 +120,7 @@ For example, if we have $p(x,y) \& q(x, z) \& r(x, z)$, where $p$ and $q$ are tr
 We could match on $p$, then invoke $r$, then match on $q$, the reverse, or match on $p$ and $q$, then invoke $r$.
 All have merits depending on the extents of $p$ and $q$ and the runtime characteristics of $r$.
 When a query is purely data, this simplifies into join processing (\S~\ref{holmes:sec:join}).
-While computing joins efficiently is still relatively complex, it is a well studied area.
+Efficient join computation is still complex, but is a thoroughly studied area.
 With $r$ as a black box however, any such processing order will be fundamentally heuristic.
 With multiple external predicates in the same rule, the problem is exacerbated, with more orders becoming possible, and another uncharacterized evaluation cost.
 
@@ -130,7 +130,9 @@ In our implementation, the staging is explicit: The body clause is matched in it
 
 This method does have one performance downside.
 As \sysname\ does not have any notion of a temporary predicate, any rules which would use two external predicates normally will potentially eat up additional space.
-While this may \emph{improve} performance at times due to effectively tabling a subquery of the intended query, forcing tabling when two external predicates would be used may not be desirable in all cases.
+Forcing tabling when two external predicates would be used may not be desirable in all cases.
+This may \emph{improve} performance at times due to effectively tabling a subquery of the intended query, but it may also waste space and time in others.
+
 \subsubsection{Typed Storage}
 Rather than store data values directly in rows as was done in the PostgreSQL-based implementation, here we keep a separate deduplication table for each type of data on which we operate.
 This allows us to efficiently map back and forth between values, which the callbacks need to consume, and integer keys, which are convenient for indexing and join algorithms. 
@@ -145,7 +147,7 @@ Finding the key for an object is accomplished by using a lookup on the hash tabl
 Finding the object for a key (the more common case) works by indexing into the vector.
 
 The only principal difference between this and a simpler design (a standard hash table mapping from the value to the key, and a vector mapping from a key to a value) is that it stores the data only once, and without any indirection.
-While this may not sound like much, this gave a modest 23\% time performance boost over the standard library implementation in time, and approximately halved space on an earlier version of the use-after-free detector.
+This gave a modest 23\% time performance boost over the standard library implementation in time, and approximately halved space on an earlier version of the use-after-free detector.
 The closest approach still using the standard data structure would have been to use a smart pointer to share data between the data structures, or a hash table of hashes.
 The smart pointer caused trouble with the interfaces, and hashing twice incurred a performance penalty, so we used this custom hash table design for deduplication and unique key assignment.
 

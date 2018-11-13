@@ -44,11 +44,12 @@ This eliminates pattern matching and reduces all rules to a set of rules of the 
 	p \leftarrow \bigwedge q_i \wedge \bigwedge \neg r_j
 \]
 where $p, q_i, r_i \in \hb$.
-While there will be no rules of this form in the initial translation of the program, we also allow rules of the form
+We also allow rules of the form
 \[
 	\neg p \leftarrow
 \]
 which simply asserts $\neg p$.
+We do not allow rules of this form in the initial program to ensure that the initial program is not directly contradictory.
 We will use $N$ to describe a possibly negated term, e.g. it has form $p$ or $\neg p$ where $p \in \hb$.
 
 For a program $\Pi$ which consists of a set of such rules,

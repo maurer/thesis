@@ -25,7 +25,7 @@ However, the insensitive variety generates its alias information as of 3m23s.
 The system spent the remainder of the time generating reachability information.
 
 Unfortunately, while Juliet serves as a good test for true positives, it does not do much to elicit false positives from our system, which is why both our performance and others' look too-good-to-be-true here.
-While there are negative tests present, there is little in the way of things that checkers are traditionally weak against (data structures, recursion, loops, etc.).
+Within the negative tests, there is little in the way of things that checkers are traditionally weak against (data structures, recursion, loops, etc.).
 For this reason, it is important to evaluate ourselves on real world code as well.
 
 \subsection{Live CVEs}
@@ -92,7 +92,8 @@ Flow sensitivity reduces false positives significantly.
 Manual analysis reveals that most remaining false positives are either due to data structure usage (which decreases the precision of the alias analysis), confused allocation sites from wrapped malloc constructors, and infeasible paths.
 Context sensitivity gives additional improvements by helping to differentiate between instances of calling wrapped mallocs (e.g. \texttt{new\_foo()} to allocate and initialize a \texttt{foo}).
 
-While performance for insensitive and flow-sensitive analyses appears similar, this is in large part because the generation of a global program reachability graph for each \texttt{free} is costly.
+
+Performance for insensitive and flow-sensitive analyses appears similar in large part because the generation of a global program reachability graph for each \texttt{free} is costly.
 If the analysis is instead timed in phases, the alias-analysis-only portion for the insensitive system takes seconds, while it takes the bulk of the non-CFG-recovery time in a flow-sensitive analysis.
 
 For the known-vulnerable set, flow sensitivity reduced the false positive set by an average of 90\%, and context sensitivity reduced it by an additional 84.1\%.
@@ -160,8 +161,9 @@ Then adding context sensitivity ($k$ = 1) reduced it by an additional 43.5\%, in
 Manual auditing of the reported bugs did not reveal any true bugs, but did show that a common pattern amongst false positives was functions for whom one path freed and replaced a pointer, and the other did neither, and they rejoined.
 A more aggressive analysis for dead variables could remedy this by pruning them to allow the freed region to leave the points-to relationship before the paths rejoined.
 
-While we did not find any new bugs in this case, the system emitted a maximum of 22 reports on individual binaries (and this worst case had most of them clustered in the same code area).
+The system emitted a maximum of 22 reports on individual binaries (and this worst case had most of them clustered in the same code area).
 This was few enough reports to enable practical manual auditing by a single individual.
+Unfortunately, none of these reports corresponded to real bugs upon examination.
 This does not guarantee these programs are bug free - while we have a conservative analysis, that is dependent on seeing the entire control flow graph.
 In this case this condition is not met.
 Some C++ programs which use vtables are present in this path - calls to member functions there will appear as no-ops.

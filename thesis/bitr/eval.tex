@@ -104,7 +104,8 @@ This makes sense as a measurement because it demonstrates the ability of the too
 \noindent {\bf Unconstrained Type Variables.}
 The primary source of error reflected in this difference is data that is never written to or read from. For example, while most \texttt{coreutils} binaries contain a \texttt{close\_stream} function which operates on a stream structure, there is no indication of the inner properties of this structure in the code itself. However, the compiler constructs debugging symbols in the presence of header files that describe the fields of the stream structure. As a result, the score is strongly deflated.
 We can partially mitigate this by using type signatures for library functions, but we did not use signatures for all functions in our experiments, nor would this information always be available.
-While \bitr\ can recover some of these unconstrained variables through appropriate type signing (or analysis of the target shared library), there are also cases where a structure is present, but in the structure's entire life cycle, one of its fields is never referenced.
+\bitr\ can recover some unconstrained variables through appropriate type signing (or analysis of the target shared library).
+Unfortunately, there are also cases where some fields of a structure are never referenced over its entire lifecycle.
 
 \subsection{How does \bitr\ scale?}
 \label{subsec:speed}

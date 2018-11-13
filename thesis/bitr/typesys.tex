@@ -69,13 +69,15 @@ The $\tint{w}$ type represents integers of width w.
 %Memory
 Our intermediate semantics language (BIL) represents memory writes as non-destructive updates to a global array. As such, we need a type for that array: $\mem$. This type can be directly inferred from the source language, as a value of type $\mem$ is only created by performing a write to an existing $\mem$, and that operation is unambiguous. It does not correspond to anything in C or other source language, it is just to type our memory variable.
 %Bool
-To represent flags or other single bit registers, we use the $\bool$ type. While it is isomorphic to a single bit integers, we are trying to recover abstractions, and would like to distinguish between things we perform arithmetic on versus boolean operations.
+To represent flags or other single bit registers, we use the $\bool$ type.
+Technically, we could type these values with single-bit unsigned integers.
+However, we wish to distinguish between variables we perform arithmetic on versus those we apply boolean operations to, since we are trying to recover abstractions.
 
 %Tops and bottoms
 $\utop$, $\ubot$, $\top_{w}$, and $\bot_{w}$ are synthetic types for use in subtyping bounds and to complete our lattice. $\utop$ and $\ubot$ are universal top and bottom for all our types. $\top_{w}$ and $\bot_{w}$ are provide a top and bottom bound for types of size $w$. This allows us to use subtyping bounds to indicate knowledge of the size of something, as given by the width of a write or similar low level clues.
 
 %regions
-While type variables are a standard construction, region variables (and the regions they represent) are specific to our particular system.
+Region variables (and the regions they represent) are specific to our particular system.
 The grammar represents regions as $\rho$.
 Regions are a collection of mappings from offsets to type variables.
 The regions form the basis for our inference of structs. Figure \ref{fig:region} shows the region corresponding to the stack for a function with one integer stack variable. Note that when combined with an offset, the same region can be represent the stored base pointer (if the function is a leaf function, otherwise the base pointer must be abstract), the initial stack pointer, and the stack pointer right before return. In another example, we can represent a structure representing a sized string
@@ -97,7 +99,11 @@ $\lptr{rv}{o}$ and $\aptr{rv}{o}$ represent pointer and array types respectively
 $\trec{A}{\tau_A}$ introduces a recursive type. Within $\tau_A$, $A$ refers to $\tau_A$. Since our type system does not have additive types as a primitive, the only useful place to put $A$ is inside a region that a pointer uses. This provides an implicit option type (our pointers are nullable), allowing the recursive types to be finite size. This corresponds to the common C usage of using a struct pointer as a member of the struct itself.
 
 %poly
-$\tpoly{\tau}{A}{\tau'}{\tau_A}$ constructs a polymorphic type. $\tau$ is the lower bound, and $\tau'$ the upper bound. While our inference system does not directly generate polymorphic types, once inference completes we bind type variables that are only partially constrained with this construct before returning them. This allows for the expression of polymorphic linked lists and other simple data structures. This allows us to deal with some cases where C programmers use \texttt{void*} and casts to deal with their lack of polymorphism. The upper and lower bounds are most commonly used in conjunction with $\top_{w}$ and $\bot_{w}$ to indicate a type variable for which only we only know its size, but in principle could express other restrictions.
+$\tpoly{\tau}{A}{\tau'}{\tau_A}$ constructs a polymorphic type. $\tau$ is the lower bound, and $\tau'$ the upper bound.
+Our inference system does not directly generate polymorphic types.
+It instead generates a network of bounding constraints between type variables, possibly including cycles or partially constrained types.
+When the value of a specific type variable is requested, partially constrained types are universally quantified, and cyclically constrained types are quantified via $\mu$.
+This allows for the expression of polymorphic linked lists and other simple data structures. This allows us to deal with some cases where C programmers use \texttt{void*} and casts to deal with their lack of polymorphism. The upper and lower bounds are most commonly used in conjunction with $\top_{w}$ and $\bot_{w}$ to indicate a type variable for which only we only know its size, but in principle could express other restrictions.
 
 %code
 $\code$ represents any pointer to code that is a valid jump target. In future work, we may attempt to type this more specifically, expressing type preconditions for the jump and treating it more like a continuation. Function pointers, and values created by \texttt{setjmp} use this type. However, its most common and practical use is to represent the return pointer the function jumps to in order to return control to its caller.

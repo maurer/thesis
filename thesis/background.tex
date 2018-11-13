@@ -3,13 +3,13 @@
 % Binary analysis
 \section{Binary Analysis}
 % * Spiel about how binary analysis is different
-While at its core binary analysis is fundamentally similar to program analysis, we encounter challenges when applying techniques from the program analysis world.
+We encounter new challenges when applying techniques from the source code world to compiled program analysis.
 %   * Abstractions stripped out
 Most of these challenges fall into the category of absent abstraction.
 Function locations, variable locations and bounds, variable types, and control flow graphs are all generally taken for granted even in the analysis of ``low level'' languages such as C, but are absent in binaries.
 
 %   * CFG unknown
-While all of these can cause difficulties, the inability to recover a complete control flow graph can be one of the most difficult to deal with.
+The inability to recover a complete control graph can be one of the more difficult challenges to deal with.
 Many algorithms for recovering any of the other missing abstractions depend strongly on having a pre-existing control flow graph\cite{vsa,bddbddb,smash,tie,bitr,wrappedintervals,ramalingam2000}.
 However, without the abstractions present in the source language, determining the potential targets of an indirect (computed) jump becomes difficult, if not impossible.
 Being unsound here by asserting complete knowledge of control flow in cases where only partial knowledge is available can result in unsoundness in every analysis down the road, but frequently use ``good enough'' approximations due to the difficulty of this problem.
@@ -24,7 +24,6 @@ Due to the lack of scope or lifetime abstractions, once a new piece of state ent
 \subsection{Control Flow Recovery}
 \label{sec:cfg}
 The goal of control flow recovery is to generate a complete graph of possible program counter transitions in the program while containing minimal number of spurious edges.
-While information from a concrete execution can be useful to the final product (as it contains a series of jumps which the output graph must contain to be correct) it does not allow for the declaration of any control flow graph as complete.
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point and watching for a transition to a distinguished exit node (usually via a function return).
 However, indirect jumps due to function pointers, C++ virtual method calls, and even creative compilation of case statements can wreak havoc on this method, since the value of the jump target to is not known ahead of time.
 
@@ -45,7 +44,8 @@ The state of the art approach to the co-dependence of the control flow recovery 
 
 \subsection{Type Recovery}
 Another important static analysis is type recovery.
-While there is no rule that says there must be types as we think of them in a binary program, they are usually present due to source language or programmer volition.
+A binary program may not necessarily have a traditional assignment of types to variables.
+However, source language requirements and programmer volition make it likely that there is a useful assignment of types.
 Even assembly programmers and dynamic language users~\cite{jsinfer} usually use consistent types to some extent.
 
 Since compilation removed type annotations, there are two primary sources for type information: propagation from API/ABI boundaries and how the program interacts with the structure of the data.
@@ -200,10 +200,11 @@ Evaluation is a series of steps, each of which fires the first rule it can find 
 Since this evaluation strategy is always productive or terminating, and we have established a finite upper bound on the database, we have a bound on the length of such an evaluation.
 Since this evaluation strategy only produces facts according to the rules, and only stops when no rules apply, it matches the saturation/fixpoint semantics of Datalog.
 
-While termination is a convenient property for a language to have, there are caveats.
+There are some important caveats to termination as a language feature.
 %
 Termination directly implies a limit to the language's power.
-While a number of different kind of closure or search procedures are specifiable as Datalog programs, its inability to create new symbols is limiting.
+Datalog's inability to create new symbols can be limiting.
+Unmodified datalog can still implement a number of different kinds of closure or search procedures, but even simple arithmetic is outside of its purview if not within a bounded domain.
 %
 Some language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
 When this happens, the resulting language loses its termination guarantees.
