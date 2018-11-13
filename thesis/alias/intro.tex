@@ -6,7 +6,7 @@ We used Holmes here to link together control flow analysis, alias analysis, stri
 There were 238 use-after-free (UaF) vulnerability disclosures (CWE-416) issued in 2017 alone, with 36.2\% given a critical security
 rating.
 % From cvedetails.com, mitre doesn't seem to issue CVE/CWE associations.
-Use-after-free bugs happen when a program frees a pointer and subsequently writes to or reads from the memory pointed.
+Use-after-free bugs happen when a program frees a pointer and subsequently writes to or reads from the memory pointed at.
 Use-after-free bugs can lead to DoS, control flow hijack, and information leaks.
 
 Despite the number of CVEs, few tools exist that can automatically and statically detect such bugs in off-the-shelf \emph{binary} code.

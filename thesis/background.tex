@@ -212,13 +212,13 @@ With a finite domain of values and a finite list of predicates, there is a finit
 Evaluation is a series of steps.
 Each step fires the first rule it can find which matches, or if no rule matches, terminates.
 Since this evaluation strategy is always productive or terminating, and we have established a finite upper bound on the database, we have a bound on the length of such an evaluation.
-This evaluation strategy matches the saturatin/fixpoint semantics of Datalogs because it only produces facts according to the rules and only stops when no rules apply.
+This evaluation strategy matches the saturating/fixpoint semantics of Datalog because it only produces facts according to the rules and only stops when no rules apply.
 
 There are some important caveats to termination as a language feature.
 %
 Termination directly implies a limit to the language's power.
 Datalog's inability to create new symbols can be limiting.
-Unmodified datalog can still implement a number of different kinds of closure or search procedures, but even simple arithmetic is outside of its purview if not within a bounded domain.
+Unmodified Datalog can still implement a number of different kinds of closure or search procedures, but even simple arithmetic is outside of its purview if not within a bounded domain.
 %
 Some language modifications (including those needed for \sysname) will introduce the ability to generate new symbols.
 When this happens, the resulting language loses its termination guarantees.

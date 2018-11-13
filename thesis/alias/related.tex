@@ -67,7 +67,7 @@ Finally, by running these operations unto fixpoint, the user can query the resul
 
 Perhaps the closest to \aliasname\ is \textsc{Doop}~\cite{doop1,doop2,doop3}, a program analysis framework for Java bytecode based in Datalog.
 Like \texttt{bddbddb}, \textsc{Doop} extracts from the program and analyses to a pure Datalog program, then runs to completion.
-Unlike previous work, it relies less on preprocessing, and performs more of the analysis within the Datlaog program itself.
+Unlike previous work, it relies less on preprocessing, and performs more of the analysis within the Datalog program itself.
 They showed~\cite{doop1} that information needs to flow bidirectionally between pointer and exception analyses, a condition which Datalog is great at, since it does not require manual control flow interleaving.
 \textsc{Doop} distinguishes itself on modeling accuracy as a result of this analysis combination approach~\cite{doop2}, outperforming \texttt{bddbddb} even with the same sensitivity simply by discovering more of the control graph.
 Finally, they found that careful modification of the algorithm can recover most of the compactness wins normally acquired from a BDD representation~\cite{doop3}.
