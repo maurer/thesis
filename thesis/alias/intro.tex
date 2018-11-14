@@ -10,12 +10,12 @@ Use-after-free bugs happen when a program frees a pointer and subsequently write
 Use-after-free bugs can lead to DoS, control flow hijack, and information leaks.
 
 Despite the number of CVEs, few tools exist that can automatically and statically detect such bugs in off-the-shelf \emph{binary} code.
-However, there are tools for finding such bugs in \emph{source} code.
+However, there are tools for finding such bugs in \emph{source} code~\cite{metal,coverity}.
 Requiring source code limits the applicability of these techniques to developers with full source access.
 
 In this chapter, we focus on the question
 ``Can we use \sysname\ to bridge the gap between analysis for UaF bugs in source code versus compiled code?''
-In particular, previous work has been unable to apply source code techniques to compiled code.
+In particular, previous work has been unable to apply source code techniques~\cite{andersen-alias,steensgaard-alias,sfs,kastrinis-efficient-2018} to compiled code.
 Can we adapt such techniques to be effective even without source?
 
 At a high level, UaF bugs require reasoning about memory allocation and memory aliasing.

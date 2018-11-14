@@ -184,7 +184,7 @@
   file = {/home/maurer/Zotero/storage/YR67C5PF/sec14-paper-bao.pdf}
 }
 
-@inproceedings{kastrinis_efficient_2018,
+@inproceedings{kastrinis-efficient-2018,
   title = {An Efficient Data Structure for Must-Alias Analysis},
   isbn = {978-1-4503-5644-2},
   doi = {10.1145/3178372.3179519},
@@ -788,6 +788,39 @@
   year = {1990},
   pages = {579--597},
   file = {/home/maurer/Zotero/storage/X6DBJXWF/newgen.pdf}
+}
+
+@inproceedings{dangsan,
+  address = {New York, NY, USA},
+  series = {EuroSys '17},
+  title = {{{DangSan}}: {{Scalable Use}}-after-Free {{Detection}}},
+  isbn = {978-1-4503-4938-3},
+  shorttitle = {{{DangSan}}},
+  doi = {10.1145/3064176.3064211},
+  abstract = {Use-after-free vulnerabilities due to dangling pointers are an important and growing threat to systems security. While various solutions exist to address this problem, none of them is sufficiently practical for real-world adoption. Some can be bypassed by attackers, others cannot support complex multithreaded applications prone to dangling pointers, and the remainder have prohibitively high overhead. One major source of overhead is the need to synchronize threads on every pointer write due to pointer tracking. In this paper, we present DangSan, a use-after-free detection system that scales efficiently to large numbers of pointer writes as well as to many concurrent threads. To significantly reduce the overhead of existing solutions, we observe that pointer tracking is write-intensive but requires very few reads. Moreover, there is no need for strong consistency guarantees as inconsistencies can be reconciled at read (i.e., object deallocation) time. Building on these intuitions, DangSan's design mimics that of log-structured file systems, which are ideally suited for similar workloads. Our results show that DangSan can run heavily multithreaded applications, while introducing only half the overhead of previous multithreaded use-after-free detectors.},
+  booktitle = {Proceedings of the {{Twelfth European Conference}} on {{Computer Systems}}},
+  publisher = {{ACM}},
+  author = {{van der Kouwe}, Erik and Nigade, Vinod and Giuffrida, Cristiano},
+  year = {2017},
+  keywords = {Dangling pointers,LLVM,use-after-free},
+  pages = {405--419},
+  file = {/home/maurer/Zotero/storage/V5CIGX2L/van der Kouwe et al. - 2017 - DangSan Scalable Use-after-free Detection.pdf}
+}
+
+@article{coverity,
+  title = {A Few Billion Lines of Code Later: Using Static Analysis to Find Bugs in the Real World},
+  volume = {53},
+  issn = {00010782},
+  shorttitle = {A Few Billion Lines of Code Later},
+  doi = {10.1145/1646353.1646374},
+  language = {en},
+  number = {2},
+  journal = {Communications of the ACM},
+  author = {Bessey, Al and Engler, Dawson and Block, Ken and Chelf, Ben and Chou, Andy and Fulton, Bryan and Hallem, Seth and {Henri-Gros}, Charles and Kamsky, Asya and McPeak, Scott},
+  month = feb,
+  year = {2010},
+  pages = {66-75},
+  file = {/home/maurer/Zotero/storage/8E9YNFQF/p66-bessey.pdf}
 }
 
 
