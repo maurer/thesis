@@ -117,6 +117,34 @@ By restricting it to those cases where assuming falsehood would result in a forc
 It is looser because it allows for models which are not minimal over the reduct, as when assume-true is used, it adds a true proposition which has no derivation from the rules, and so would not be present in any minimal model.
 As assume-true is only allowed in cases where assume-false would lead to no solution, it still prohibits the trivial solution (all predicates are in the model).
 
+We consider the program consisting only of the rule $P \leftarrow \neg P$ to concretely examine the difference between these negation strategies.
+
+In the case of a stable-set semantics, this can have no model.
+The only two candidate models are $\{P\}$ or $\emptyset$.
+Under the first model, the rule is not satisfied, so the reduct is the empty program.
+This reduct does not support $P$, and so it is not a minimal model, and not a stable set.
+Under the second model, the reduct is $P \leftarrow$, and so it is not a model of the reduct because $P$ must hold.
+
+%TODO add to background precise description of well-founded negation
+Under well-founded negation, the unfounded set is empty, because $P$ still appears on the left hand side of the rule.
+As a result, evaluation terminates immediately.
+Well-founded negation returns the \emph{partial model} $\emptyset$.
+
+%TODO add more detail in these steps
+Using circumscriptive negation, we begin with the empty partial model.
+Applying assume-false is not possible, because $\neg W(\Pi \cup (\neg P \leftarrow))$.
+This modified program is not a world because it fails consistency since both $\neg P$ and $P$ are true at it (so $\neg C(\Pi \cup (\neg P \leftarrow))$).
+In this case, we can apply assume-true.
+The resulting program is $\{P \leftarrow \neg P, P \leftarrow\}$.
+The minimal model for this program is $P$, and it decides every mentioned predicate.
+As a result,
+\[
+P \leftarrow \neg P \models \boks \dia \boks P
+\]
+
+This simple example shows the differences between the approaches.
+In the face of this kind of uncertainty, stable-set semantics will choose not to give an answer, well-founded semantics will not decide either way, and circumscriptive semantics will make concessions to return a consistent complete answer. 
+
 In Holmes, circumscription corresponds to a potentially-infinite variety of assume-false in which every version of a specific aggregate greater than the proposed circumscription is negated.
 call/cc corresponds to assume-true, but is a bit more complex, since it needs to discern at least one specific assumption from the infinite negation arm which is untenable.
 
