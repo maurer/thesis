@@ -56,24 +56,30 @@ A Datalog derivative with extensions for negation and external callbacks can dri
 % * Show the power by
 %   * Implementing the integration of real analyses using the language
 %   * Attempting to do so without using circumscription or aggregation, and seeing what happens.
+\noindent\textbf{Co-dependent Analyses.}
 We examined the co-dependent analyses of control flow recovery (\S~\ref{sec:cfg}), value analysis (\S~\ref{sec:valanal}), and alias analysis (\S~\ref{bkg:sec:alias}, \S~\ref{chap:alias}).
 Datalog fits well as a structuring tool for these analyses due to its incrementality and ability to handle mutual recursion.
 
-
-In allowing analysis co-dependence, we introduce a new challenge.
+\noindent\textbf{Negation.}
 In previous work, the framework runs an analysis ``to completion'' before proceeding.
-This means that previous frameworks implicitly encoded negated information.
-For example, after control flow recovery has completed, downstream analyses know not only what addresses may jump somewhere, but also those which may not.
-In the case of a dataflow analysis, the bound it computes is not valid until it has reached a fixed point.
-We add negation (\S~\ref{holmes:sec:circ}) both to handle both of these cases.
-A complete set of jump targets implicitly discusses a does-not-jump relation, which we encode as the completeness of the may-jump relation.
+When a later analysis uses the results of the analysis, it can use them in two ways.
+The first way is direct consumption of the facts provided by the analysis.
+In the case of a control flow recovery analysis, this would be treating a jump as possible because it is present in the returned CFG.
+The second way is a consumption of information on what was \emph{not} returned by the analysis.
+Following the control flow example, the later analysis may assume that because the control flow analysis has completed and will not be extended, any edge not present in the recovered control flow graph cannot happen.
+In this way previous frameworks implicitly encoded \emph{negated} information.
 Similarly, the a dataflow analysis producing an upper bound which increases throughout the analysis, such as a may-alias dataflow (\S~\ref{alias:sec:dataflow}), is not meaningful until it can no longer grow.
-This means that it speaks to the negation of its complement.
-We encode this by circumscribing on the may-alias relation.
-{\sc BiTR} also shows a case where negation would allow us to drop a \emph{minimal} number of constraints (\S~\ref{bitr:sec:circ}).
+As a result, the usability of a dataflow analysis depends on the \emph{negated} information that no larger upper bound will be created, normally determined by waiting for the analysis to complete. 
 
+Co-dependence eliminates the ability to stage analyses since it may not be possible to know that an analysis phase will not continue later.
+As a result, the use of negated information must be made explicit (\S~\ref{holmes:sec:circ}).
+Explicit negation also allows us to deal with more exotic control flow than ``to completion''
+{\sc BiTR} performs simultaneous constraint solving for type inference, with a goal of ignoring as few constraints as possible while still arriving at a consistent answer.
+Our form of negation is useful for describing that a particular solution is minimal (\S~\ref{bitr:sec:circ}), and avoiding the computation of non-minimal solutions.
+
+\noindent\textbf{External Code.}
+Access to external code important to allow the use of already existing analysis code, such as BAP~\cite{bap} lifting and ELF parsing.
 The use of callbacks as opposed to external predicates to more easily implement the engine (\S~\ref{holmes:sec:implcall}).
-Having callbacks is important to allow the use of already existing analysis code, such as BAP~\cite{bap} lifting and ELF parsing.
 It also allows us to utilize traditional imperative data structures, such as hash tables, during the implementation of performance critical analyses (\S~\ref{chap:alias}).
 These analyses together allow the implementation of a real security analysis (use-after-free, \S~\ref{chap:alias}).
 
