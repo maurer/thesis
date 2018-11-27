@@ -44,7 +44,33 @@ This eliminates pattern matching and reduces all rules to a set of rules of the 
 	p \leftarrow \bigwedge q_i \wedge \bigwedge \neg r_j
 \]
 where $p, q_i, r_i \in \hb$.
-We also allow rules of the form
+
+For example, if we begin with the program
+\begin{align*}
+A(x) &\leftarrow B(x) \wedge C(0)\\
+B(1) &\leftarrow \neg C(1)\\
+B(1) &\leftarrow \neg A(0) \wedge \neg A(1)
+\end{align*}
+
+We only see the symbols 0 and 1 present.
+This means $\hu = \{0, 1\}$ for this program, and $\hb = \{A(0), A(1), B(0), B(1), C(0), C(1)\}$.
+Instantiating all variables in the program at all possible values from $\hu$, we get a variable-free version:
+\begin{align*}
+A(0) &\leftarrow B(0) \wedge C(0)\\
+A(1) &\leftarrow B(1) \wedge C(0)\\
+B(1) &\leftarrow \neg C(1)\\
+B(1) &\leftarrow \neg A(0) \wedge \neg A(1)\\
+\end{align*}
+We can now remove parameters from predicates by assigning a name to each member of $\hb$.
+\begin{align*}
+p &\leftarrow q \wedge r\\
+s &\leftarrow t \wedge r\\
+t &\leftarrow \neg u\\
+t &\leftarrow \neg p \wedge \neg s\\
+\end{align*}
+Now the program is in the general form described above.
+
+In derived forms, we also allow rules of the form
 \[
 	\neg p \leftarrow
 \]
@@ -68,26 +94,16 @@ We say a program $\Pi$ decides a fact if it models it as either true or false.
 	\quad
 	\infer[\textrm{decide-false}]{\Pi \decides p}{\Pi \models \neg p}
 \]
-We give a base case for a program $\Pi$ being a world if it is consistent and it decides all facts.
-\[
-	\infer[\textrm{world-base}]{W(\Pi)}{C(\Pi) & \forall p \in \hb(\Pi). \Pi \decides p}
-\]
-We say a program $\Pi$ does not force the inconsistency of a fact if either it decides that fact, or adding one of its truth or negation results in a world.
-\[
-	\infer[\textrm{nfi-decided}]{\nfi{\Pi}{p}}{\Pi \decides p}
-	\quad
-	\infer[\textrm{nfi-true}]{\nfi{\Pi}{p}}{\world{\Pi \cup (p \leftarrow)}}
-	\quad
-	\infer[\textrm{nfi-false}]{\nfi{\Pi}{p}}{\world{\Pi \cup (\neg p \leftarrow)}}
-\]
-Finally, a program is a world in our Kripke frame if it does not force the inconsistency of any fact, nor is it already inconsistent.
-\[
-	\infer[\textrm{world}]{\world{\Pi}}{\cons{\Pi} & \forall p \in \hb(\Pi). \nfi{\Pi}{p}}
-\]
 
-The world-base rule is equivalent to the world rule with only the nfi-decided rule available for not forcing inconsistency.
-It is included to show more clearly the inductive construction of whether a program is a world.
-
+Now, we are equipped to describe our Kripke frame.
+A program which decides all predicates and is not inconsistent is a world.
+\[
+	\infer[\textrm{world-base}]{\world{\Pi}}{\cons{\Pi} & \forall p \in \hb(\Pi). \Pi \decides p}
+\]
+Any program which is a subset of a world is a world.
+\[
+	\infer[\textrm{world-subs}]{\world{\Pi}}{\world{\Pi'} & \Pi \subseteq \Pi'}
+\]
 We define a relation between worlds $\stepass$ describing assumptions that may be made from a given program.
 \[
 	\infer[\textrm{assume-false}]{\Pi \stepass \Pi \cup (\neg p \leftarrow)}{p \in \hb(\Pi) & \Pi \not \decides p & \world{\Pi \cup (\neg p \leftarrow)}}
@@ -95,7 +111,6 @@ We define a relation between worlds $\stepass$ describing assumptions that may b
 \[
 	\infer[\textrm{assume-true}]{\Pi \stepass \Pi \cup (p \leftarrow)}{p \in \hb(\Pi) & \Pi \not \decides p & \world{\Pi \cup (p \leftarrow)} & \neg \world{\Pi \cup (\neg p \leftarrow)}}
 \]
-
 We complete the Kripke frame by defining the accessibility as transitive closure over $\stepass$.
 \[
 	\infer[\textrm{refl}]{\Pi \leq \Pi}{}
@@ -103,14 +118,67 @@ We complete the Kripke frame by defining the accessibility as transitive closure
 	\infer[\textrm{assume}]{\Pi_0 \leq \Pi_2}{\Pi_0 \leq \Pi_1 & \Pi_1 \stepass \Pi_2}
 \]
 
-We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia \boks \dia F$ under this frame.
-Here, $\dia$ means ``possibly'', and $\boks$ means ``necessarily'', so this condition says that it is possibly necessarily the case that this formula is possible.
+We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia \boks F$ under this frame.
+Here, $\dia$ means ``possibly'', and $\boks$ means ``necessarily'', so this condition says that it is possibly necessarily the case that this formula holds.
 We can visualize this on a directed graph with worlds as nodes and and the single-step form of our accessibility relation ($\stepass$) as an edge.
-This condition means that if we start from $\Pi$, our input program, we can find a connected program $\Pi'$, so that no matter what path we take forwards from there, there will always be a path to a world where the formula $F$ holds.
-Conceptually, this means that there exists an allowed choice of assumptions so that $F$ becomes a conclusion we will always eventually reach.
+This condition means that if we start from $\Pi$, our input program, we can find a connected program $\Pi'$, so that no matter what path we take forwards from there, the formula $F$ holds.
+Conceptually, this means that there exists an allowed choice of assumptions so that $F$ holds.
 
-assume-false represents normal circumscription.
-Adding the assume-true is what differentiates our negation model.
+\subsubsection{Example}
+Consider the program we herbrandized previously, extended with the initial EDB $\{r\}$, calling the initial program $\Pi_0$.
+Initially, we have that $\Pi_0 \models r$
+We cannot derive any more from $\Pi_0$ because $r$ is not sufficient to invoke any rule through m.p.
+We proceed by considering a candiate world $\Pi_1 = \Pi_0 \cup \{\neg u \leftarrow\}$.
+Through iterative application of m.p. we get
+\[
+\Pi_1 \models r \wedge \neg u \wedge t \wedge s
+\]
+$p$ and $q$ are still undecided, so we create candidate worlds
+\[\Pi_2 = \Pi_1 \cup \{\neg p \leftarrow\}\]
+\[\Pi_3 = \Pi_2 \cup \{\neg q \leftarrow\}\]
+At $\Pi_3$, we have through iterative application of m.p.
+\[
+\Pi_3 \models \neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u
+\]
+As a result, for all each predicate, $\Pi_3$ decides it, e.g. $\Pi_3 \decides p$, $\Pi_3 \decides q$, etc. either through decides-true or decides-false depending on its negation in the earlier formula.
+Specifically,
+\[
+\forall p \in \hb(\Pi_3). \Pi_3 \decides p
+\]
+Since $\Pi_3$ only derives the truth of $r, s, t$, and does not derive any of their negation, by the consistent rule we have $\cons{\Pi_3}$.
+With these combined, we can apply the world-base rule and get $\world{\Pi_3}$.
+By world-subset, $\Pi_0, \Pi_1, \Pi_2$ are all worlds as they are subsets of $\Pi_3$.
+
+We focus on the accessibility relation next.
+If we apply assume-false to $\Pi_3$ and the predicate q, we get $\Pi_2 \stepass \Pi_3$.
+Repeatedly applying it yields
+\[
+	\Pi_0 \stepass \Pi_1 \stepass \Pi_2 \stepass \Pi_3
+\]
+Starting with refl on $\Pi_0$, we get $\Pi_0 \leq \Pi_0$.
+Iteratively applying assume, we get that $\Pi_0 \leq \Pi_3$.
+
+Now we combine this information to show that what $\Pi_3$ models is a legal output for the input program.
+Recall that
+\[
+	\Pi_3 \models \neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u
+\]
+Since $\Pi_3$ already decides all the predicates,
+\[
+	\not \exists \Pi \neq \Pi_3 . \Pi_3 \stepass \Pi
+\]
+and so the only world accessible to $\Pi_3$ is $\Pi_3$.
+This allows us to say that the formula is necessary at $\Pi_3$.
+\[
+	\Pi_3 \models \boks (\neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u)
+\] 
+Since $\Pi_0 \leq \Pi_3$, we can additionally say that the above formula is possible at $\Pi_0$.
+\[
+	\Pi_0 \models \dia \boks (\neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u)
+\]
+
+\subsubsection{call/cc}
+Adding the assume-true rule is what differentiates our negation model.
 This rule only allows the assumption of truth if assuming false would either make the world inconsistent immediately, or make it impossible to provide a consistent assignment to the remainder of the facts given that assumption.
 By adding assume-true, we allow a consistent solution in the presence of negation in some cases it would not otherwise be possible.
 By restricting it to those cases where assuming falsehood would result in a forced inconsistency in any complete model, we still rule out trivial solutions like setting everything true, but in a looser way than the minimal model over the reduct.
