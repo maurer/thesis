@@ -198,16 +198,29 @@ Under well-founded negation, the unfounded set is empty, because $P$ still appea
 As a result, evaluation terminates immediately.
 Well-founded negation returns the \emph{partial model} $\emptyset$.
 
-%TODO add more detail in these steps
-Using circumscriptive negation, we begin with the empty partial model.
-Applying assume-false is not possible, because $\neg W(\Pi \cup (\neg P \leftarrow))$.
-This modified program is not a world because it fails consistency since both $\neg P$ and $P$ are true at it (so $\neg C(\Pi \cup (\neg P \leftarrow))$).
-In this case, we can apply assume-true.
-The resulting program is $\{P \leftarrow \neg P, P \leftarrow\}$.
-The minimal model for this program is $P$, and it decides every mentioned predicate.
-As a result,
+Following our negation system, we begin with
+\[\Pi = \{P \leftarrow \neg P\}\]
+Now, we define two candidate worlds,
+\[\Pi^- = \Pi \cup \{\neg P \leftarrow\}\]
+\[\Pi^+ = \Pi \cup \{P \leftarrow\}\]
+In the case of $\Pi^-$, we have both $\Pi^- \models P$ and $\Pi^- \models \neg P$, so $\neg \cons{\Pi^-}$.
+As a result, $\neg W(\Pi^-)$.
+For $\Pi^+$, we have only that $\Pi^+ \models P$, so $\cons{\Pi}$.
+Since $P$ is the totality of $\hb{\Pi^+}$, $W(\Pi^+)$ by world-base.
+By world-subset, $W(\Pi)$.
+We can apply assume-true, using $W(\Pi^+)$, $\neg W(\Pi^-)$, and that $\Pi$ does not decide $P$.
+This gives $\Pi \stepass \Pi^+$.
+Finally
 \[
-P \leftarrow \neg P \models \boks \dia \boks P
+	\Pi^+ \models P
+\]
+Since $\Pi^+$ already decides everything, it can only lead to $\Pi^+$.
+\[
+	\Pi^+ \models \boks P
+\]
+Since $\Pi \stepass \Pi^+$, by refl and assume $\Pi \leq \Pi^+$, so
+\[
+	\Pi \models \dia \boks P
 \]
 
 This simple example shows the differences between the approaches.
