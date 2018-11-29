@@ -118,8 +118,8 @@ We complete the Kripke frame by defining the accessibility as transitive closure
 	\infer[\textrm{assume}]{\Pi_0 \leq \Pi_2}{\Pi_0 \leq \Pi_1 & \Pi_1 \stepass \Pi_2}
 \]
 
-We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia \boks F$ under this frame.
-Here, $\dia$ means ``possibly'', and $\boks$ means ``necessarily'', so this condition says that it is possibly necessarily the case that this formula holds.
+We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia  F$ under this frame.
+Here, $\dia$ means ``possibly'', so this condition says that it is possibly the case that this formula holds.
 We can visualize this on a directed graph with worlds as nodes and and the single-step form of our accessibility relation ($\stepass$) as an edge.
 This condition means that if we start from $\Pi$, our input program, we can find a connected program $\Pi'$, so that no matter what path we take forwards from there, the formula $F$ holds.
 Conceptually, this means that there exists an allowed choice of assumptions so that $F$ holds.
@@ -163,18 +163,9 @@ Recall that
 \[
 	\Pi_3 \models \neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u
 \]
-Since $\Pi_3$ already decides all the predicates,
-\[
-	\not \exists \Pi \neq \Pi_3 . \Pi_3 \stepass \Pi
-\]
-and so the only world accessible to $\Pi_3$ is $\Pi_3$.
-This allows us to say that the formula is necessary at $\Pi_3$.
-\[
-	\Pi_3 \models \boks (\neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u)
-\] 
 Since $\Pi_0 \leq \Pi_3$, we can additionally say that the above formula is possible at $\Pi_0$.
 \[
-	\Pi_0 \models \dia \boks (\neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u)
+	\Pi_0 \models \dia (\neg p \wedge \neg q \wedge r \wedge s \wedge t \wedge \neg u)
 \]
 
 \subsubsection{call/cc}
@@ -185,6 +176,7 @@ By restricting it to those cases where assuming falsehood would result in a forc
 It is looser because it allows for models which are not minimal over the reduct, as when assume-true is used, it adds a true proposition which has no derivation from the rules, and so would not be present in any minimal model.
 As assume-true is only allowed in cases where assume-false would lead to no solution, it still prohibits the trivial solution (all predicates are in the model).
 
+\subsubsection{How Negations Differ}
 We consider the program consisting only of the rule $P \leftarrow \neg P$ to concretely examine the difference between these negation strategies.
 
 In the case of a stable-set semantics, this can have no model.
@@ -214,13 +206,9 @@ Finally
 \[
 	\Pi^+ \models P
 \]
-Since $\Pi^+$ already decides everything, it can only lead to $\Pi^+$.
-\[
-	\Pi^+ \models \boks P
-\]
 Since $\Pi \stepass \Pi^+$, by refl and assume $\Pi \leq \Pi^+$, so
 \[
-	\Pi \models \dia \boks P
+	\Pi \models \dia P
 \]
 
 This simple example shows the differences between the approaches.
@@ -325,7 +313,7 @@ This time, since our $\stepass$ is more complex, our world predicate and $\stepa
 We also index $\stepass$ with the aggregate that it either circumscribes or extends.
 
 \[
-	\infer[\textrm{world}]{\forall a \in \aggset(\Pi). \Pi \decides a \vee \exists \Pi'. \Pi \stepass_a \Pi'}{\world{\Pi}}
+	\infer[\textrm{world}]{\world{\Pi}}{\forall a \in \aggset(\Pi). \Pi \decides a \vee \exists \Pi'. \Pi \stepass_a \Pi'}
 \]
 A program is a world if for every aggregate, it either decides it, or there is a one-step accessibility to one where it is circumscribed or extended ($\stepass_a$).
 
@@ -337,9 +325,9 @@ If $a$ isn't decided yet, and circumscribing it closed would not cause any incon
 For call/cc, let $\Pi_c$ be $\Pi$, but modified so that $\viol{\Pi}{c} = \emptyset$ and $c$ is unioned in.
 In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which are based on the addition of $c$.
 \[\small
-	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi_c} & \not \exists c'. \Pi \stepass_a \Pi' \cup c' & \not \exists p' \in \viol{\Pi}{c}. \Pi \models p' & p \in \viol{\Pi}{c} & \Pi_c \models \dia \boks \dia p}
+	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi_c} & \not \exists c'. \Pi \stepass_a \Pi' \cup c' & \not \exists p' \in \viol{\Pi}{c}. \Pi \models p' & p \in \viol{\Pi}{c} & \Pi_c \models \dia p}
 \]
 This rule says that if we cannot construct $\stepass_a$ using the circ rule, but $\Pi_c$ would extend the aggregate $a$ with new information, then we can extend $a$ with the new information even though the proposed circumscription would not result in a world.
 We define $\leq$ based on $\stepass$ exactly as before.
 
-Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into can access a world where all accessible worlds can access a world where the formula is true. More succinctly, $\Pi \models \dia \boks \dia F$.
+Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into can access a world where all accessible worlds can access a world where the formula is true. More succinctly, $\Pi \models \dia F$.
