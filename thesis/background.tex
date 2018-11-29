@@ -3,28 +3,33 @@
 % Binary analysis
 \section{Binary Analysis}
 % * Spiel about how binary analysis is different
-We encounter new challenges when applying techniques from the source code world to compiled program analysis.
+Questions of control flow, value analysis, alias analysis, and type recovery all have added challenges when analyzing compiled programs compared to analyzing source code.
+
 %   * Abstractions stripped out
-Most of these challenges fall into the category of absent abstraction.
+Some of these challenges fall into the category of absent abstraction.
 Function locations, variable locations and bounds, variable types, and control flow graphs are all generally taken for granted even in the analysis of ``low level'' languages such as C, but are absent in binaries.
 
-%   * CFG unknown
-The inability to recover a complete control graph can be one of the more difficult challenges to deal with.
-Algorithms for recovering any of the other missing abstractions depend strongly on having a pre-existing control flow graph\cite{vsa,bddbddb,smash,tie,bitr,wrappedintervals,ramalingam2000}.
-However, determining the potential targets of an indirect (computed) jump becomes more difficult without the abstractions present in the source language.
-Being unsound here by asserting complete knowledge of control flow in cases where only partial knowledge is available can result in unsoundness in every downstream analysis.
-Despite this, real systems frequently use ``good enough'' approximations due to the difficulty of this problem.
-
 %   * Extraordinarily stateful, with large state
+Another general class of added difficulty comes from the increased apparent state of a compiled program.
+A program with more state is more difficult to analyze.
 One of the features of functional code that makes it easier to analyze is its thorough reduction of state.
 Traditional procedural or imperative languages make this slightly more difficult through the use of state variables which expand the set of implicit inputs to each step greatly.
 Binary code is yet more difficult to analyze.
 It becomes quickly difficult to determine what parts of memory and registers are really live without abstractions like array bounds or variable scoping.
 It is difficult statically to know whether the process may access a given piece of state in the future.
-The resulting problem size is larger because execution effectively ``leaks'' state that existing analysis cannot determine will be unreachable.
+Execution effectively ``leaks'' state that existing analysis cannot determine will be unreachable.
+This increased state increases the problem size for alias analysis, value analysis, and type recovery, making it more difficult to find tractable approaches.
 
 \subsection{Control Flow Recovery}
 \label{sec:cfg}
+%   * CFG unknown
+Recovering a complete control flow graph is a known difficult challenge in binary analysis.
+Algorithms for recovering any of the other missing abstractions depend strongly on having a pre-existing control flow graph\cite{vsa,bddbddb,smash,tie,bitr,wrappedintervals,ramalingam2000}.
+However, determining the potential targets of an indirect (computed) jump becomes more difficult without the abstractions present in the source language.
+Despite this, real systems frequently use approaches which are both an over- and under-approximation due to the difficulty of this problem.
+These approaches usually produce representations which are useful when used directly by a human or UI.
+However, picking such an unsound approach can result in unsoundness in every downstream analysis
+
 The goal of control flow recovery is to generate a complete graph of possible program counter transitions in the program while containing minimal number of spurious edges.
 The simple form of control flow recovery involves performing recursive descent disassembly from a given entry point and watching for a transition to a distinguished exit node (usually via a function return).
 However, indirect jumps due to function pointers, C++ virtual method calls, and even creative compilation of case statements can wreak havoc on this method since the value of the jump target to is not known ahead of time.
@@ -41,6 +46,15 @@ This renders them useless for direct use on raw compiled code.
 \label{sec:valanal}
 It follows that recovering over-approximations of the range of potential values for pieces of state in a program would be useful.
 One common way to do this is to perform abstract interpretation of the program over a domain designed to model the range of values well~\cite{vsa,wrappedintervals,wrappedintervals2}.
+%   * Extraordinarily stateful, with large state
+A program with more state is more difficult to analyze.
+One of the features of functional code that makes it easier to analyze is its thorough reduction of state.
+Traditional procedural or imperative languages make this slightly more difficult through the use of state variables which expand the set of implicit inputs to each step greatly.
+Binary code is yet more difficult to analyze.
+It becomes quickly difficult to determine what parts of memory and registers are really live without abstractions like array bounds or variable scoping.
+It is difficult statically to know whether the process may access a given piece of state in the future.
+Execution effectively ``leaks'' state that existing analysis cannot determine will be unreachable.
+This increased state increases the problem size of analyses such as alias analysis, value analysis, and type recovery, making it more difficult to find tractable approaches.
 
 Unfortunately, Value Set Analysis\footnote{
   Value Set Analysis is the current state of the art for value analysis over compiled code.
