@@ -309,18 +309,23 @@ Since our lattices are not guaranteed to be bounded, no circumscription can be m
 As we cannot circumscribe over it, we are considered to decide the aggregate.
 Specifically, the program has decided on the negation of all values which could make up the aggregate.
 
-This time, since our $\stepass$ is more complex, our world predicate and $\stepass$ are defined mutually recursively.
-We also index $\stepass$ with the aggregate that it either circumscribes or extends.
-
+Our world-base rule is designed similar to the finite case.
+If a program decides all aggregates (rather than all predicates) and it is consistent, then it is a world.
 \[
-	\infer[\textrm{world}]{\world{\Pi}}{\forall a \in \aggset(\Pi). \Pi \decides a \vee \exists \Pi'. \Pi \stepass_a \Pi'}
+	\infer[\textrm{world-base}]{\world{\Pi}}{\forall a \in \aggset(\Pi). \Pi \decides a & C(\Pi)}
 \]
-A program is a world if for every aggregate, it either decides it, or there is a one-step accessibility to one where it is circumscribed or extended ($\stepass_a$).
+As before, any subset of a world is also a world
+%TODO this might be a little abusive since $\Pi$ contains information about its translation implicitly for $V$ and $D$
+\[
+	\infer[\textrm{world-subs}]{\world{\Pi'}}{\Pi' \subseteq \Pi & \world{\Pi}}
+\]
 
+We define accessibility stepwise again.
+If an aggregate $a$ isn't decided yet, and circumscribing it closed would not cause any inconsistency, we may do it.
 \[
 	\infer[\textrm{circ}]{\Pi \stepass_a \Pi \cup c}{\Pi \not \decides a & c \in \circset_a(\Pi) & W(\Pi \cup c)}
 \]
-If $a$ isn't decided yet, and circumscribing it closed would not cause any inconsistency, we may do it.
+The circ rule is analogous to assume-false because adding $c$ to $\Pi$ is essentially adding $\forall p \in \viol{\Pi}{c}. \neg p$.
 
 For call/cc, let $\Pi_c$ be $\Pi$, but modified so that $\viol{\Pi}{c} = \emptyset$ and $c$ is unioned in.
 In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which are based on the addition of $c$.
@@ -328,6 +333,8 @@ In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which a
 	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi_c} & \not \exists c'. \Pi \stepass_a \Pi' \cup c' & \not \exists p' \in \viol{\Pi}{c}. \Pi \models p' & p \in \viol{\Pi}{c} & \Pi_c \models \dia p}
 \]
 This rule says that if we cannot construct $\stepass_a$ using the circ rule, but $\Pi_c$ would extend the aggregate $a$ with new information, then we can extend $a$ with the new information even though the proposed circumscription would not result in a world.
-We define $\leq$ based on $\stepass$ exactly as before.
+The call/cc rule is analogous to the assume-true rule.
+It is only accessible when circ (which was similar to assume-false) is not, and allows adding a single $p \in \viol{\Pi}{c}$ as an otherwise-unsupported choice to allow deduction to proceed.
 
-Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into can access a world where all accessible worlds can access a world where the formula is true. More succinctly, $\Pi \models \dia F$.
+We define $\leq$ based on $\stepass$ inductively as before.
+Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into can access a world where it is true. More succinctly, $\Pi \models \dia F$.
