@@ -3,10 +3,10 @@
 \label{chap:formal}
 Holmes differs from base Datalog in callbacks (analogous to external predicates), aggregates, circumscription, and call/cc.
 External predicates already have a well understood semantics, and we will model callbacks as interpreted functions by extension of our Herbrand universe during instantiation (\S \ref{formal:sec:callbacks}).
-Aggregates in the presence of interpreted functions can be replaced by a syntactic transformation, other than for purposes of circumscription.
+We can represent aggregates in the presence of interpreted functions by a syntactic transformation, other than for purposes of circumscription.
 Adding call/cc forces a solution to exist when it otherwise would not, adding a restricted set of solutions which violate the minimality constraint of stable set semantics when no stable set exists.
 
-We will first go over the negation model embedded at base Datalog to demonstrate how it works more clearly (\S~\ref{formal:sec:negation}).
+We will first go over the negation model embedded at base Datalog to demonstrate how it works (\S~\ref{formal:sec:negation}).
 Then, we will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
 Finally, I will give semantics for the Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
 %TODO add any proofs to intro
@@ -16,7 +16,9 @@ Finally, I will give semantics for the Herbrand instantiation of a Holmes progra
 \label{formal:sec:otherneg}
 The first primary distinction to draw in negation is ``strong negation'' vs ``negation-as-failure'', or NaF.
 Strong negation describes having knowledge that something is not the case, whereas NaF describes knowing that we will never have proof that something is the case.
-This difference is more formally defined by Gelfond and Lifshitz~\cite{strongneg}, where strong negation is referred to as classical negation.
+This difference is more formally defined by Gelfond and Lifshitz~\cite{strongneg}.\footnote{
+This aricle refers to strong negation as classical negation.
+}I
 In this work we will focus on negation-as-failure.
 
 One way of interpreting negation is ``stable-set'' semantics~\cite{stablemodel}.
@@ -25,12 +27,13 @@ To do this, we remove all negated body clauses which are not present in the prop
 If the model is the minimal model of this reduct (this new reduced program), then it is a stable set, or stable model of the program.
 This interpretation admits an arbitrary number of potential stable models, including none.
 
-Another approach is known as ``well-founded negation''~\cite{wellfounded}.
-This approach constructs what it calls ``unfounded sets'', which are sets of values which, relative to a given partial interpretation, can never be proven.
+Another approach is ``well-founded negation''~\cite{wellfounded}.
+This approach constructs what it calls ``unfounded sets''.
+These are sets of values which, relative to a given partial interpretation, are unprovable.
 It then augments the partial interpretation with the negation of the unfounded set, and constructs a new minimal model, treating negated clauses as only true if explicitly present in the new partial interpretation.
-This procedure is run until it reaches a fixpoint, and produces exactly one well-founded partial model, which will be a subset of all stable models~\cite{wellfounded}.
+This procedure runs until it reaches a fixpoint, and produces exactly one well-founded partial model, which will be a subset of all stable models~\cite{wellfounded}.
 
-In our case, stable-set semantics leaves something to be desired due to the potential for no model, and the well-founded approach may return partial solutions if there is no stable set or multiple stable sets.
+In our case, stable-set semantics falls short due to the potential for no model, and the well-founded approach may return partial solutions if there is no stable set or multiple stable sets.
 \subsection{Negation in Holmes}
 Traditional Datalog consists only of a head clause, implied by a series of body clauses.
 In addition to this, we allow clauses to be optionally negated.
@@ -105,7 +108,7 @@ Any program which is a subset of a world is a world.
 \[
 	\infer[\textrm{world-subs}]{\world{\Pi}}{\world{\Pi'} & \Pi \subseteq \Pi'}
 \]
-We define a relation between worlds $\stepass$ describing assumptions that may be made from a given program.
+We define a relation between worlds $\stepass$ describing adding an assumption to the program on the left to arrive at the program on the right.
 \[
 	\infer[\textrm{assume-false}]{\Pi \stepass \Pi \cup (\neg p \leftarrow)}{p \in \hb(\Pi) & \Pi \not \decides p & \world{\Pi \cup (\neg p \leftarrow)}}
 \]
@@ -121,13 +124,13 @@ We complete the Kripke frame by defining the accessibility as transitive closure
 
 We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia  F$ under this frame.
 Here, $\dia$ means ``possibly'', so this condition says that it is possibly the case that this formula holds.
-We can visualize this on a directed graph with worlds as nodes and and the single-step form of our accessibility relation ($\stepass$) as an edge.
+We can visualize this on a directed graph with worlds as nodes and the single-step form of our accessibility relation ($\stepass$) as an edge.
 This condition means that if we start from $\Pi$, our input program, we can find a connected program $\Pi'$, so that no matter what path we take forwards from there, the formula $F$ holds.
 Conceptually, this means that there exists an allowed choice of assumptions so that $F$ holds.
 
 \subsubsection{Example}
-Consider the program we herbrandized previously, extended with the initial EDB $\{r\}$, calling the initial program $\Pi_0$.
-Initially, we have that $\Pi_0 \models r$
+Consider the program we Herbrandized previously, extended with the initial EDB $\{r\}$, calling the initial program $\Pi_0$.
+Initially, we have that $\Pi_0 \models r$.
 We cannot derive any more from $\Pi_0$ because $r$ is not sufficient to invoke any rule through m.p.
 We proceed by considering a candidate world $\Pi_1 = \Pi_0 \cup \{\neg u \leftarrow\}$.
 Through iterative application of m.p. we get
@@ -146,18 +149,18 @@ Specifically,
 \[
 \forall p \in \hb(\Pi_3). \Pi_3 \decides p
 \]
-Since $\Pi_3$ only derives the truth of $r, s, t$, and does not derive any of their negation, by the consistent rule we have $\cons{\Pi_3}$.
-With these combined, we can apply the world-base rule and get $\world{\Pi_3}$.
-By world-subset, $\Pi_0, \Pi_1, \Pi_2$ are all worlds as they are subsets of $\Pi_3$.
+Since $\Pi_3$ only derives the truth of $r, s, t$, and does not derive any of their negation, by the \trule{consistent} rule we have $\cons{\Pi_3}$.
+With these combined, we can apply the \trule{world-base} rule and get $\world{\Pi_3}$.
+By \trule{world-subset}, $\Pi_0, \Pi_1, \Pi_2$ are all worlds as they are subsets of $\Pi_3$.
 
 We focus on the accessibility relation next.
-If we apply assume-false to $\Pi_3$ and the predicate q, we get $\Pi_2 \stepass \Pi_3$.
+If we apply \trule{assume-false} to $\Pi_3$ and the predicate q, we get $\Pi_2 \stepass \Pi_3$.
 Repeatedly applying it yields
 \[
 	\Pi_0 \stepass \Pi_1 \stepass \Pi_2 \stepass \Pi_3
 \]
-Starting with refl on $\Pi_0$, we get $\Pi_0 \leq \Pi_0$.
-Iteratively applying assume, we get that $\Pi_0 \leq \Pi_3$.
+Starting with \trule{refl} on $\Pi_0$, we get $\Pi_0 \leq \Pi_0$.
+Iteratively applying \trule{assume}, we get that $\Pi_0 \leq \Pi_3$.
 
 Now we combine this information to show that what $\Pi_3$ models is a legal output for the input program.
 Recall that
@@ -170,12 +173,14 @@ Since $\Pi_0 \leq \Pi_3$, we can additionally say that the above formula is poss
 \]
 
 \subsubsection{call/cc}
-Adding the assume-true rule is what differentiates our negation model.
+Adding the \trule{assume-true} rule is what differentiates our negation model.
 This rule allows the addition of positive assumptions (e.g. assuming $p$ as opposed to only being able to assume $\neg p$).
-We specifically restrict this rule so that it can only be used if $p$ is not decided, and $\neg p$ would prevent a complete, consistent truth assignment to predicates.
-By restricting assume-true we still rule out trivial solutions like setting everything true, but in a looser way than the minimal model over the reduct (\S~\ref{formal:sec:otherneg})
-It is looser because it allows for models which are not minimal over the reduct, as when assume-true is used, it adds a true proposition which has no derivation from the rules, and so would not be present in any minimal model.
-As assume-true is only allowed in cases where assume-false would lead to no solution, it still prohibits the trivial solution (all predicates are in the model).
+We specifically restrict this rule so that it requires that $p$ is not decided, and $\neg p$ would prevent a complete, consistent truth assignment to predicates.
+By restricting \trule{assume-true} we still rule out trivial solutions like setting everything true, but in a looser way than the minimal model over the reduct (\S~\ref{formal:sec:otherneg})
+It is looser because it allows for models which are not minimal over the reduct.
+When applying \trule{assume-true}, it adds a true proposition which has no derivation from the rules.
+This proposition would not be present in any minimal model.
+As \trule{assume-true} is only allowed in cases where \trule{assume-false} would lead to no solution, it still prohibits the trivial solution (all predicates are in the model).
 
 \subsubsection{How Negations Differ}
 We consider the program consisting only of the rule $P \leftarrow \neg P$ to concretely examine the difference between these negation strategies.
@@ -199,15 +204,15 @@ Now, we define two candidate worlds,
 In the case of $\Pi^-$, we have both $\Pi^- \models P$ and $\Pi^- \models \neg P$, so $\neg \cons{\Pi^-}$.
 As a result, $\neg W(\Pi^-)$.
 For $\Pi^+$, we have only that $\Pi^+ \models P$, so $\cons{\Pi}$.
-Since $P$ is the totality of $\hb{\Pi^+}$, $W(\Pi^+)$ by world-base.
-By world-subset, $W(\Pi)$.
-We can apply assume-true, using $W(\Pi^+)$, $\neg W(\Pi^-)$, and that $\Pi$ does not decide $P$.
+Since $P$ is the totality of $\hb{\Pi^+}$, $W(\Pi^+)$ by \trule{world-base}.
+By \trule{world-subs}, $W(\Pi)$.
+We can apply \trule{assume-true}, using $W(\Pi^+)$, $\neg W(\Pi^-)$, and that $\Pi$ does not decide $P$.
 This gives $\Pi \stepass \Pi^+$.
 Finally
 \[
 	\Pi^+ \models P
 \]
-Since $\Pi \stepass \Pi^+$, by refl and assume $\Pi \leq \Pi^+$, so
+Since $\Pi \stepass \Pi^+$, by \trule{refl} and \trule{assume} $\Pi \leq \Pi^+$, so
 \[
 	\Pi \models \dia P
 \]
@@ -215,10 +220,10 @@ Since $\Pi \stepass \Pi^+$, by refl and assume $\Pi \leq \Pi^+$, so
 This simple example shows the differences between the approaches.
 In the face of this kind of uncertainty, stable-set semantics will choose not to give an answer, well-founded semantics will not decide either way, and circumscriptive semantics will make concessions to return a consistent complete answer. 
 
-In Holmes, circumscription corresponds to a potentially-infinite variety of assume-false in which every version of a specific aggregate greater than the proposed circumscription is negated.
-call/cc corresponds to assume-true, but is a bit more complex.
-With finite assume-false, the assume-true rule can assert as true the undecided predicate for which assume-false failed.
-Since circumscription assumes false for many predicates, call/cc must select a specific predicate amongst those which has itself given rise to a contradiction to assert as true.
+In Holmes, circumscription corresponds to a potentially-infinite variety of \trule{assume-false} in which the program assumes false every version of a specific aggregate greater than the proposed circumscription.
+call/cc corresponds to \trule{assume-true}, but is a bit more complex.
+With finite \trule{assume-false}, the \trule{assume-true} rule can assert as true the undecided predicate for which \trule{assume-false} failed.
+Since circumscription assumes false for multiple predicates, call/cc must select a specific predicate amongst those which has itself given rise to a contradiction to assert as true.
 
 \section{Herbrandization}
 \label{formal:sec:herbrand}
@@ -227,9 +232,9 @@ Then, we describe how to instantiate a Holmes program at this universe.
 
 \subsection{Herbrand universe}
 \label{formal:sec:callbacks}
-Instead of function symbols which produce new values, as in a traditional construction, we have interpreted functions and and lattice joins.
+Instead of function symbols which produce new values, as in a traditional construction, we have interpreted functions and lattice joins.
 This is different from the normal construction because interpreted functions both interpreted functions and lattice meets may produce values which are equal to existing values.
-To address the equality issue, we assume that our construction is supplied with implementations of the callbacks and join operations as the real program would, and actually execute them on input values rather than creating symbolic expansions.
+To address the equality issue, we assume that our construction receives the implementations of the callbacks and join operations as the real program would, and actually execute them on input values rather than creating symbolic expansions.
 
 Define $U_0$ to be those constants present in the program, combined with varieties tupled up to the maximum arity of the provided functions.
 Consider joins as equivalent to callbacks which just happen to return only one argument.
@@ -245,7 +250,7 @@ We then combine these stages:
 	\hu = \lim_{j \rightarrow \infty} \bigcup_{0 \leq i < j} U_i
 \]
 
-The Herbrand base $\hb$ is constructed in the usual way, instantiating each predicate at every value of $\hu$.
+We construct the Herbrand base $\hb$ in the usual way, instantiating each predicate at every value of $\hu$.
 
 \subsection{Program Instantiation}
 For predicates which have aggregation (\S~\ref{holmes:sec:agg}), rewrite them as rules with interpreted functions.
@@ -272,7 +277,7 @@ For a predicate $P$ defined as above, and
 \[
 	P_a \leq P_b \leftrightarrow \bigwedge_{i = 0}^n y_i \leq z_i
 \]
-where the partial order for each aggregate field with index $i$ is defined by the lattice defined by the join operator $j_i$.
+where the lattice defined by the join operator $j_i$ defines the partial order for the  aggregate field with index $i$.
 If the first $m$ fields do not match, there is no ordering.
 
 For each aggregated predicate $P$, introduce an additional predicate $P_c$ with the same field types.
@@ -286,7 +291,7 @@ Finally, for each $P_c$, add a rule
 	\bot \leftarrow P_c(\vec{x}, \vec{y}) \wedge P(\vec{x}, \vec{z}) + \textrm{P-less-than}
 \]
 where P-less-than checks whether $P_c(\vec{x}, \vec{y}) < P(\vec{x}, \vec{z})$ (defined via $\leq$ and $\neq$) and returns a singleton list of no assignments if so, and an empty list otherwise.
-This essentially adds a ``check'' rule saying that an upper bound proposed by $P_c$ must not be violated by known information about $P$.
+This essentially adds a ``check'' rule saying that an upper bound proposed by $P_c$ must not contradict known information about $P$.
 
 Now, the program looks like normal Datalog but with functions attached to some rules.
 For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body clause, and instantiate the head term.
@@ -317,7 +322,7 @@ Most of this construction should look familiar from the simple negation semantic
 \]
 Like previously, consistency here requires that a none of the negations assumed by a circumscription also be present in the model in a non-negated form.
 Since we added special guard rules when introducing the $P_c$ predicates, we can just check that $\bot$ cannot be directly derived to check consistency of the upper boundedness of a circumscription.
-Additionally, the circumscription must be supported: the aggregate must have reached the point on the lattice that the circumscription asserts will be the exact value.
+Additionally, the circumscription requires support: the aggregate must have reached the point on the lattice that the circumscription asserts will be the exact value.
 
 Rather than deciding individual facts as we did previously, we now decide aggregates.
 \[
@@ -327,10 +332,10 @@ Rather than deciding individual facts as we did previously, we now decide aggreg
 \]
 The bounded case indicates that we have circumscribed this aggregate, and so have decided it.
 The no-base case indicates that this aggregate is totally unpopulated by the program.
-As we cannot circumscribe over it, we are considered to decide the aggregate.
+As we cannot circumscribe over it, the program decides the aggregate.
 Specifically, the program has decided on the negation of all values which could make up the aggregate.
 
-Our world-base rule is designed similar to the finite case.
+Our \trule{world-base} rule is similar to the finite case.
 If a program decides all aggregates (rather than all predicates) and it is consistent, then it is a world.
 \[
 	\infer[\textrm{world-base}]{\world{\Pi}}{\forall a \in \aggset(\Pi). \Pi \decides a & C(\Pi)}
@@ -345,19 +350,19 @@ If an aggregate $a$ isn't decided yet, and circumscribing it closed would not ca
 \[
 	\infer[\textrm{circ}]{\Pi \stepass_a \Pi \cup c}{\Pi \not \decides a & c \in \circset_a(\Pi) & W(\Pi \cup c)}
 \]
-The circ rule is analogous to assume-false because adding $c$ to $\Pi$ is essentially adding $\forall p \in \viol{\Pi}{c}. \neg p$.
+The \trule{circ} rule is analogous to \trule{assume-false} because adding $c$ to $\Pi$ is essentially adding $\forall p \in \viol{\Pi}{c}. \neg p$.
 
 For call/cc, let $\Pi_c$ be $\Pi \cup c$ with all rules of the form $\bot \leftarrow c \wedge p$ removed.
-In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which are based on the addition of $c$.
+In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies derived from the addition of $c$.
 \[\small
 	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi \cup p} & \not \exists c' \in \circset_a(\Pi). \Pi \stepass_a \Pi \cup c' & \Pi_c \models \dia p}
 \]
-This rule says that if we cannot construct $\stepass_a$ using the circ rule, but $\Pi_c$ would extend the aggregate $a$ with new information, then we can extend $a$ with the new information even though the proposed circumscription would not result in a world.
-The call/cc rule is analogous to the assume-true rule.
-It is only accessible when circ (which was similar to assume-false) is not, and allows adding a single $p \in \viol{\Pi}{c}$ as an otherwise-unsupported choice to allow deduction to proceed.
+This rule says that if we cannot construct $\stepass_a$ using the \trule{circ} rule, but $\Pi_c$ would extend the aggregate $a$ with new information, then we can extend $a$ with the new information even though the proposed circumscription would not result in a world.
+The \trule{call/cc} rule is analogous to the \trule{assume-true} rule.
+It is only accessible when \trule{circ} (which was similar to \trule{assume-false}) is not, and allows adding a single $p \in \viol{\Pi}{c}$ as an otherwise-unsupported choice to allow deduction to proceed.
 
 We define $\leq$ based on $\stepass$ inductively as before.
-Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into can access a world where it is true. More succinctly, $\Pi \models \dia F$.
+Finally, we hold a formula to be true for a Holmes program if after translating it as above to a program $\Pi$, $\Pi \models \dia F$.
 
 \section{Full Example}
 To see how this works in practice, we consider the program
@@ -391,16 +396,16 @@ fn threshold(s: Set(Int)) -> [Int] {
 
 fn force_odd(s: Set(Int)) -> [Int] {
   if s.all(is_even) {
-    [s.max() + 1]
+    return [s.max() + 1]
   } else {
-    []
+    return []
   }
 }
 \end{lstlisting}
 
 In Listing~\ref{lst:bigexample}, we have explicitly written the input and output variables for clarity.
-In the actual existing Holmes implementation, these rules would be written without those bindings.
-The inputs and outputs would be implied by the variables bound in the body and free in the head:
+In the actual existing Holmes implementation, these rules would lack those bindings.
+The variables bound in the body and free in the head would imply the inputs and outputs:
 \begin{lstlisting}[numbers=none]
 force_odd: P(x) <- ~R(s) + all_even
 \end{lstlisting}
@@ -449,7 +454,7 @@ The guards and combination rules for our aggregated predicate $R$ look like
 	\vdots\\
 \end{align*}
 The first half describes the instantiation of the ``union'' aggregator on $R$.
-The second half has the guard rules which cause $\bot$ to be derived if a bound is exceeded.
+The second half has the guard rules which derive $\bot$ if the program exceeds a bound.
 
 The rule check\_threshold translates to
 \begin{align*}
@@ -461,7 +466,7 @@ The rule check\_threshold translates to
 \end{align*}
 Since assignments are not generated when the condition is not met (value sums to $> 7$), this is a rule for each set which has a sum more than 7.
 
-Finally, force\_odd is instantiated as
+Finally, force\_odd instantiates as
 \begin{align*}
 	Q(3) &\leftarrow R(\{2\}) \wedge R_c(\{2\})\\
 	Q(5) &\leftarrow R(\{4\}) \wedge R_c(\{4\})\\
@@ -488,7 +493,7 @@ At $\Pi_0$, force\_odd does nothing, since $R_c$ is unpopulated.
 
 In this case, we have only one aggregate: $R(\cdot)$.
 As a result, there are only two ways forwards - circumscribe or call/cc that aggregate.
-To use call/cc, we need to know that circumscribing does not result in a world, so we start by circumscribing.
+To use \trule{call/cc}, we need to know that circumscribing does not result in a world, so we start by circumscribing.
 Define $\Pi_1 = \Pi_0 \cup R_c(\{2, 4, 6, 102\})$.
 Since both $\Pi_1 \models R_c(\{2, 4, 6, 102\})$ and $\Pi_1 \models R(\{2, 4, 6, 102\})$, $\Pi_1 \decides R(\cdot)$ by the bounded rule.
 However, with the addition of the circumscription, force\_odd now adds $\Pi_1 \models$
@@ -497,13 +502,14 @@ However, with the addition of the circumscription, force\_odd now adds $\Pi_1 \m
 	R(\{103\} \cdots R(\{2, 4, 6, 102, 103\})\\
 	\bot
 \end{align*}
-It tripped the guard rule for the circumscription because $\{2, 4, 6, 102, 103\} > R(\{2, 4, 6, 102\}$ in the ordering induced by union.
-Since $\Pi_1 \models \bot$, it is inconsistent, and so not a world.
+One of the guard rules for the circumscription applied because $\{2, 4, 6, 102, 103\} > \{2, 4, 6, 102\}$ in the ordering induced by union.
+$\Pi_1$ is inconsistent because $\Pi_1 \models \bot$.
+As a result, $\Pi_1$ is not a world.
 
-Circumscription failed in this case, so it is time to apply call/cc.
+Circumscription failed in this case, so it is time to apply \trule{call/cc}.
 We construct $\Pi_{1c}$ as in the rule - we delete all the guard rules for $R_c(\{2, 4, 6, 102\})$ from $\Pi_1$.
-Since those were the only rules which could derive $\bot$, and $\Pi_1$ decided $R(\cdot)$, we can say that by world-base, $\world{\Pi_{1c}}$.
-In order to apply call/cc, we now need to pick a conclusion of $\Pi_1c$ to pull out, identified as $p$ in the rule.
+Since those were the only rules which could derive $\bot$, and $\Pi_1$ decided $R(\cdot)$, we can say that by \trule{world-base}, $\world{\Pi_{1c}}$.
+In order to apply \trule{call/cc}, we now need to pick a conclusion of $\Pi_{1c}$ to pull out, identified as $p$ in the rule.
 In this case, we will choose $Q(103)$.
 We define
 \[
@@ -519,19 +525,19 @@ This time, no new rules fire, since 103 is odd.
 Since $\Pi_3$ decides $R(\cdot)$ and is consistent (no guard rules fire), $\world{\Pi_3}$.
 
 Now that we have our final world, we need to work our way back to $\Pi_0$.
-Since $\Pi_0 \subseteq \Pi_2 \subseteq \Pi_3$, and $\world{\Pi_3}$, by world-subs we get $\world{\Pi_0}$ and $\world{\Pi_2}$.
-Applying circ, we see that since $\Pi_2$ and $\Pi_3$ are both worlds, $R(\cdot)$ is undecided in $\Pi_2$, and $\Pi_3$'s change from $\Pi_2$ is to add the circumscription,
+Since $\Pi_0 \subseteq \Pi_2 \subseteq \Pi_3$, and $\world{\Pi_3}$, by \trule{world-subs} we get $\world{\Pi_0}$ and $\world{\Pi_2}$.
+Applying \trule{circ}, we see that since $\Pi_2$ and $\Pi_3$ are both worlds, $\Pi_2$ does not decide$R(\cdot)$, and $\Pi_3$'s change from $\Pi_2$ is to add the circumscription,
 \[
 	\Pi_2 \stepass_{R(\cdot)} \Pi_3
 \]
-To apply call/cc, we need to demonstrate that $\Pi_0 \stepass_{R(\cdot)}$ cannot circumscribe from this world.
+To apply \trule{call/cc}, we need to demonstrate that $R(\cdot)$ cannot be circumscribed at $\Pi_0$.
 $\Pi_1$ is not a world, so it cannot circumscribe $R(\cdot)$ at $\{2, 4, 6, 102\}$.
 Picking any other value to circumscribe at would either not decide $R(\cdot)$ because it cannot prove $\Pi_0 \models \decirc{\Pi_0}{c}$ if bigger or incomparable, and would trigger an inconsistency rule if smaller.
 As a result,
 \[
-	\not \exists c' \in \circset_{R(\cdot)} \Pi_0 \stepass_a \Pi_0 \cup c'
+	\not \exists c' \in \circset_{R(\cdot)} . \Pi_0 \stepass_a \Pi_0 \cup c'
 \]
-Since $\Pi_0 \not \decides R(\cdot)$, $W(\Pi_2)$, the above, and $\Pi_1c \models Q(103)$,
+Since $\Pi_0 \not \decides R(\cdot)$, $W(\Pi_2)$, the above, and $\Pi_{1c} \models Q(103)$, we can apply \trule{call/cc} to get
 \[
 	\Pi_0 \stepass_{R(\cdot)} \Pi_2
 \]
