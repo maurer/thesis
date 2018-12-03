@@ -350,7 +350,7 @@ The circ rule is analogous to assume-false because adding $c$ to $\Pi$ is essent
 For call/cc, let $\Pi_c$ be $\Pi \cup c$ with all rules of the form $\bot \leftarrow c \wedge p$ removed.
 In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which are based on the addition of $c$.
 \[\small
-	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi \cup p} & \not \exists c' \in R_a(\Pi). \Pi \stepass_a \Pi \cup c' & \Pi_c \models \dia p}
+	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi \cup p} & \not \exists c' \in \circset_a(\Pi). \Pi \stepass_a \Pi \cup c' & \Pi_c \models \dia p}
 \]
 This rule says that if we cannot construct $\stepass_a$ using the circ rule, but $\Pi_c$ would extend the aggregate $a$ with new information, then we can extend $a$ with the new information even though the proposed circumscription would not result in a world.
 The call/cc rule is analogous to the assume-true rule.
