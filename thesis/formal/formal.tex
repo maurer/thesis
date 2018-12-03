@@ -279,7 +279,15 @@ For each aggregated predicate $P$, introduce an additional predicate $P_c$ with 
 $P_c$ will act as a concrete representation that $P$ at the same fields as $P_c$ would be a maximum on the ordering we defined.
 Essentially, it says that if $P_c(\vec{x}, \vec{y})$, then if $P(\vec{a}, \vec{b})$ is true, $P(\vec{a}, \vec{b}) \leq P(\vec{x}, \vec{y})$, or there is no ordering between them.
 
-Perform simple replacement of all circumscripted matches to $P$ with matches against $P_c$.
+Perform simple replacement of all circumscripted matches to $P$ with matches against $P_c$ \emph{and} $P$ at the same indices.
+If there was an unbound field, introduce a new variable and bind the $P$ and $P_c$ versions to be equal.
+Finally, for each $P_c$, add a rule
+\[
+	\bot \leftarrow P_c(\vec{x}, \vec{y}) \& P(\vec{x}, \vec{z}) + \textrm{P-less-than}
+\]
+where P-less-than checks whether $P_c(\vec{x}, \vec{y}) < P(\vec{x}, \vec{z})$ (defined via $\leq$ and $\neq$) and returns a singleton list of no assignments if so, and an empty list otherwise.
+This essentially adds a ``check'' rule saying that an upper bound proposed by $P_c$ must not be violated by known information about $P$.
+
 Now, the program looks like normal Datalog but with functions attached to some rules.
 For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body clause, and instantiate the head term.
 This will result in a rules of the form
@@ -302,16 +310,13 @@ This is a partitioning of $\circset(\Pi)$.
 
 Let $\decirc{\Pi}{c}$ where $c \in \circset(\Pi)$ be the non-circumscribed version of the fact, e.g. if $c$ corresponds to $P_c(x_0 \cdots x_n)$, then $\decirc{\Pi}{c} \in \hb$ corresponds to $P(x_0 \cdots x_n)$.
 
-Let $\viol{\Pi}{c} \subseteq \hb$ be those predicates which are \emph{directly} negated by the circumscription.
-This contains all of those values belonging to the same aggregate which are not less than or equal to the circumscription under the ordering defined previously.
-
-Much of this is similar to the simple negation semantics, but I restate it here for clarity.
+Most of this construction should look familiar from the simple negation semantics.
 
 \[
-	\infer[\textrm{consistent}]{\cons{\Pi}}{\forall c \in \circset(\Pi). \Pi \models c \imp ((\forall p \in \viol{\Pi}{c}. \Pi \not \models p) \wedge \Pi \models \decirc{\Pi}{c})}
+	\infer[\textrm{consistent}]{\cons{\Pi}}{\Pi \not \models \bot & (\Pi \models P_c(\vec{x})) \imp (\Pi \models P(\vec{x}))}
 \]
 Like previously, consistency here requires that a none of the negations assumed by a circumscription also be present in the model in a non-negated form.
-Specifically, the rule says that for all circumscripted facts in the universe, if they are in the model of the program, then none of the conditions which would violate the circumscription hold, and the aggregated fact corresponding to the circumscripted fact holds.
+Since we added special guard rules when introducing the $P_c$ predicates, we can just check that $\bot$ cannot be directly derived to check consistency of the upper boundedness of a circumscription.
 Additionally, the circumscription must be supported: the aggregate must have reached the point on the lattice that the circumscription asserts will be the exact value.
 
 Rather than deciding individual facts as we did previously, we now decide aggregates.
@@ -322,7 +327,7 @@ Rather than deciding individual facts as we did previously, we now decide aggreg
 \]
 The bounded case indicates that we have circumscribed this aggregate, and so have decided it.
 The no-base case indicates that this aggregate is totally unpopulated by the program.
-Since our lattices are not guaranteed to be bounded, no circumscription can be made.
+Since our lattices are not guaranteed to be bounded, we cannot provide a meaningful circumscription without at least one fact.
 As we cannot circumscribe over it, we are considered to decide the aggregate.
 Specifically, the program has decided on the negation of all values which could make up the aggregate.
 
@@ -332,7 +337,6 @@ If a program decides all aggregates (rather than all predicates) and it is consi
 	\infer[\textrm{world-base}]{\world{\Pi}}{\forall a \in \aggset(\Pi). \Pi \decides a & C(\Pi)}
 \]
 As before, any subset of a world is also a world
-%TODO this might be a little abusive since $\Pi$ contains information about its translation implicitly for $V$ and $D$
 \[
 	\infer[\textrm{world-subs}]{\world{\Pi'}}{\Pi' \subseteq \Pi & \world{\Pi}}
 \]
@@ -344,10 +348,10 @@ If an aggregate $a$ isn't decided yet, and circumscribing it closed would not ca
 \]
 The circ rule is analogous to assume-false because adding $c$ to $\Pi$ is essentially adding $\forall p \in \viol{\Pi}{c}. \neg p$.
 
-For call/cc, let $\Pi_c$ be $\Pi$, but modified so that $\viol{\Pi}{c} = \emptyset$ and $c$ is unioned in.
+For call/cc, let $\Pi_c$ be $\Pi \cup c$ with all rules of the form $\bot \leftarrow c \& p$ removed.
 In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which are based on the addition of $c$.
 \[\small
-	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi \cup p} & \not \exists c'. \Pi \stepass_a \Pi' \cup c' & \not \exists p' \in \viol{\Pi}{c}. \Pi \models p' & p \in \viol{\Pi}{c} & \Pi_c \models \dia p}
+	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi \cup p} & \not \exists c' \in R_a(\Pi). \Pi \stepass_a \Pi \cup c' & \Pi_c \models \dia p}
 \]
 This rule says that if we cannot construct $\stepass_a$ using the circ rule, but $\Pi_c$ would extend the aggregate $a$ with new information, then we can extend $a$ with the new information even though the proposed circumscription would not result in a world.
 The call/cc rule is analogous to the assume-true rule.
