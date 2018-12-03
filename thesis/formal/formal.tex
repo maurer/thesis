@@ -283,7 +283,7 @@ Perform simple replacement of all circumscripted matches to $P$ with matches aga
 If there was an unbound field, introduce a new variable and bind the $P$ and $P_c$ versions to be equal.
 Finally, for each $P_c$, add a rule
 \[
-	\bot \leftarrow P_c(\vec{x}, \vec{y}) \& P(\vec{x}, \vec{z}) + \textrm{P-less-than}
+	\bot \leftarrow P_c(\vec{x}, \vec{y}) \wedge P(\vec{x}, \vec{z}) + \textrm{P-less-than}
 \]
 where P-less-than checks whether $P_c(\vec{x}, \vec{y}) < P(\vec{x}, \vec{z})$ (defined via $\leq$ and $\neq$) and returns a singleton list of no assignments if so, and an empty list otherwise.
 This essentially adds a ``check'' rule saying that an upper bound proposed by $P_c$ must not be violated by known information about $P$.
@@ -313,7 +313,7 @@ Let $\decirc{\Pi}{c}$ where $c \in \circset(\Pi)$ be the non-circumscribed versi
 Most of this construction should look familiar from the simple negation semantics.
 
 \[
-	\infer[\textrm{consistent}]{\cons{\Pi}}{\Pi \not \models \bot & (\Pi \models P_c(\vec{x})) \imp (\Pi \models P(\vec{x}))}
+	\infer[\textrm{consistent}]{\cons{\Pi}}{\Pi \not \models \bot}
 \]
 Like previously, consistency here requires that a none of the negations assumed by a circumscription also be present in the model in a non-negated form.
 Since we added special guard rules when introducing the $P_c$ predicates, we can just check that $\bot$ cannot be directly derived to check consistency of the upper boundedness of a circumscription.
@@ -321,13 +321,12 @@ Additionally, the circumscription must be supported: the aggregate must have rea
 
 Rather than deciding individual facts as we did previously, we now decide aggregates.
 \[
-	\infer[\textrm{bounded}]{\Pi \decides a}{c \in \circset_a(\Pi) & \Pi \models c}
+	\infer[\textrm{bounded}]{\Pi \decides a}{\Pi \models c & \Pi \models \decirc{\Pi}{c}}
 	\quad
 	\infer[\textrm{no-base}]{\Pi \decides a}{\forall c \in \circset_a(\Pi). \Pi \not \models \decirc{\Pi}{c}}
 \]
 The bounded case indicates that we have circumscribed this aggregate, and so have decided it.
 The no-base case indicates that this aggregate is totally unpopulated by the program.
-Since our lattices are not guaranteed to be bounded, we cannot provide a meaningful circumscription without at least one fact.
 As we cannot circumscribe over it, we are considered to decide the aggregate.
 Specifically, the program has decided on the negation of all values which could make up the aggregate.
 
@@ -348,7 +347,7 @@ If an aggregate $a$ isn't decided yet, and circumscribing it closed would not ca
 \]
 The circ rule is analogous to assume-false because adding $c$ to $\Pi$ is essentially adding $\forall p \in \viol{\Pi}{c}. \neg p$.
 
-For call/cc, let $\Pi_c$ be $\Pi \cup c$ with all rules of the form $\bot \leftarrow c \& p$ removed.
+For call/cc, let $\Pi_c$ be $\Pi \cup c$ with all rules of the form $\bot \leftarrow c \wedge p$ removed.
 In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies which are based on the addition of $c$.
 \[\small
 	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi \cup p} & \not \exists c' \in R_a(\Pi). \Pi \stepass_a \Pi \cup c' & \Pi_c \models \dia p}
@@ -359,3 +358,187 @@ It is only accessible when circ (which was similar to assume-false) is not, and 
 
 We define $\leq$ based on $\stepass$ inductively as before.
 Finally, we hold a formula to be true for a Holmes program if the program $\Pi$ it is translated into can access a world where it is true. More succinctly, $\Pi \models \dia F$.
+
+\section{Full Example}
+To see how this works in practice, we consider the program
+\begin{lstlisting}[caption={Holmes Code}\label{lst:bigexample}] 
+P(Int)
+Q(Int)
+R(Set(Int)^union)
+
+inc: Q(y) <- P(x) + (y = inc(x))
+promote_R: R(s) <- Q(x) + (s = promote(x))
+check_threshold: P(x) <- R(s) + (x = threshold(s))
+force_odd: Q(x) <- ~R(s) + (x = all_even(s))
+\end{lstlisting}
+where in pseudocode,
+\begin{lstlisting}[caption={Procedural Pseudocode}\label{lst:bigfuncs}]
+fn inc(x: Int) -> [Int] {
+  return [x + 1]
+}
+
+fn promote(x: Int) -> [Set(Int)] {
+  return [Set.singleton(x)]
+}
+
+fn threshold(s: Set(Int)) -> [Int] {
+  if s.sum() > 7 {
+    return [101]  
+  } else {
+    return []
+  }
+}
+
+fn force_odd(s: Set(Int)) -> [Int] {
+  if s.all(is_even) {
+    [s.max() + 1]
+  } else {
+    []
+  }
+}
+\end{lstlisting}
+
+In Listing~\ref{lst:bigexample}, we have explicitly written the input and output variables for clarity.
+In the actual existing Holmes implementation, these rules would be written without those bindings.
+The inputs and outputs would be implied by the variables bound in the body and free in the head:
+\begin{lstlisting}[numbers=none]
+force_odd: P(x) <- ~R(s) + all_even
+\end{lstlisting}
+
+
+\subsection{Herbrandization}
+We start with the extensional database $P(1), P(3), P(5)$.
+Beginning with Herbrandization, we have
+\[
+	U_0 = \{1, 3, 5\}
+\]
+since no other constants are present in the rules.
+Applying all function symbols possible to $U_0$ gives us
+\[
+	U_1 = \{2, 4, 6, \{1\}, \{3\}, \{5\}\}
+\]
+Repeating the process gives
+\[
+	U_2 = \{3, 5, 7, \{2\}, \{4\}, \{6\}, \{1, 3\}, \{1, 5\}, \{3, 5\}\}
+\]
+and so on, so that $\hu$ is the set of all integers $\geq 1$ and all sets of such integers.
+To create $\hb$, we instantiate all predicates in against compatible values in $\hu$, giving
+\[
+	\hb = \{P(1), P(2), \cdots, Q(1), Q(2), \cdots, R(\{1\}), R(\{2\}), \cdots, R(\{1, 2\}) \cdots\}
+\]
+
+\subsection{Instantiation}
+Instantiating inc and promote_R gives
+\begin{align*}
+	Q(2) &\leftarrow P(1)\\
+	Q(3) &\leftarrow P(2)\\
+	&\vdots\\
+	R(\{1\}) &\leftarrow Q(1)\\
+	R(\{2\}) &\leftarrow Q(2)\\
+	\vdots\\
+\end{align*}
+which is analogous to what we did in the finite example.
+
+The guards and combination rules for our aggregated predicate $R$ look like
+\begin{align*}
+	R(\{1, 2\}) &\leftarrow R(\{1\}) \wedge R(\{2\})\\
+	R(\{1, 3\}) &\leftarrow R(\{1\}) \wedge R(\{3\})\\
+	\vdots\\
+	\bot &\leftarrow R_c(\{1\}) \wedge R(\{2\})\\
+	\bot &\leftarrow R_c(\{1\}) \wedge R(\{3\})\\
+	\vdots\\
+\end{align*}
+The first half describes the instantiation of the ``union'' aggregator on $R$.
+The second half has the guard rules which cause $\bot$ to be derived if a bound is exceeded.
+
+The rule check\_threshold translates to
+\begin{align*}
+	P(101) &\leftarrow R(\{8\})\\
+	P(101) &\leftarrow R(\{9\})\\
+	\vdots\\
+	P(101) &\leftarrow R(\{1, 7\})\\
+	\vdots\\
+\end{align*}
+Since assignments are not generated when the condition is not met (value sums to $> 7$), this is a rule for each set which has a sum more than 7.
+
+Finally, force\_odd is instantiated as
+\begin{align*}
+	Q(3) &\leftarrow R(\{2\}) \wedge R_c(\{2\})\\
+	Q(5) &\leftarrow R(\{4\}) \wedge R_c(\{4\})\\
+	Q(5) &\leftarrow R(\{2, 4\}) \wedge R_c(\{2, 4\})\\
+	\vdots
+\end{align*}
+It again only generates rules if there was an output from the function, and adds an odd number to $R$ if it doesn't already have one by adding the max plus 1.
+
+\subsection{World Exploration}
+Call our base program as translated and instantiated $\Pi_0$.
+We have extensionally that $\Pi_0 \models P(1) \wedge P(3) \wedge P(5)$.
+Applying inc and promote\_R gives us that $\Pi_0 \models$
+\begin{align*}
+	Q(2), Q(4), Q(6)\\
+	R(\{2\}), R(\{4\}), R(\{6\}), R(\{2, 4\}), R(\{2, 6\}), R(\{4, 6\}), R(\{2, 4, 6\})\\
+\end{align*}
+Adding check\_threshold gives additionally that $\Pi_0 \models$
+\begin{align*}
+	P(101)\\
+	Q(102)\\
+	R(\{102\}), R(\{2, 102\}) \cdots R(\{2, 4, 6, 102\})
+\end{align*}
+At $\Pi_0$, force\_odd does nothing, since $R_c$ is unpopulated.
+
+In this case, we have only one aggregate: $R(\cdot)$.
+As a result, there are only two ways forwards - circumscribe or call/cc that aggregate.
+To use call/cc, we need to know that circumscribing does not result in a world, so we start by circumscribing.
+Define $\Pi_1 = \Pi_0 \cup R_c(\{2, 4, 6, 102\})$.
+Since both $\Pi_1 \models R_c(\{2, 4, 6, 102\})$ and $\Pi_1 \models R(\{2, 4, 6, 102\})$, $\Pi_1 \decides R(\cdot)$ by the bounded rule.
+However, with the addition of the circumscription, force\_odd now adds $\Pi_1 \models$
+\begin{align*}
+	Q(103)\\
+	R(\{103\} \cdots R(\{2, 4, 6, 102, 103\})\\
+	\bot
+\end{align*}
+It tripped the guard rule for the circumscription because $\{2, 4, 6, 102, 103\} > R(\{2, 4, 6, 102\}$ in the ordering induced by union.
+Since $\Pi_1 \models \bot$, it is inconsistent, and so not a world.
+
+Circumscription failed in this case, so it is time to apply call/cc.
+We construct $\Pi_{1c}$ as in the rule - we delete all the guard rules for $R_c(\{2, 4, 6, 102\})$ from $\Pi_1$.
+Since those were the only rules which could derive $\bot$, and $\Pi_1$ decided $R(\cdot)$, we can say that by world-base, $\world{\Pi_{1c}}$.
+In order to apply call/cc, we now need to pick a conclusion of $\Pi_1c$ to pull out, identified as $p$ in the rule.
+In this case, we will choose $Q(103)$.
+We define
+\[
+	\Pi_2 = \Pi_0 \cup \{Q(103)\}
+\]
+
+At $\Pi_2$, we still don't decide $R(\cdot)$, so we try to circumscribe it closed again, this time with $R_c(\{2, 4, 6, 102, 103\})$.
+Define
+\[
+	\Pi_3 = \Pi_2 \cup \{R_c(\{2, 4, 6, 102, 103\})\}
+\]
+This time, no new rules fire, since 103 is odd.
+Since $\Pi_3$ decides $R(\cdot)$ and is consistent (no guard rules fire), $\world{\Pi_3}$.
+
+Now that we have our final world, we need to work our way back to $\Pi_0$.
+Since $\Pi_0 \subseteq \Pi_2 \subseteq \Pi_3$, and $\world{\Pi_3}$, by world-subs we get $\world{\Pi_0}$ and $\world{\Pi_2}$.
+Applying circ, we see that since $\Pi_2$ and $\Pi_3$ are both worlds, $R(\cdot)$ is undecided in $\Pi_2$, and $\Pi_3$'s change from $\Pi_2$ is to add the circumscription,
+\[
+	\Pi_2 \stepass_{R(\cdot)} \Pi_3
+\]
+To apply call/cc, we need to demonstrate that $\Pi_0 \stepass_{R(\cdot)}$ cannot circumscribe from this world.
+$\Pi_1$ is not a world, so it cannot circumscribe $R(\cdot)$ at $\{2, 4, 6, 102\}$.
+Picking any other value to circumscribe at would either not decide $R(\cdot)$ because it cannot prove $\Pi_0 \models \decirc{\Pi_0}{c}$ if bigger or incomparable, and would trigger an inconsistency rule if smaller.
+As a result,
+\[
+	\not \exists c' \in \circset_{R(\cdot)} \Pi_0 \stepass_a \Pi_0 \cup c'
+\]
+Since $\Pi_0 \not \decides R(\cdot)$, $W(\Pi_2)$, the above, and $\Pi_1c \models Q(103)$,
+\[
+	\Pi_0 \stepass_{R(\cdot)} \Pi_2
+\]
+Since $\Pi_0 \stepass \Pi_2 \stepass \Pi_3$, $\Pi_0 \leq \Pi_3$.
+We get as our final answer that $\Pi_0 \models \dia$
+\begin{align*}
+	P(1), P(3), P(5), P(101)\\
+	Q(2), Q(4), Q(6), Q(102), Q(103)\\
+	R(\{2\}), \cdots R(\{2, 4, 6, 102, 103\})\\
+\end{align*}
