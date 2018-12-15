@@ -1,16 +1,16 @@
 %Vulnerability detection in compiled code can be more effectively performed using a logic-language based framework which supports non-stratified negation and co-dependent analyses.
 %Compiled code needs to be analyzable
-We need program analysis tools and techniques that address the unique problems of executable code software analysis.
+We need tools and techniques for program analysis that address the unique problems faced when analyzing compiled code.
 During compilation, the compiler strips away source code information, such as control flow, types, and variable locations.
-As a result, program analyses of compiled code faces a number of unique challenges.
+As a result, analysis of compiled code faces a number of unique challenges.
 %General statement about how we can help?
-Previous work has proposed techniques to perform single analysis, such as control flow recovery, variable identification, and value analysis.
+Previous work has proposed techniques to perform an individual analysis in isolation.
 However, previous work has not focused on the \emph{co-dependencies} between these individual analysis.
 For example, value set analysis requires control flow analysis, which in turn requires value set
 analysis.
-We need techniques that can handle such co-dependencies in order to effectively check higher-level security properties such as use-after-free bugs.
+We need techniques that can handle such co-dependencies in order to effectively check higher-level security properties.
 
-In this thesis we propose using a logic-language based approach to encode co-dependent analysis, and build a tool called Holmes based on our approach to demonstrate our ideas on real code.
+In this thesis we propose using a logic-language based approach to encode co-dependent analysis and build a tool called Holmes based on our approach to demonstrate our ideas on real code.
 We demonstrate novel techniques for extending Datalog semantics to efficiently and effectively reason about real binary code.
-For example, our approach allows one to elegantly encode the co-dependence between value-set and control-flow analysis described above.
-We demonstrate {\sysname} and our approach by encoding real-world co-dependent analysis, and showing that {\sysname} can act as a framework to effectively check higher-level properties such as use-after-free on real executable code.
+Our approach allows one to elegantly encode the co-dependence between value-set and control-flow analysis described above.
+We demonstrate {\sysname} and our approach by encoding real-world co-dependent analysis, and showing that {\sysname} can act as a framework to effectively check higher-level properties, such as use-after-free, on real compiled code.
