@@ -1,32 +1,32 @@
 \chapter{Introduction}
 We need program analysis techniques that can find security bugs in binary programs.
-Binary program analysis is essential because code is often only available in binary form.
+Binary program analysis is essential because software is often only available in binary form.
 Even when source code is available, some security properties are more appropriately checked at the binary level.
 As an example, use-after-free bugs present in source may not be present at the binary level if the compiler chooses to elide a read when a register caches its value.
 
-Authors designed existing tools~\cite{ida, bap, bitblaze, bindead} as a sequence of analyses to perform, with the results of each previous analysis being available to the next.
+Authors designed existing tools~\cite{ida, bap, bitblaze, bindead} as a sequence of analyses to perform with the results of each previous analysis being available to the next.
 In this model, an analysis author must ensure the framework calculates any information needed before their analysis, but after any analyses that could benefit their dependency's accuracy.
-Representing individual analyses as nodes, with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must execute before $n_2$, this graph forms a sequence, or line.
+Representing individual analyses as nodes with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must execute before $n_2$, this graph forms a sequence or line.
 
-Even in compilation, explicit staging can be cumbersome, so compilers have moved from this sequence or \emph{line} model to a dependency-based \emph{DAG} model.
-The sequence model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
+Compilers have moved from this sequence or \emph{line} model to a dependency-based \emph{DAG} model to avoid the cumbersome explicit staging inherent to the line model.
+The line model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
 In LLVM's pass model, each pass declares what analyses it depends upon, allowing the LLVM pass manager to dynamically schedule the analyses and allow a configurable pipeline.
 Considering the graph representation again, LLVM's model is a DAG.
+The execution order selected by LLVM's engine would be one of the valid sequences a careful programmer could have picked in the line model.\footnote{Assuming a single evaluation thread.}
 
 This DAG model works well over source code, but falls short when applied to compiled code.
 Jakstab~\cite{jakstab} argues for the co-dependency of value analysis and lifting. 
 It takes the approach of running these two analyses to a fixed point, and provides a hook for user-defined analyses to run on each iteration.
-As Jakstab does not explicitly encode dependencies between analysis, the graph of execution dependencies looks like a single cycle.
+The graph of execution dependencies looks like a single cycle because Jakstab does not explicitly encode analysis dependencies.
 The Jakstab approach is undoubtably a step forwards.
 However, it still causes unnecessary recalculation and places a form of monotonicity requirements on analyses in order to remain correct.
-A natural extension then is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
+A natural extension is to allow the expression of dependencies, as in LLVM, but also cycles, as in Jakstab.
 We investigate this full graph model of analysis management in this thesis.
 
 We often want co-dependent analysis to detect bugs.
 Jakstab~\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to better results than IDA\cite{ida} for jump resolution.
-Specifying these analyses as logical rules within the same environment would provide the same power Jakstab found by integrating them for free.
-Notably, IDA misses edges which Jakstab finds.
 The result is that an evaluation of a security property done over the CFG presented by IDA would miss some true positives along the undetected control flow edges.
+Specifying these analyses as logical rules within the same environment would provide the same power Jakstab found by integrating them for free.
 Doop\cite{doop1} found that integrating exception analysis and points-to analysis gave them candidate target sets which were half the size on average for each object.
 Extra precision of this sort translates into reduced false positives when evaluating security conditions over the program.
 
@@ -43,9 +43,9 @@ This work suggests a Datalog format as a potential common representation.
 Dataflow analyses are also representable~\cite{mcallester2002} in this way.
 
 % External code
-Using a common extension of logic language, we can even call out to code not written as logical rules\footnote{We use a system similar to external predicates \S\ref{sec:extpred}}.
-This makes it possible to repurpose previously written analyses, or to write new analyses which may not be best represented as rules.
-There are still some restrictions on how such code can operate (for example, no preserved state across calls) but taking this approach gives the flexibility to be an integration system.
+We can even call out to code not written as logical rules\footnote{We use a system similar to external predicates using a common extension of logic language. \S\ref{sec:extpred}}.
+This makes it possible to repurpose previously written analyses, or to write new analyses which may not be best represented as logic rules.
+There are still some restrictions on how such code can operate (for example, no visibly preserved state across calls) but taking this approach gives the flexibility required to be an integration system.
 
 \begin{inset}
 {\bf Thesis statement.}
@@ -62,35 +62,42 @@ Datalog fits well as a structuring tool for these analyses due to its incrementa
 
 \noindent\textbf{Negation.}
 In previous work, the framework runs an analysis ``to completion'' before proceeding.
-When a later analysis uses the results of the analysis, it can use them in two ways.
+A later analysis can use the results of a prior analysis in two different ways.
 The first way is direct consumption of the facts provided by the analysis.
 In the case of a control flow recovery analysis, this would be treating a jump as possible because it is present in the returned CFG.
 The second way is a consumption of information on what was \emph{not} returned by the analysis.
-Following the control flow example, the later analysis may assume that because the control flow analysis has completed and will not be extended, any edge not present in the recovered control flow graph cannot happen.
+Following the control flow example, the later analysis may assume that because the control flow analysis has completed, any edge not present in the recovered control flow graph cannot happen.
 In this way previous frameworks implicitly encoded \emph{negated} information.
 Similarly, the a dataflow analysis producing an upper bound which increases throughout the analysis, such as a may-alias dataflow (\S~\ref{alias:sec:dataflow}), is not meaningful until it can no longer grow.
-As a result, the usability of a dataflow analysis depends on the \emph{negated} information that no larger upper bound will be created, normally determined by waiting for the analysis to complete. 
+As a result, the usability of a dataflow analysis implicitly depends on the \emph{negated} information that no larger upper bound will be created, normally determined by waiting for the analysis to complete. 
 
-Co-dependence eliminates the ability to stage analyses since it may not be possible to know that an analysis phase will not continue later.
+Co-dependence eliminates the ability to stage analyses since it may not be possible to know that an analysis will not continue later.
 As a result, the use of negated information must be made explicit (\S~\ref{holmes:sec:circ}).
-Explicit negation also allows us to deal with more exotic control flow than ``to completion''
+Explicit negation also allows us to deal with more exotic control flow than ``to completion''.
 {\sc BiTR} performs simultaneous constraint solving for type inference, with a goal of ignoring as few constraints as possible while still arriving at a consistent answer.
 Our form of negation is useful for describing that a particular solution is minimal (\S~\ref{bitr:sec:circ}), and avoiding the computation of non-minimal solutions.
 
 \noindent\textbf{External Code.}
 Datalog systems use external predicates to allow programmers to specify functionality outside the catalog programming language.
 Access to external code is important to allow the use of already existing analysis code, such as BAP~\cite{bap} lifting and ELF parsing.
+External code also allows us to utilize traditional imperative data structures, such as hash tables, during the implementation of performance critical analyses (\S~\ref{chap:alias}).
 We allow a more limited form of external predicates we call \emph{callbacks}.
-The use of callbacks as opposed to external predicates to more easily implement the engine (\S~\ref{holmes:sec:implcall}).
-It also allows us to utilize traditional imperative data structures, such as hash tables, during the implementation of performance critical analyses (\S~\ref{chap:alias}).
+The use of callbacks as opposed to external predicates allows us to more easily implement the engine (\S~\ref{holmes:sec:implcall}).
 
 We investigated our thesis statement by designing and implementing \sysname, a logic language engine designed for the integration of binary analyses.
 BiTR (\S~\ref{chap:bitr}) inspired this design.
 For this purpose we invented a novel form of negation, based on circumscription~\cite{circumscription} suited to this particular application (\S~\ref{holmes:sec:circ}).
 This negation can further make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}).
-This adaptation allows Holmes to resolve an output even in the case of a negation cycle, as would be the case with a co-dependent control flow recovery and a value analysis assuming completeness of the control flow graph.
-This is concretely the case in the use of VSA to resolve function pointers.
+This adaptation allows Holmes to resolve an output even in the case of cyclic negation.
+This is concretely the case in the use of VSA to resolve function pointers or other indirect jumps.
 We also investigated different implementation approaches for \sysname (\S~\ref{holmes:sec:impl}).
+
+We present a type recovery mechanism for compiled code which inspired the Holmes design (\S~\ref{chap:bitr}).
+We define a \emph{descriptive} type system, more powerful than direct C types for performing inference, wile being more flexible than a traditional prescriptive type system (\S~\ref{sec:typesys}).
+We address the problem of inconsistent type constraints by suggesting a resolution system which seeks a solution in which it drops the fewest constraints (\S~\ref{sec:infmeth}).
+Finally, previous work in type recovery used a metric which minimized the importance of correct recovery of structure types.
+In \S~\ref{subsec:metrics}, we provide a novel metric for type recovery based on the probability of correctness of any individual query by a reverse engineer or downstream analysis.
+Throughout, we show how the design and implementation of BiTR motivates the features selected for Holmes.
 
 We provide a specification for the Holmes logic language (\S~\ref{chap:formal}).
 This enhances the ability to reason about the results of an analysis by constraining what derivations the analysis engine may follow.
@@ -104,10 +111,3 @@ We translate analysis techniques from the compiler and program analysis communit
 We measure the performance cost and precision benefits of different sensitivities of alias analysis by leveraging the modularity of the \sysname-based implementation (\S~\ref{alias:sec:eval}).
 We did not set out to invent a new or better alias analysis.
 Rather, we set out to demonstrate the suitability of \sysname\ as a platform for this type of analysis.
-
-We present a type recovery mechanism for compiled code which would be well suited to a Holmes-based implementation (\S~\ref{chap:bitr}).
-This demonstrates that even work written without \sysname in mind may be naturally translatable into a Holmes implementation.
-We define a \emph{descriptive} type system, more powerful than direct C types for performing inference, wile being more flexible than a traditional prescriptive type system (\S~\ref{sec:typesys}).
-We address the problem of inconsistent type constraints by suggesting a resolution system which seeks a solution in which it drops the fewest constraints (\S~\ref{sec:infmeth}).
-Finally, previous work in type recovery used a metric which minimized the importance of correct recovery of structure types.
-In \S~\ref{subsec:metrics}, we provide a novel metric for type recovery based on the probability of correctness of any individual query by a reverse engineer or downstream analysis.
