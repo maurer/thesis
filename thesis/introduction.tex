@@ -9,13 +9,14 @@ In this model, an analysis author must ensure the framework calculates any infor
 Representing individual analyses as nodes with a directed edge between $n_1$ and $n_2$ indicating that $n_1$ must execute before $n_2$, this graph forms a sequence or line.
 
 Compilers have moved from this sequence or \emph{line} model to a dependency-based \emph{DAG} model to avoid the cumbersome explicit staging inherent to the line model.
-The line model is essentially an ad-hoc form of LLVM\cite{llvm}'s pass model.
+The widely used compiler backend LLVM\cite{llvm} instead uses a ``pass'' model.
+The line model is essentially an ad-hoc form of LLVM's pass model.
 In LLVM's pass model, each pass declares what analyses it depends upon, allowing the LLVM pass manager to dynamically schedule the analyses and allow a configurable pipeline.
 Considering the graph representation again, LLVM's model is a DAG.
 The execution order selected by LLVM's engine would be one of the valid sequences a careful programmer could have picked in the line model.\footnote{Assuming a single evaluation thread.}
 
 This DAG model works well over source code, but falls short when applied to compiled code.
-Jakstab~\cite{jakstab} argues for the co-dependency of value analysis and lifting. 
+The binary analysis tool Jakstab~\cite{jakstab} focuses on the co-dependency of value analysis and lifting. 
 It takes the approach of running these two analyses to a fixed point, and provides a hook for user-defined analyses to run on each iteration.
 The graph of execution dependencies looks like a single cycle because Jakstab does not explicitly encode analysis dependencies.
 The Jakstab approach is undoubtably a step forwards.
@@ -24,10 +25,10 @@ A natural extension is to allow the expression of dependencies, as in LLVM, but 
 We investigate this full graph model of analysis management in this thesis.
 
 We often want co-dependent analysis to detect bugs.
-Jakstab~\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to better results than IDA\cite{ida} for jump resolution.
+Jakstab~\cite{jakstab} is one example where simply integrating two analyses (value analysis and control flow recovery/disassembly) lead to better results than IDA\cite{ida} (the industry standard for reverse engineering) for jump resolution.
 The result is that an evaluation of a security property done over the CFG presented by IDA would miss some true positives along the undetected control flow edges.
 Specifying these analyses as logical rules within the same environment would provide the same power Jakstab found by integrating them for free.
-Doop\cite{doop1} found that integrating exception analysis and points-to analysis gave them candidate target sets which were half the size on average for each object.
+Investigations via the Doop\cite{doop1} system for program analysis found that integrating exception analysis and points-to analysis gave them candidate target sets which were half the size on average for each object.
 Extra precision of this sort translates into reduced false positives when evaluating security conditions over the program.
 
 Our main insight is that we need an analysis framework that allows for arbitrary cycles in the dependency graph.
@@ -74,7 +75,7 @@ As a result, the usability of a dataflow analysis implicitly depends on the \emp
 Co-dependence eliminates the ability to stage analyses since it may not be possible to know that an analysis will not continue later.
 As a result, the use of negated information must be made explicit (\S~\ref{holmes:sec:circ}).
 Explicit negation also allows us to deal with more exotic control flow than ``to completion''.
-{\sc BiTR} performs simultaneous constraint solving for type inference, with a goal of ignoring as few constraints as possible while still arriving at a consistent answer.
+Our binary type reconstructor {\sc BiTR} performs simultaneous constraint solving for type inference, with a goal of ignoring as few constraints as possible while still arriving at a consistent answer.
 Our form of negation is useful for describing that a particular solution is minimal (\S~\ref{bitr:sec:circ}), and avoiding the computation of non-minimal solutions.
 
 \noindent\textbf{External Code.}
@@ -85,11 +86,14 @@ We allow a more limited form of external predicates we call \emph{callbacks}.
 The use of callbacks as opposed to external predicates allows us to more easily implement the engine (\S~\ref{holmes:sec:implcall}).
 
 We investigated our thesis statement by designing and implementing \sysname, a logic language engine designed for the integration of binary analyses.
-BiTR (\S~\ref{chap:bitr}) inspired this design.
+{\sc BiTR} (\S~\ref{chap:bitr}) inspired this design.
 For this purpose we invented a novel form of negation, based on circumscription~\cite{circumscription} suited to this particular application (\S~\ref{holmes:sec:circ}).
 This negation can further make progress from failed hypotheses (\S~\ref{holmes:sec:callcc}).
 This adaptation allows Holmes to resolve an output even in the case of cyclic negation.
-This is concretely the case in the use of VSA to resolve function pointers or other indirect jumps.
+This is concretely the case in the use of VSA\cite{vsa}\footnote{
+	Value-set-analysis is the current state of the art for performing range analysis for variables in binary code.
+}
+to resolve function pointers or other indirect jumps.
 We also investigated different implementation approaches for \sysname (\S~\ref{holmes:sec:impl}).
 
 We present a type recovery mechanism for compiled code which inspired the Holmes design (\S~\ref{chap:bitr}).
@@ -97,7 +101,7 @@ We define a \emph{descriptive} type system, more powerful than direct C types fo
 We address the problem of inconsistent type constraints by suggesting a resolution system which seeks a solution in which it drops the fewest constraints (\S~\ref{sec:infmeth}).
 Finally, previous work in type recovery used a metric which minimized the importance of correct recovery of structure types.
 In \S~\ref{subsec:metrics}, we provide a novel metric for type recovery based on the probability of correctness of any individual query by a reverse engineer or downstream analysis.
-Throughout, we show how the design and implementation of BiTR motivates the features selected for Holmes.
+Throughout, we show how the design and implementation of {\sc BiTR} motivates the features selected for Holmes.
 
 We provide a specification for the Holmes logic language (\S~\ref{chap:formal}).
 This enhances the ability to reason about the results of an analysis by constraining what derivations the analysis engine may follow.
