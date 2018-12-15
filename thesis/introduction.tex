@@ -92,9 +92,9 @@ This adaptation allows Holmes to resolve an output even in the case of a negatio
 This is concretely the case in the use of VSA to resolve function pointers.
 We also investigated different implementation approaches for \sysname (\S~\ref{holmes:sec:impl}).
 
-We provide a formal semantics for the Holmes logic language (\S~\ref{chap:formal}).
-These semantics enhance the ability to reason about the results of an analysis by formally constraining what derivations the analysis engine may follow.
-They also make it possible to determine compliance for alternative implementations of the engine, potentially allowing programs to run on backends other than the initial one written for this thesis.
+We provide a specification for the Holmes logic language (\S~\ref{chap:formal}).
+This enhances the ability to reason about the results of an analysis by constraining what derivations the analysis engine may follow.
+The specification also makes it possible to determine compliance for alternative implementations of the engine, potentially allowing programs to run on backends other than the initial one written for this thesis.
 
 We show that \sysname can implement different sensitivities of alias analysis, and show how this affects practical use-after-free classification (\S~\ref{chap:alias}).
 We implemented co-dependent alias analysis, use-after-free detection, and control flow recovery using \sysname.
