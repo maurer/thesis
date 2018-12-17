@@ -8,30 +8,30 @@ Adding call/cc forces a solution to exist when it otherwise would not, adding a 
 
 We will first go over the negation model embedded at base Datalog to demonstrate how it works (\S~\ref{formal:sec:negation}).
 Then, we will show how to construct the Herbrand universe for a program with callbacks, aggregates, and circumscription (\S~\ref{formal:sec:herbrand}).
-Finally, I will give semantics for the Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
+Finally, we will give semantics for the Herbrand instantiation of a Holmes program which interprets circumscription as infinite negation, and call/cc as the failure of one of those negated terms (\S~\ref{formal:sec:semantics}).
 %TODO add any proofs to intro
 \section{Negation}
 \label{formal:sec:negation}
 \subsection{Other forms of Negation}
 \label{formal:sec:otherneg}
-The first primary distinction to draw in negation is ``strong negation'' vs ``negation-as-failure'', or NaF.
+The first primary distinction to draw in negation is \emph{strong negation} vs \emph{negation-as-failure}, or NaF.
 Strong negation describes having knowledge that something is not the case, whereas NaF describes knowing that we will never have proof that something is the case.
 This difference is more formally defined by Gelfond and Lifshitz~\cite{strongneg}.\footnote{
 This aricle refers to strong negation as classical negation.
-}I
+}
 In this work we will focus on negation-as-failure.
 
-One way of interpreting negation is ``stable-set'' semantics~\cite{stablemodel}.
+One way of interpreting negation is \emph{stable-set} semantics~\cite{stablemodel}.
 In stable-set semantics, to check whether a proposed model is a stable set, we first take the reduct of the logic program under the proposed model.
 To do this, we remove all negated body clauses which are not present in the proposed model (and so are satisfied), and then remove all rules which still have negated clauses in them (which were not satisfied).
 If the model is the minimal model of this reduct (this new reduced program), then it is a stable set, or stable model of the program.
 This interpretation admits an arbitrary number of potential stable models, including none.
 
-Another approach is ``well-founded negation''~\cite{wellfounded}.
-This approach constructs what it calls ``unfounded sets''.
+Another approach is \emph{well-founded negation}~\cite{wellfounded}.
+This approach constructs what it calls \emph{unfounded sets}.
 These are sets of values which, relative to a given partial interpretation, are unprovable.
 It then augments the partial interpretation with the negation of the unfounded set, and constructs a new minimal model, treating negated clauses as only true if explicitly present in the new partial interpretation.
-This procedure runs until it reaches a fixpoint, and produces exactly one well-founded partial model, which will be a subset of all stable models~\cite{wellfounded}.
+This procedure runs until it reaches a fixed point, and produces exactly one well-founded partial model, which will be a subset of all stable models~\cite{wellfounded}.
 
 In our case, stable-set semantics falls short due to the potential for no model, and the well-founded approach may return partial solutions if there is no stable set or multiple stable sets.
 \subsection{Negation in Holmes}
@@ -123,13 +123,13 @@ We complete the Kripke frame by defining the accessibility as transitive closure
 \]
 
 We consider a formula $F$ true for an input program $\Pi$ if $\Pi \models \dia  F$ under this frame.
-Here, $\dia$ means ``possibly'', so this condition says that it is possibly the case that this formula holds.
+Here, $\dia$ means possibly, so this condition says that it is possibly the case that this formula holds.
 We can visualize this on a directed graph with worlds as nodes and the single-step form of our accessibility relation ($\stepass$) as an edge.
-This condition means that if we start from $\Pi$, our input program, we can find a connected program $\Pi'$, so that no matter what path we take forwards from there, the formula $F$ holds.
+This condition means that if we start from $\Pi$, our input program, we can find a connected program $\Pi'$ so that $\Pi' \models F$.
 Conceptually, this means that there exists an allowed choice of assumptions so that $F$ holds.
 
 \subsubsection{Example}
-Consider the program we Herbrandized previously, extended with the initial EDB $\{r\}$, calling the initial program $\Pi_0$.
+Consider the program we Herbrandized previously, extended with the initial fact $\{r\}$, calling the initial program $\Pi_0$.
 Initially, we have that $\Pi_0 \models r$.
 We cannot derive any more from $\Pi_0$ because $r$ is not sufficient to invoke any rule through m.p.
 We proceed by considering a candidate world $\Pi_1 = \Pi_0 \cup \{\neg u \leftarrow\}$.
@@ -173,8 +173,8 @@ Since $\Pi_0 \leq \Pi_3$, we can additionally say that the above formula is poss
 \]
 
 \subsubsection{call/cc}
-Adding the \trule{assume-true} rule is what differentiates our negation model.
-This rule allows the addition of positive assumptions (e.g. assuming $p$ as opposed to only being able to assume $\neg p$).
+Adding the \trule{assume-true} rule is what differentiates our negation model from stable-set semantics.
+This rule allows the addition of positive assumptions (i.e. assuming $p$ as opposed to only being able to assume $\neg p$).
 We specifically restrict this rule so that it requires that $p$ is not decided, and $\neg p$ would prevent a complete, consistent truth assignment to predicates.
 By restricting \trule{assume-true} we still rule out trivial solutions like setting everything true, but in a looser way than the minimal model over the reduct (\S~\ref{formal:sec:otherneg})
 It is looser because it allows for models which are not minimal over the reduct.
@@ -218,28 +218,32 @@ Since $\Pi \stepass \Pi^+$, by \trule{refl} and \trule{assume} $\Pi \leq \Pi^+$,
 \]
 
 This simple example shows the differences between the approaches.
-In the face of this kind of uncertainty, stable-set semantics will choose not to give an answer, well-founded semantics will not decide either way, and circumscriptive semantics will make concessions to return a consistent complete answer. 
+In the face of this kind of uncertainty, stable-set semantics will choose not to give an answer, well-founded semantics will not decide either way, and Holmes-style semantics will allow some predicates to be made true without justification to return a consistent complete answer. 
 
 In Holmes, circumscription corresponds to a potentially-infinite variety of \trule{assume-false} in which the program assumes false every version of a specific aggregate greater than the proposed circumscription.
 call/cc corresponds to \trule{assume-true}, but is a bit more complex.
 With finite \trule{assume-false}, the \trule{assume-true} rule can assert as true the undecided predicate for which \trule{assume-false} failed.
 Since circumscription assumes false for multiple predicates, call/cc must select a specific predicate amongst those which has itself given rise to a contradiction to assert as true.
 
-\section{Herbrandization}
+\section{Herbrandization (Revisited)}
 \label{formal:sec:herbrand}
-First, we define the Herbrand universe and base.
-Then, we describe how to instantiate a Holmes program at this universe.
+In the previous setting, we did not have any form of external code, and so could not produce new symbols.
+Now, we have both interpreted functions and lattice joins.
+We first show how to define the Herbrand universe and base in the presence of these complications.
+Then, we show how to instantiate a Holmes program at a Herbrand base constructed this way.
+In the previous setting, this just eliminated variables in the rules.
+Now, we also remove the callbacks and aggregates.
 
 \subsection{Herbrand universe}
 \label{formal:sec:callbacks}
 Instead of function symbols which produce new values, as in a traditional construction, we have interpreted functions and lattice joins.
-This is different from the normal construction because interpreted functions both interpreted functions and lattice meets may produce values which are equal to existing values.
+This is different from the normal construction because both interpreted functions and lattice joins may produce values which are equal to existing values.
 To address the equality issue, we assume that our construction receives the implementations of the callbacks and join operations as the real program would, and actually execute them on input values rather than creating symbolic expansions.
 
 Define $U_0$ to be those constants present in the program, combined with varieties tupled up to the maximum arity of the provided functions.
 Consider joins as equivalent to callbacks which just happen to return only one argument.
 Let $F$ be the set of functions, modified to take tuples for multiple arguments, and to return their results ``flattened'', e.g. if a callback would return $a = 1, b = 2$ and $a = 3, b = 4$, its representative in $F$ returns $\{1, 2, 3, 4\}$.
-Since both meets and callbacks are typed, if an input would be outside their domain, they return $\emptyset$.
+Since both joins and callbacks are typed, if an input would be outside their domain, they return $\emptyset$.
 
 Given $U_i$, construct $U_{i + 1}$ by
 \[
@@ -250,15 +254,20 @@ We then combine these stages:
 	\hu = \lim_{j \rightarrow \infty} \bigcup_{0 \leq i < j} U_i
 \]
 
+The resulting universe will only be finite if the closure of all the functions and lattice joins over the original symbols is finite.
+This is unlikely to be the case in practical programs: even adding an ``increment'' function is sufficient to cause an infinite universe here.
+
 We construct the Herbrand base $\hb$ in the usual way, instantiating each predicate at every value of $\hu$.
 
 \subsection{Program Instantiation}
 For predicates which have aggregation (\S~\ref{holmes:sec:agg}), rewrite them as rules with interpreted functions.
-If we have
+Recall that
 \[
 	P(\tau_0 \cdots \tau_m, \sigma_0\wedge j_0 \cdots \sigma_n \wedge j_n)
 \]
-then we create a new function
+means we have a predicate $P$, which when two instances of $P$ are known for which the first $m + 1$ arguments are equal, the latter $n + 1$ arguments will have their information merged by a lattice join operation indicated by $j_i$.
+
+To translate the above form, we create a new function
 \[
 	j(a_0 \cdots a_n, b_0 \cdots b_n) = \{c_0 = j_0(a_0, b_0) \cdots c_n = j_n(a_n, b_n)\}
 \]
@@ -270,10 +279,11 @@ where $+ j$ as in the informal Holmes description means to attach the function $
 
 We define a partial ordering over facts in aggregate predicates based on the lattices used to combine their fields.
 For a predicate $P$ defined as above, and
-\[
-	P_a = P(x_0 \cdots x_m, y_0 \cdots y_n)
+\begin{align}
+	P_a = P(x_0 \cdots x_m, y_0 \cdots y_n)\\
 	P_b = P(x_0 \cdots x_m, z_0 \cdots z_n)
-\]
+\end{align}
+we define the partial ordering as
 \[
 	P_a \leq P_b \leftrightarrow \bigwedge_{i = 0}^n y_i \leq z_i
 \]
@@ -291,7 +301,7 @@ Finally, for each $P_c$, add a rule
 	\bot \leftarrow P_c(\vec{x}, \vec{y}) \wedge P(\vec{x}, \vec{z}) + \textrm{P-less-than}
 \]
 where P-less-than checks whether $P_c(\vec{x}, \vec{y}) < P(\vec{x}, \vec{z})$ (defined via $\leq$ and $\neq$) and returns a singleton list of no assignments if so, and an empty list otherwise.
-This essentially adds a ``check'' rule saying that an upper bound proposed by $P_c$ must not contradict known information about $P$.
+This essentially adds a rule saying that an upper bound proposed by $P_c$ must not contradict known information about $P$.
 
 Now, the program looks like normal Datalog but with functions attached to some rules.
 For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body clause, and instantiate the head term.
@@ -308,7 +318,7 @@ Let $\circset(\Pi) \subseteq \hb(\Pi)$ be the set of circumscripted facts added,
 
 Let $\aggset(\Pi)$ be a set of tuples of an aggregated predicate and all of its non-aggregated inputs.
 For example, for $P(x_0, \cdots x_n, y_0, \cdots y_m)$ and all $y$ are aggregated, $(P, x_0, \cdots x_n)$ for each possible value of $x_0$ through $x_n$ would be present in $\aggset(\Pi)$.
-We will refer to members of $\aggset(\Pi)$ as ``aggregates''.
+We will refer to members of $\aggset(\Pi)$ as \emph{aggregates}.
 
 Let $\circset_a(\Pi)$ where $a \in \aggset(\Pi)$ be the set of circumscriptions which correspond to that aggregation specifically.
 This is a partitioning of $\circset(\Pi)$.
