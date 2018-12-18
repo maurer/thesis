@@ -51,7 +51,7 @@ As the callback only occurs at the \emph{end} of a query, there will only be one
 The callback restriction simplifies the design of the Datalog engine (the join engine is entirely separate from the callbacks), at the cost of the ability for a sufficiently advanced engine to better optimize such queries.
 
 \subsection{Monotonic Aggregation}
-Traditionally in Datalog, match clauses may only access a fixed (though arbitrary) number of facts at the same time.
+Traditionally in Datalog, the body of a rule may only access a fixed (though arbitrary) number of facts at the same time.
 Even counting can be difficult.
 To verify that there are at least three instances of some predicate p, one would normally write:
 \begin{verbatim}
@@ -123,7 +123,7 @@ To address this need, we add hypothetical circumscription.
 The core concept is that we can at need assume that a particular chunk of information is expanded, and reason forwards.
 In the event that this turns out to be false, we can retract that assumption, and reason forwards again.
 This allows us to deal with cases of negation which are not trivially stratified.
-In the language, this feature is implemented as the an additional kind of match clause.
+In the language, this feature is implemented as the an additional kind of body atom.
 If a rule circumscriptively matches on an aggregated predicate, the resulting computation will be as if it matched only on the aggregation which is present in the final fixpoint database.
 Circumscription is in contrast with monotonic aggregation, where rules must have correct operation for any subset of the possible aggregations along the way.
 This can be used to implement the stratified case in a straightforward manner, and also to support dynamic negation as describe in the never-returning example above.

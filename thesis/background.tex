@@ -141,11 +141,11 @@ Following in the vein of the previous examples,
         \frule{\pred{sibling}{\var{X}, \var{Y}}}{\pred{parent}{\var{P}, \var{X}}, \pred{parent}{\var{P}, \var{Y}}}
 \]
 expresses that if for some assignment to $\var{P}$, $\var{X}$, and $\var{Y}$, we know that $\var{X}$ shares parent $\var{P}$ with $\var{Y}$, then we can derive that $\var{X}$ and $\var{Y}$ are siblings.
-The left hand side is the \emph{head clause} and represents the template used to build new facts with this rule.
-The right hand side is the \emph{body clause} and describes the search or match which must have a result on the database.
+The left hand side is the \emph{head} and represents the template used to build new facts with this rule.
+The right hand side is the \emph{body} and describes the search or match which must have a result on the database.
 An evaluation engine applies rules``to saturation''.
-This means that it applies all rules repeatedly until the body clause no longer has any new matches in the database.\footnote {
-Without external code, this is equivalent to ``the head clause is in the database, or the body clause does not match``. With external code however, the head clause is not necessarily predictable, so we instead describe each rule triggering at most once per assignment of variables which matches the database.
+This means that it applies all rules repeatedly until the body no longer has any new matches in the database.\footnote {
+Without external code, this is equivalent to ``the head is in the database, or the body does not match``. With external code however, the head is not necessarily predictable, so we instead describe each rule triggering at most once per assignment of variables which matches the database.
 }
 Given this, rule declaration order is irrelevant.
 \footnote{
@@ -217,9 +217,9 @@ The only real difference is that the second and third rule will fire recursively
 %   * Termination
 \subsubsection{Termination}
 It might be surprising to realize that the language as described thus far is actually terminating despite allowing recursive rules.
-Head clauses construct facts with variables or directly with values.
-If constructed with a variable, the body clause must bind that variable.
-If a body clause binds a variable to a value, that value must have been in the database.
+Heads construct facts with variables or directly with values.
+If constructed with a variable, the body must bind that variable.
+If a body binds a variable to a value, that value must have been in the database.
 As a result, the only possible values are those which were in the extensional database and those mentioned concretely in the rules.
 With a finite domain of values and a finite list of predicates, there is a finite list of facts which any execution could instantiate.
 
@@ -248,7 +248,7 @@ One way to deal with this issue is to introduce external predicates: predicates 
 Instead, the engine computes or queries its truth from some external system when needed.
 This leads to the need for a mode system.
 Consider an external predicate $\pred{sum}{\cdot, \cdot, \cdot}$, where the first entry is the sum of the other two.
-When trying to match the body clause of a rule, it becomes important that at the match algorithm sends at least two values to the external code; if only it only sends one, the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
+When trying to match the body of a rule, it becomes important that at the match algorithm sends at least two values to the external code; if only it only sends one, the resulting match set will have the enormous size of $|\mathbf{D}|^2$ where $\mathbf{D}$ is our domain set.
 In the case of functions designed to be hard to invert (e.g.,\ a hash function), this becomes not only a result size concern and an actual implementability concern.
 To deal with this, external predicates can have ``mode signatures''.
 These signatures explain which entries are logical inputs and which are outputs.

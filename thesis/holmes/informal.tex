@@ -17,12 +17,12 @@ derefs_var {var: Var, loc: Location}
 \end{verbatim}
 To avoid confusion, a predicate may only be defined in one of these two styles.
 
-Rule declarations contain a rule name, a head clause, and a body clause.
+Rule declarations contain a rule name, a head, and a body.
 The rule name is used purely for error reporting, debugging, and provenance reporting.
 It does not have any effect on the operation of the program.
-A body clause consists of a series of match clauses, joined by \texttt{\&} symbols.
-The order of match clauses in the body clause has no effect on the program.
-Match clauses are written in one of two styles depending on the style of the predicate.
+A body consists of a series of atoms, joined by \texttt{\&} symbols.
+The order of atoms in the body has no effect on the program.
+Matches are written in one of two styles depending on the style of the predicate.
 
 If the predicate is a tuple style predicate, we can write
 \begin{verbatim}
@@ -41,7 +41,7 @@ First, unused fields need not be named (y in this case).
 We could write \texttt{y: \_}, but it is unnecessary, making it easier to work with higher arity predicates.
 Secondly, referencing a field with no binding implicitly binds it to a variable of the same name (\texttt{w} expands to \texttt{w: w} in the example).
 
-Head clauses are written exactly as match clauses, except that unbound fields and fields bound to variables not defined by the right side of the rule are disallowed.
+Heads are written exactly as a body atom, except that unbound fields and fields bound to variables not defined by the right side of the rule are disallowed.
 Putting it all together, a rule looks like
 \begin{verbatim}
 reaching_propagate: reaching {loc, var} <-
@@ -52,7 +52,7 @@ reaching_propagate: reaching {loc, var} <-
 Rules written like this act as normal Datalog rules, interpreted with a fixpoint semantics.
 If facts are present in the database so that an assignment to variables exists for which the right side is all present, then the left hand side will be added to the database.
 
-Queries are essentially named body clauses, which may be evaluated as a way of querying the program state by the embedding language.
+Queries are essentially named body, which may be evaluated as a way of querying the program state by the embedding language.
 The name of a query determines the name of the function which will appear in the interface of the resulting database object.
 Queries are written
 \begin{verbatim}
@@ -66,10 +66,10 @@ Facts are inserted at the level of the embedding language, the database can be r
 \label{holmes:sec:callback}
 Callbacks are used in Holmes to allow the use of more traditional procedural or functional style code for some rules.
 After writing a rule, add \texttt{+ f}, where \texttt{f} is the name of the callback to be invoked.
-When the rule is considered, it will first try to match its body clause.
+When the rule is considered, it will first try to match its body.
 If this succeeds, the variable assignments which match will be passed, one at a time, to \texttt{f}.
-\texttt{f} will return for each input assignments a list of assignments to those variables present in the head clause, but unbound by the body clause.
-If there are no variables left undefined in the head clause, whether \texttt{f} returns a least an empty assignment structure (e.g. a list of one element, with that element being the null assignment) determines whether the rule will actually produce its head.
+\texttt{f} will return for each input assignments a list of assignments to those variables present in the head, but unbound by the body.
+If there are no variables left undefined in the head, whether \texttt{f} returns a least an empty assignment structure (e.g. a list of one element, with that element being the null assignment) determines whether the rule will actually produce its head.
 For example, in the rule
 \begin{verbatim}
 simple_func: p(y) <- q(x) & r(x) + f
@@ -116,7 +116,7 @@ Our inferences will not become wrong in the future, because the predicate descri
 \subsection{Hypothetical Circumscription}
 \label{holmes:sec:circ}
 Hypothetical circumscription extends monotonic aggregation by allowing us to only examine the largest aggregation we find.
-Circumscription is written on a match clause by prepending a tilde to the the query.
+Circumscription is written on an atom by prepending a tilde to the predicate name.
 If we extend the example from monotonic aggregation with a circumscriptive match on p, e.g.
 \begin{verbatim}
 promote_complete: r(x, ints) <- ~p(x, ints)

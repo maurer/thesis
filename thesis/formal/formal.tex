@@ -23,21 +23,21 @@ In this work we will focus on negation-as-failure.
 
 One way of interpreting negation is \emph{stable-set} semantics~\cite{stablemodel}.
 In stable-set semantics, to check whether a proposed model is a stable set, we first take the reduct of the logic program under the proposed model.
-To do this, we remove all negated body clauses which are not present in the proposed model (and so are satisfied), and then remove all rules which still have negated clauses in them (which were not satisfied).
+To do this, we remove all negated atoms in the body which are not present in the proposed model (and so are satisfied), and then remove all rules which still have negated atoms in them (which were not satisfied).
 If the model is the minimal model of this reduct (this new reduced program), then it is a stable set, or stable model of the program.
 This interpretation admits an arbitrary number of potential stable models, including none.
 
 Another approach is \emph{well-founded negation}~\cite{wellfounded}.
 This approach constructs what it calls \emph{unfounded sets}.
 These are sets of values which, relative to a given partial interpretation, are unprovable.
-It then augments the partial interpretation with the negation of the unfounded set, and constructs a new minimal model, treating negated clauses as only true if explicitly present in the new partial interpretation.
+It then augments the partial interpretation with the negation of the unfounded set, and constructs a new minimal model, treating negated atoms as only true if explicitly present in the new partial interpretation.
 This procedure runs until it reaches a fixed point, and produces exactly one well-founded partial model, which will be a subset of all stable models~\cite{wellfounded}.
 
 In our case, stable-set semantics falls short due to the potential for no model, and the well-founded approach may return partial solutions if there is no stable set or multiple stable sets.
 \subsection{Negation in Holmes}
-Traditional Datalog consists only of a head clause, implied by a series of body clauses.
-In addition to this, we allow clauses to be optionally negated.
-In the original input program, the head clause may not be negated.
+Traditional Datalog consists only of a head which is implied by a series of atoms making up a body.
+In addition to this, we allow the atoms of the body to be optionally negated.
+In the original input program, the head may not be negated.
 
 As we have no function symbols or interpreted functions, we define a Herbrand universe $\hu$ which is simply the set of constants in the program.
 $\hb$ is the set of every predicate instantiated at every combination of values in $\hu$.
@@ -277,7 +277,7 @@ and add the rule (\S~\ref{holmes:sec:callback})
 \[
 	P(x_0 \cdots x_m, c_0 \cdots c_n) \leftarrow P(x_0 \cdots x_m, a_0 \cdots a_n), P(x_0 \cdots x_m, b_0 \cdots b_n) + j
 \]
-where $+ j$ as in the informal Holmes description means to attach the function $j$ to run after the match to generate a set of assignments to variables in the head clause not bound by the body.
+where $+ j$ as in the informal Holmes description means to attach the function $j$ to run after the match to generate a set of assignments to variables in the head not bound by the body.
 
 We define a partial ordering over facts in aggregate predicates based on the lattices used to combine their fields.
 For a predicate $P$ defined as above, and
@@ -306,7 +306,7 @@ Here, we are using the $\bot$ value added to the Herbrand baseto indicate that t
 This essentially adds a rule saying that an upper bound proposed by $P_c$ must not contradict known information about $P$.
 
 After translating aggregation and circumscription, the program looks like normal Datalog but with functions attached to some rules.
-For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body clause, and instantiate the head term.
+For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body, and instantiate the head term.
 This will result in a rules of the form
 \[
 	p \leftarrow \bigwedge q_i

@@ -115,7 +115,7 @@ The implementation is available at \url{https://github.com/maurer/mycroft}, and 
 \subsubsection{Callbacks vs. External Predicates}
 \label{holmes:sec:implcall}
 By selecting callbacks instead of external predicates, we pushed some of the execution strategy back onto the programmer, rather than needing the engine to determine it.
-With even one external predicate, it will not be clear to the engine how to structure the body clause match most efficiently without hints.
+With even one external predicate, it will not be clear to the engine how to structure the search for solutions to the body most efficiently without hints.
 For example, if we have $p(x,y) \& q(x, z) \& r(x, z)$, where $p$ and $q$ are traditional predicates, and $r(-, +)$ is external, there are three possible match orders.
 We could match on $p$, then invoke $r$, then match on $q$, the reverse, or match on $p$ and $q$, then invoke $r$.
 All have merits depending on the extents of $p$ and $q$ and the runtime characteristics of $r$.
@@ -126,7 +126,7 @@ With multiple external predicates in the same rule, the problem is exacerbated, 
 
 Using the callback method, the programmer knows the callback will only be invoked on a complete match, and may use an intermediate predicate to structure the matching strategy how they choose.
 Additionally, since the functions are mono-directional and occupy a special place in the language, this removes the complexity of mode checking from both the compiler and the author/reader of code.
-In our implementation, the staging is explicit: The body clause is matched in its entirety, any callback is run, and the head is instantiated.
+In our implementation, the staging is explicit: The body is matched in its entirety, any callback is run, and the head is instantiated.
 
 This method does have one performance downside.
 As \sysname\ does not have any notion of a temporary predicate, any rules which would use two external predicates normally will potentially eat up additional space.
@@ -186,10 +186,10 @@ This is made easier by the use of integer-only tuples, as the non-constant argum
 Then, candidate variable bindings are made to the unification terms (if possible) and the next table is considered.
 When on the last table, if a candidate set of assignments to the unification terms can be completed, it is emitted and the index advanced by one step.
 If the index cannot advance or the index fails to unify with earlier tables, we know that no further result is possible, and go back one table, and continue.
-This approach keeps around only a small amount of additional state, linear in the number of clauses in the query, as it is returning results.
+This approach keeps around only a small amount of additional state, linear in the number of atoms in the query, as it is returning results.
 
 However, due to our need for \emph{incremental} results, we can improve this mechanism substantially.
-Rather than computing the entire join at once, we split it into sub-joins, one for each clause in the query.
+Rather than computing the entire join at once, we split it into sub-joins, one for each atom in the query.
 We have a separate, much smaller index for ``new'' facts in referenced predicates, requested by the query at database initialization time.
 We perform a sub-join with each predicate's large index swapped for this small index to get exactly those results which we would receive that we did not before, then chain them for a result.
 The small indexes are emptied during this operation, so they will not yield the same results again.
@@ -206,7 +206,7 @@ The join with $A'$ is similar, but the $A'$ portion of the join yields two facts
 \subsubsection{Provenance Tracking}
 In order to later manage circumscription, or to allow a human to trace the reasoning of a program, we need to keep track of where facts come from.
 To do this, in conjunction with each tuple we store a list of possible justifications.
-A justification is composed of the ID of a rule, and the IDs of the facts used to match the body clause of that rule.
+A justification is composed of the ID of a rule, and the IDs of the facts used to match the body of that rule.
 An aggregation is represented simply as the list of fact IDs aggregated for the match.
 A map is additionally maintained from fact IDs to justifications which contain them.
 
