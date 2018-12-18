@@ -257,7 +257,9 @@ We then combine these stages:
 The resulting universe will only be finite if the closure of all the functions and lattice joins over the original symbols is finite.
 This is unlikely to be the case in practical programs: even adding an ``increment'' function is sufficient to cause an infinite universe here.
 
-We construct the Herbrand base $\hb$ in the usual way, instantiating each predicate at every value of $\hu$.
+We construct the Herbrand base $\hb$ by instantiating each predicate at every value of $\hu$ and adding a $\bot$ value.
+When determining what facts may be derived, this $\bot$ acts just like any other member of the base.
+We will later make use of $\bot$ in order to indicate that a circumscription has been contradicted.
 
 \subsection{Program Instantiation}
 For predicates which have aggregation (\S~\ref{holmes:sec:agg}), rewrite them as rules with interpreted functions.
@@ -288,22 +290,22 @@ we define the partial ordering as
 	P_a \leq P_b \leftrightarrow \bigwedge_{i = 0}^n y_i \leq z_i
 \]
 where the lattice defined by the join operator $j_i$ defines the partial order for the  aggregate field with index $i$.
-If the first $m$ fields do not match, there is no ordering.
+If the first $m + 1$ fields do not match, then $P_a$ and $P_b$ are incomparable.
 
 For each aggregated predicate $P$, introduce an additional predicate $P_c$ with the same field types.
 $P_c$ will act as a concrete representation that $P$ at the same fields as $P_c$ would be a maximum on the ordering we defined.
 Essentially, it says that if $P_c(\vec{x}, \vec{y})$, then if $P(\vec{a}, \vec{b})$ is true, $P(\vec{a}, \vec{b}) \leq P(\vec{x}, \vec{y})$, or there is no ordering between them.
 
-Perform simple replacement of all circumscripted matches to $P$ with matches against $P_c$ \emph{and} $P$ at the same indices.
-If there was an unbound field, introduce a new variable and bind the $P$ and $P_c$ versions to be equal.
+Beginning with the Holmes program after translating aggregations as above, replace of all circumscripted matches to $P$ with matches against $P_c$ \emph{and} $P$ at the same indices.
 Finally, for each $P_c$, add a rule
 \[
 	\bot \leftarrow P_c(\vec{x}, \vec{y}) \wedge P(\vec{x}, \vec{z}) + \textrm{P-less-than}
 \]
 where P-less-than checks whether $P_c(\vec{x}, \vec{y}) < P(\vec{x}, \vec{z})$ (defined via $\leq$ and $\neq$) and returns a singleton list of no assignments if so, and an empty list otherwise.
+Here, we are using the $\bot$ value added to the Herbrand baseto indicate that this specific circumscriptive guess was contradicted.
 This essentially adds a rule saying that an upper bound proposed by $P_c$ must not contradict known information about $P$.
 
-Now, the program looks like normal Datalog but with functions attached to some rules.
+After translating aggregation and circumscription, the program looks like normal Datalog but with functions attached to some rules.
 For every element of the Herbrand universe, instantiate the rule, run the function concretely on the variables bound in the body clause, and instantiate the head term.
 This will result in a rules of the form
 \[
@@ -317,11 +319,11 @@ We begin by defining a few extra sets relative to the initial program which will
 Let $\circset(\Pi) \subseteq \hb(\Pi)$ be the set of circumscripted facts added, e.g. they were of the form $P_c(\cdot)$.
 
 Let $\aggset(\Pi)$ be a set of tuples of an aggregated predicate and all of its non-aggregated inputs.
-For example, for $P(x_0, \cdots x_n, y_0, \cdots y_m)$ and all $y$ are aggregated, $(P, x_0, \cdots x_n)$ for each possible value of $x_0$ through $x_n$ would be present in $\aggset(\Pi)$.
+For example, for $P(x_0, \cdots x_n, y_0, \cdots y_m)$ and all $y$ are aggregated, $P(x_0, \cdots x_n)$ for each possible value of $x_0$ through $x_n$ would be present in $\aggset(\Pi)$.
 We will refer to members of $\aggset(\Pi)$ as \emph{aggregates}.
 
-Let $\circset_a(\Pi)$ where $a \in \aggset(\Pi)$ be the set of circumscriptions which correspond to that aggregation specifically.
-This is a partitioning of $\circset(\Pi)$.
+Let $\circset_a(\Pi)$ where $a \in \aggset(\Pi)$ be the set of circumscribed facts which correspond to the aggregation $a$.
+For example, if $a = P(x_0, \cdots x_n)$, then $\circset_a(\Pi)$ would contain $P_c(x_0, \cdots x_n, y_0, \cdots y_m)$ for all possible values of $y_i$.
 
 Let $\decirc{\Pi}{c}$ where $c \in \circset(\Pi)$ be the non-circumscribed version of the fact, e.g. if $c$ corresponds to $P_c(x_0 \cdots x_n)$, then $\decirc{\Pi}{c} \in \hb$ corresponds to $P(x_0 \cdots x_n)$.
 
@@ -330,9 +332,8 @@ Most of this construction should look familiar from the simple negation semantic
 \[
 	\infer[\textrm{consistent}]{\cons{\Pi}}{\Pi \not \models \bot}
 \]
-Like previously, consistency here requires that a none of the negations assumed by a circumscription also be present in the model in a non-negated form.
-Since we added special guard rules when introducing the $P_c$ predicates, we can just check that $\bot$ cannot be directly derived to check consistency of the upper boundedness of a circumscription.
-Additionally, the circumscription requires support: the aggregate must have reached the point on the lattice that the circumscription asserts will be the exact value.
+Like previously, consistency here requires that none of the negations assumed by a circumscription also be present in the model in a non-negated form.
+Since we added special guard rules when introducing the $P_c$ predicates, we can just check that $\bot$ cannot be directly derived to check that no circumscriptive assumption has yet been violated.
 
 Rather than deciding individual facts as we did previously, we now decide aggregates.
 \[
@@ -356,13 +357,13 @@ As before, any subset of a world is also a world
 \]
 
 We define accessibility stepwise again.
-If an aggregate $a$ isn't decided yet, and circumscribing it closed would not cause any inconsistency, we may do it.
+If an aggregate $a$ isn't decided yet, and circumscribing it would not cause any inconsistency, we may do it.
 \[
 	\infer[\textrm{circ}]{\Pi \stepass_a \Pi \cup c}{\Pi \not \decides a & c \in \circset_a(\Pi) & W(\Pi \cup c)}
 \]
 The \trule{circ} rule is analogous to \trule{assume-false} because adding $c$ to $\Pi$ is essentially adding $\forall p \in \viol{\Pi}{c}. \neg p$.
 
-For call/cc, let $\Pi_c$ be $\Pi \cup c$ with all rules of the form $\bot \leftarrow c \wedge p$ removed.
+To support the \texttt{call/cc} feature of Holmes (\S \ref{holmes:sec:callcc}), let $\Pi_c$ be $\Pi \cup c$ with all rules of the form $\bot \leftarrow c \wedge p$ removed.
 In other words, $\Pi_c$ is $\Pi \cup c$, but will ignore inconsistencies derived from the addition of $c$.
 \[\small
 	\infer[\textrm{call/cc}]{\Pi \stepass_a \Pi \cup p}{\Pi \not \decides a & \world{\Pi \cup p} & \not \exists c' \in \circset_a(\Pi). \Pi \stepass_a \Pi \cup c' & \Pi_c \models \dia p}
