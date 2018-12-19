@@ -382,7 +382,7 @@ Finally, for each $P_c$, add a rule
 	\bot \leftarrow P_c(\vec{x}, \vec{y}) \wedge P(\vec{x}, \vec{z}) + \textrm{P-less-than}
 \]
 where P-less-than checks whether $P_c(\vec{x}, \vec{y}) < P(\vec{x}, \vec{z})$ (defined via $\leq$ and $\neq$) and returns a singleton list of no assignments if so, and an empty list otherwise.
-Here, we are using the $\bot$ value added to the Herbrand baseto indicate that this specific circumscriptive guess was contradicted.
+Here, we are using the $\bot$ value added to the Herbrand base to indicate that this specific circumscriptive guess was contradicted.
 This essentially adds a rule saying that an upper bound proposed by $P_c$ must not contradict known information about $P$.
 
 After translating aggregation and circumscription, the program looks like normal Datalog but with functions attached to some rules.
@@ -501,7 +501,7 @@ We define $\leq$ based on $\stepass$ inductively as before.
 Finally, we hold a formula to be true for a Holmes program if after translating it as above to a program $\Pi$, $\Pi \models \dia F$.
 
 \paragraph{Example}
-In the previous section, we finished instantiating Listing~\ref{lst:bigexample} so that it was structured as normal datalog.
+In the previous section, we finished instantiating Listing~\ref{lst:bigexample} so that it was structured as normal Datalog.
 Call that base program $\Pi_0$.
 We have extensionally that $\Pi_0 \models P(1) \wedge P(3) \wedge P(5)$.
 Applying inc and promote\_R gives us that $\Pi_0 \models$

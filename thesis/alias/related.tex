@@ -13,8 +13,8 @@ ASAN accomplishes this via compile-time instrumentation, and Valgrind through a 
 Undangle~\cite{undangle} monitors derived pointers whose allocation the program has freed (dangling pointers) using taint analysis via TEMU (a virtual machine hooking framework on top of QEMU).
 DangNull~\cite{dangnull} uses LLVM to do compile time instrumentation to track dangling pointers, writing \texttt{NULL} to them on free.
 This converts otherwise exploitable conditions into either a DoS (if there was no null handling) or a recoverable error.
-DangSan~\cite{dangsan} follows on the work of DangNull, again doing compile time instrumentation over LLLVM bitcode.
-DangSan distinguishes itself in better multithreaded performance, focusing on only on detection rather than recovery.
+DangSan~\cite{dangsan} follows on the work of DangNull, again doing compile time instrumentation over LLVM bitcode.
+DangSan distinguishes itself in better multi-threaded performance, focusing on only on detection rather than recovery.
 
 The major limitation in dynamic analysis is code coverage.
 Comprehensive test suites can achieve coverage manually, but these are difficult to write and can often miss the faulty cases - if the author were thinking about that case when they wrote the code, they likely would not have written the bug.
