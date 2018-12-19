@@ -35,7 +35,7 @@ This procedure runs until it reaches a fixed point, and produces exactly one wel
 
 In our case, stable-set semantics falls short due to the potential for no model, and the well-founded approach may return partial solutions if there is no stable set or multiple stable sets.
 \subsection{Negation in Holmes}
-Traditional Datalog consists only of a head which is implied by a series of atoms making up a body.
+Traditional Datalog bodies consist only of a set of atoms to be simultaneously satisfied.
 In addition to this, we allow the atoms of the body to be optionally negated.
 In the original input program, the head may not be negated.
 
@@ -99,7 +99,7 @@ We say a program $\Pi$ decides a fact if it models it as either true or false.
 	\infer[\textrm{decide-false}]{\Pi \decides p}{\Pi \models \neg p}
 \]
 
-Now, we are equipped to describe our Kripke frame.
+These rules equip us to describe our Kripke frame.
 A program which decides all predicates and is not inconsistent is a world.
 \[
 	\infer[\textrm{world-base}]{\world{\Pi}}{\cons{\Pi} & \forall p \in \hb(\Pi). \Pi \decides p}
@@ -218,7 +218,7 @@ Since $\Pi \stepass \Pi^+$, by \trule{refl} and \trule{assume} $\Pi \leq \Pi^+$,
 \]
 
 This simple example shows the differences between the approaches.
-In the face of this kind of uncertainty, stable-set semantics will choose not to give an answer, well-founded semantics will not decide either way, and Holmes-style semantics will allow some predicates to be made true without justification to return a consistent complete answer. 
+In the face of this kind of uncertainty, stable-set semantics will choose not to give an answer, well-founded semantics will not decide either way, and Holmes-style semantics will allow call/cc to justify a fact in order to return a consistent complete answer. 
 
 In Holmes, circumscription corresponds to a potentially-infinite variety of \trule{assume-false} in which the program assumes false every version of a specific aggregate greater than the proposed circumscription.
 call/cc corresponds to \trule{assume-true}, but is a bit more complex.
@@ -227,7 +227,7 @@ Since circumscription assumes false for multiple predicates, call/cc must select
 
 \section{Example Input Program}
 The subsequent sections will describe how to support a full Holmes program rather than the toy subset above.
-The following Holmes program will be used as a input example to show how each translation step is performed more concretely.
+We will use the following Holmes program as an input example to show how to perform each translation step more concretely.
 
 \begin{lstlisting}[caption={Holmes Code}\label{lst:bigexample}] 
 P(Int)
@@ -317,8 +317,8 @@ The resulting universe will only be finite if the closure of all the functions a
 This is unlikely to be the case in practical programs: even adding an ``increment'' function is sufficient to cause an infinite universe here.
 
 We construct the Herbrand base $\hb$ by instantiating each predicate at every value of $\hu$ and adding a $\bot$ value.
-When determining what facts may be derived, this $\bot$ acts just like any other member of the base.
-We will later make use of $\bot$ in order to indicate that a circumscription has been contradicted.
+When determining what facts are true, this $\bot$ acts just like any other member of the base.
+We will later make use of $\bot$ in order to indicate that the program contradicts a circumscription and is inconsistent.
 
 \paragraph{Example}
 We start with the extensional database $P(1), P(3), P(5)$ and the program from Listing~\ref{lst:bigexample}.
@@ -347,7 +347,7 @@ Recall that
 \[
 	P(\tau_0 \cdots \tau_m, \sigma_0\wedge j_0 \cdots \sigma_n \wedge j_n)
 \]
-means we have a predicate $P$, which when two instances of $P$ are known for which the first $m + 1$ arguments are equal, the latter $n + 1$ arguments will have their information merged by a lattice join operation indicated by $j_i$.
+means we have a predicate $P$, which when there are two instances of $P$ for which the first $m + 1$ arguments are equal, the latter $n + 1$ arguments will have their information merged by a lattice join operation indicated by $j_i$.
 
 To translate the above form, we create a new function
 \[
@@ -382,7 +382,7 @@ Finally, for each $P_c$, add a rule
 	\bot \leftarrow P_c(\vec{x}, \vec{y}) \wedge P(\vec{x}, \vec{z}) + \textrm{P-less-than}
 \]
 where P-less-than checks whether $P_c(\vec{x}, \vec{y}) < P(\vec{x}, \vec{z})$ (defined via $\leq$ and $\neq$) and returns a singleton list of no assignments if so, and an empty list otherwise.
-Here, we are using the $\bot$ value added to the Herbrand base to indicate that this specific circumscriptive guess was contradicted.
+Here, we are using the $\bot$ value added to the Herbrand base to indicate that the fact matched by the $P$ portion contradicts the circumscriptive guess matched by the $P_c$ portion.
 This essentially adds a rule saying that an upper bound proposed by $P_c$ must not contradict known information about $P$.
 
 After translating aggregation and circumscription, the program looks like normal Datalog but with functions attached to some rules.
@@ -440,11 +440,11 @@ It again only generates rules if there was an output from the function, and adds
 
 \section{Semantics}
 \label{formal:sec:semantics}
-We begin by defining a few extra sets relative to the initial program which will be needed for interpretation.
+We begin by defining a few extra sets relative to the initial program which we will use for interpretation.
 Let $\circset(\Pi) \subseteq \hb(\Pi)$ be the set of circumscripted facts added, e.g. they were of the form $P_c(\cdot)$.
 
 Let $\aggset(\Pi)$ be a set of tuples of an aggregated predicate and all of its non-aggregated inputs.
-For example, for $P(x_0, \cdots x_n, y_0, \cdots y_m)$ and all $y$ are aggregated, $P(x_0, \cdots x_n)$ for each possible value of $x_0$ through $x_n$ would be present in $\aggset(\Pi)$.
+For example, for $P(x_0, \cdots x_n, y_0, \cdots y_m)$ and all $y$ are aggregate fields, $P(x_0, \cdots x_n)$ for each possible value of $x_0$ through $x_n$ would be present in $\aggset(\Pi)$.
 We will refer to members of $\aggset(\Pi)$ as \emph{aggregates}.
 
 Let $\circset_a(\Pi)$ where $a \in \aggset(\Pi)$ be the set of circumscribed facts which correspond to the aggregation $a$.
@@ -458,7 +458,7 @@ Most of this construction should look familiar from the simple negation semantic
 	\infer[\textrm{consistent}]{\cons{\Pi}}{\Pi \not \models \bot}
 \]
 Like previously, consistency here requires that none of the negations assumed by a circumscription also be present in the model in a non-negated form.
-Since we added special guard rules when introducing the $P_c$ predicates, we can just check that $\bot$ cannot be directly derived to check that no circumscriptive assumption has yet been violated.
+Since we added special guard rules when introducing the $P_c$ predicates, we can just check that $\bot$ cannot be directly derived to check that the program does not violate any circumscriptive assumption.
 
 Rather than deciding individual facts as we did previously, we now decide aggregates.
 \[
@@ -501,7 +501,7 @@ We define $\leq$ based on $\stepass$ inductively as before.
 Finally, we hold a formula to be true for a Holmes program if after translating it as above to a program $\Pi$, $\Pi \models \dia F$.
 
 \paragraph{Example}
-In the previous section, we finished instantiating Listing~\ref{lst:bigexample} so that it was structured as normal Datalog.
+In the previous section, we finished instantiating Listing~\ref{lst:bigexample} as normal Datalog.
 Call that base program $\Pi_0$.
 We have extensionally that $\Pi_0 \models P(1) \wedge P(3) \wedge P(5)$.
 Applying inc and promote\_R gives us that $\Pi_0 \models$
@@ -515,7 +515,7 @@ Adding check\_threshold gives additionally that $\Pi_0 \models$
 	Q(102)\\
 	R(\{102\}), R(\{2, 102\}) \cdots R(\{2, 4, 6, 102\})
 \end{align*}
-At $\Pi_0$, force\_odd does nothing, since $R_c$ is unpopulated.
+At $\Pi_0$, force\_odd does nothing, since $R_c$ has no members.
 
 In this case, we have only one aggregate: $R(\cdot)$.
 As a result, there are only two ways forwards - circumscribe or call/cc that aggregate.
