@@ -225,6 +225,65 @@ call/cc corresponds to \trule{assume-true}, but is a bit more complex.
 With finite \trule{assume-false}, the \trule{assume-true} rule can assert as true the undecided predicate for which \trule{assume-false} failed.
 Since circumscription assumes false for multiple predicates, call/cc must select a specific predicate amongst those which has itself given rise to a contradiction to assert as true.
 
+\section{Example Input Program}
+The subsequent sections will describe how to support a full Holmes program rather than the toy subset above.
+The following Holmes program will be used as a input example to show how each translation step is performed more concretely.
+
+\begin{lstlisting}[caption={Holmes Code}\label{lst:bigexample}] 
+P(Int)
+Q(Int)
+R(Set(Int)^union)
+
+inc: Q(y) <- P(x) + (y = inc(x))
+promote_R: R(s) <- Q(x) + (s = promote(x))
+check_threshold: P(x) <- R(s) + (x = threshold(s))
+force_odd: Q(x) <- ~R(s) + (x = all_even(s))
+\end{lstlisting}
+where in pseudocode,
+\begin{lstlisting}[caption={Procedural Pseudocode}\label{lst:bigfuncs}]
+fn inc(x: Int) -> [Int] {
+  return [x + 1]
+}
+
+fn promote(x: Int) -> [Set(Int)] {
+  return [Set.singleton(x)]
+}
+
+fn threshold(s: Set(Int)) -> [Int] {
+  if s.sum() > 7 {
+    return [101]  
+  } else {
+    return []
+  }
+}
+
+fn force_odd(s: Set(Int)) -> [Int] {
+  if s.all(is_even) {
+    return [s.max() + 1]
+  } else {
+    return []
+  }
+}
+\end{lstlisting}
+
+In Listing~\ref{lst:bigexample}, we have explicitly written the input and output variables for clarity.
+In the actual existing Holmes implementation, these rules would lack those bindings.
+The variables bound in the body and free in the head would imply the inputs and outputs:
+\begin{lstlisting}[numbers=none]
+force_odd: Q(x) <- ~R(s) + all_even
+\end{lstlisting}
+
+This program has three predicates - $P$, $Q$, and $R$.
+$P$ and $Q$ range over integers.
+$R$ ranges over sets of integers, and aggregates those sets via union.
+Since $R$ has no non-aggregate parameters, every fact added to $R$ will aggregate.
+The \texttt{inc} rule causes $Q$ to contain the next integer for every member of $P$.
+The \texttt{promote_R} rule creates singleton sets from every member of $Q$ and puts them into $R$.
+\texttt{check_threshold} adds $P(101)$ if $R$ has a set which sums to more than $7$.
+Finally, \texttt{force_odd} will add an odd number to $R$'s set if it does not contain one by adding one more than the maximum of the set.
+Since \texttt{force_odd} circumscribes on $R$, it should do this only if the final result would otherwise contain only even numbers.
+The rule would do nothing on an intermediate state, unlike \texttt{check_threshold}.
+\
 \section{Herbrandization (Revisited)}
 \label{formal:sec:herbrand}
 In the previous setting, we did not have any form of external code, and so could not produce new symbols.
@@ -260,6 +319,27 @@ This is unlikely to be the case in practical programs: even adding an ``incremen
 We construct the Herbrand base $\hb$ by instantiating each predicate at every value of $\hu$ and adding a $\bot$ value.
 When determining what facts may be derived, this $\bot$ acts just like any other member of the base.
 We will later make use of $\bot$ in order to indicate that a circumscription has been contradicted.
+
+\paragraph{Example}
+We start with the extensional database $P(1), P(3), P(5)$ and the program from Listing~\ref{lst:bigexample}.
+Beginning with Herbrandization, we have
+\[
+	U_0 = \{1, 3, 5\}
+\]
+since no other constants are present in the rules.
+Applying all function symbols possible to $U_0$ gives us
+\[
+	U_1 = \{2, 4, 6, \{1\}, \{3\}, \{5\}\}
+\]
+Repeating the process gives
+\[
+	U_2 = \{3, 5, 7, \{2\}, \{4\}, \{6\}, \{1, 3\}, \{1, 5\}, \{3, 5\}\}
+\]
+and so on, so that $\hu$ is the set of all integers $\geq 1$ and all sets of such integers.
+To create $\hb$, we instantiate all predicates in against compatible values in $\hu$, giving
+\[
+	\hb = \{P(1), P(2), \cdots, Q(1), Q(2), \cdots, R(\{1\}), R(\{2\}), \cdots, R(\{1, 2\}) \cdots\}
+\]
 
 \subsection{Program Instantiation}
 For predicates which have aggregation (\S~\ref{holmes:sec:agg}), rewrite them as rules with interpreted functions.
@@ -312,6 +392,51 @@ This will result in a rules of the form
 	p \leftarrow \bigwedge q_i
 \]
 where $p, q_i \in \hb$.
+
+\paragraph{Example}
+We now focus on instantiating the program given in Listing~\ref{lst:bigexample} based on the universe from the previous section.
+
+Instantiating inc and promote_R gives
+\begin{align*}
+	Q(2) &\leftarrow P(1)\\
+	Q(3) &\leftarrow P(2)\\
+	&\vdots\\
+	R(\{1\}) &\leftarrow Q(1)\\
+	R(\{2\}) &\leftarrow Q(2)\\
+	\vdots\\
+\end{align*}
+which is analogous to what we did in the finite example.
+
+The guards and combination rules for our aggregated predicate $R$ look like
+\begin{align*}
+	R(\{1, 2\}) &\leftarrow R(\{1\}) \wedge R(\{2\})\\
+	R(\{1, 3\}) &\leftarrow R(\{1\}) \wedge R(\{3\})\\
+	\vdots\\
+	\bot &\leftarrow R_c(\{1\}) \wedge R(\{2\})\\
+	\bot &\leftarrow R_c(\{1\}) \wedge R(\{3\})\\
+	\vdots\\
+\end{align*}
+The first half describes the instantiation of the ``union'' aggregator on $R$.
+The second half has the guard rules which derive $\bot$ if the program exceeds a bound.
+
+The rule check\_threshold translates to
+\begin{align*}
+	P(101) &\leftarrow R(\{8\})\\
+	P(101) &\leftarrow R(\{9\})\\
+	\vdots\\
+	P(101) &\leftarrow R(\{1, 7\})\\
+	\vdots\\
+\end{align*}
+Since assignments are not generated when the condition is not met (value sums to $> 7$), this is a rule for each set which has a sum more than 7.
+
+Finally, force\_odd instantiates as
+\begin{align*}
+	Q(3) &\leftarrow R(\{2\}) \wedge R_c(\{2\})\\
+	Q(5) &\leftarrow R(\{4\}) \wedge R_c(\{4\})\\
+	Q(5) &\leftarrow R(\{2, 4\}) \wedge R_c(\{2, 4\})\\
+	\vdots
+\end{align*}
+It again only generates rules if there was an output from the function, and adds an odd number to $R$ if it doesn't already have one by adding the max plus 1.
 
 \section{Semantics}
 \label{formal:sec:semantics}
@@ -375,119 +500,9 @@ It is only accessible when \trule{circ} (which was similar to \trule{assume-fals
 We define $\leq$ based on $\stepass$ inductively as before.
 Finally, we hold a formula to be true for a Holmes program if after translating it as above to a program $\Pi$, $\Pi \models \dia F$.
 
-\section{Full Example}
-To see how this works in practice, we consider the program
-\begin{lstlisting}[caption={Holmes Code}\label{lst:bigexample}] 
-P(Int)
-Q(Int)
-R(Set(Int)^union)
-
-inc: Q(y) <- P(x) + (y = inc(x))
-promote_R: R(s) <- Q(x) + (s = promote(x))
-check_threshold: P(x) <- R(s) + (x = threshold(s))
-force_odd: Q(x) <- ~R(s) + (x = all_even(s))
-\end{lstlisting}
-where in pseudocode,
-\begin{lstlisting}[caption={Procedural Pseudocode}\label{lst:bigfuncs}]
-fn inc(x: Int) -> [Int] {
-  return [x + 1]
-}
-
-fn promote(x: Int) -> [Set(Int)] {
-  return [Set.singleton(x)]
-}
-
-fn threshold(s: Set(Int)) -> [Int] {
-  if s.sum() > 7 {
-    return [101]  
-  } else {
-    return []
-  }
-}
-
-fn force_odd(s: Set(Int)) -> [Int] {
-  if s.all(is_even) {
-    return [s.max() + 1]
-  } else {
-    return []
-  }
-}
-\end{lstlisting}
-
-In Listing~\ref{lst:bigexample}, we have explicitly written the input and output variables for clarity.
-In the actual existing Holmes implementation, these rules would lack those bindings.
-The variables bound in the body and free in the head would imply the inputs and outputs:
-\begin{lstlisting}[numbers=none]
-force_odd: P(x) <- ~R(s) + all_even
-\end{lstlisting}
-
-
-\subsection{Herbrandization}
-We start with the extensional database $P(1), P(3), P(5)$.
-Beginning with Herbrandization, we have
-\[
-	U_0 = \{1, 3, 5\}
-\]
-since no other constants are present in the rules.
-Applying all function symbols possible to $U_0$ gives us
-\[
-	U_1 = \{2, 4, 6, \{1\}, \{3\}, \{5\}\}
-\]
-Repeating the process gives
-\[
-	U_2 = \{3, 5, 7, \{2\}, \{4\}, \{6\}, \{1, 3\}, \{1, 5\}, \{3, 5\}\}
-\]
-and so on, so that $\hu$ is the set of all integers $\geq 1$ and all sets of such integers.
-To create $\hb$, we instantiate all predicates in against compatible values in $\hu$, giving
-\[
-	\hb = \{P(1), P(2), \cdots, Q(1), Q(2), \cdots, R(\{1\}), R(\{2\}), \cdots, R(\{1, 2\}) \cdots\}
-\]
-
-\subsection{Instantiation}
-Instantiating inc and promote_R gives
-\begin{align*}
-	Q(2) &\leftarrow P(1)\\
-	Q(3) &\leftarrow P(2)\\
-	&\vdots\\
-	R(\{1\}) &\leftarrow Q(1)\\
-	R(\{2\}) &\leftarrow Q(2)\\
-	\vdots\\
-\end{align*}
-which is analogous to what we did in the finite example.
-
-The guards and combination rules for our aggregated predicate $R$ look like
-\begin{align*}
-	R(\{1, 2\}) &\leftarrow R(\{1\}) \wedge R(\{2\})\\
-	R(\{1, 3\}) &\leftarrow R(\{1\}) \wedge R(\{3\})\\
-	\vdots\\
-	\bot &\leftarrow R_c(\{1\}) \wedge R(\{2\})\\
-	\bot &\leftarrow R_c(\{1\}) \wedge R(\{3\})\\
-	\vdots\\
-\end{align*}
-The first half describes the instantiation of the ``union'' aggregator on $R$.
-The second half has the guard rules which derive $\bot$ if the program exceeds a bound.
-
-The rule check\_threshold translates to
-\begin{align*}
-	P(101) &\leftarrow R(\{8\})\\
-	P(101) &\leftarrow R(\{9\})\\
-	\vdots\\
-	P(101) &\leftarrow R(\{1, 7\})\\
-	\vdots\\
-\end{align*}
-Since assignments are not generated when the condition is not met (value sums to $> 7$), this is a rule for each set which has a sum more than 7.
-
-Finally, force\_odd instantiates as
-\begin{align*}
-	Q(3) &\leftarrow R(\{2\}) \wedge R_c(\{2\})\\
-	Q(5) &\leftarrow R(\{4\}) \wedge R_c(\{4\})\\
-	Q(5) &\leftarrow R(\{2, 4\}) \wedge R_c(\{2, 4\})\\
-	\vdots
-\end{align*}
-It again only generates rules if there was an output from the function, and adds an odd number to $R$ if it doesn't already have one by adding the max plus 1.
-
-\subsection{World Exploration}
-Call our base program as translated and instantiated $\Pi_0$.
+\paragraph{Example}
+In the previous section, we finished instantiating Listing~\ref{lst:bigexample} so that it was structured as normal datalog.
+Call that base program $\Pi_0$.
 We have extensionally that $\Pi_0 \models P(1) \wedge P(3) \wedge P(5)$.
 Applying inc and promote\_R gives us that $\Pi_0 \models$
 \begin{align*}
